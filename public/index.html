@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1828">
+<title>Operacja Biegun</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Układ: „terminal misji” – wąska kolumna na telefon, szeroka siatka na rzutnik (#ekran). Jeden ciemny motyw: noc polarna. */
+:root{
+  --night:#0d1828; --panel:#14233a; --panel2:#1a2d49; --line:#2a4266;
+  --text:#e9eff7; --muted:#93a7c3; --red:#e5554f; --gold:#f2c14e; --ok:#52c48f;
+  --f-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--night);color:var(--text);margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{font-family:var(--f-body);font-size:16px;line-height:1.5;min-height:100vh;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px;
+  background-image:radial-gradient(1200px 500px at 50% -200px,#1b3352 0%,transparent 70%);background-repeat:no-repeat}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.wide{max-width:1400px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:1.9rem} h2{font-size:1.3rem} h3{font-size:1.05rem}
+p{margin:0}
+.mono{font-family:var(--f-mono)}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+button.card{text-align:left;color:inherit;font:inherit;cursor:pointer;width:100%}
+button.card:hover{border-color:var(--gold)}
+.btn{font:600 1rem var(--f-body);border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--gold);color:#1d1606;min-height:46px}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.red{background:var(--red);color:#fff}
+.btn.ok{background:var(--ok);color:#06210f}
+.btn.sm{padding:6px 12px;min-height:34px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+input,select{font:500 1rem var(--f-body);background:var(--night);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px 12px;width:100%;min-height:46px}
+input.code{font-family:var(--f-mono);letter-spacing:.2em;text-transform:uppercase;font-size:1.2rem}
+label{display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 .75rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
+.pill.lock{color:var(--red);border-color:color-mix(in srgb,var(--red) 50%,transparent)}
+.pill.gold{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 50%,transparent)}
+.msg{font-size:.92rem;padding:10px 12px;border-radius:8px;background:var(--panel2)}
+.msg.err{color:#ffd0ce;background:color-mix(in srgb,var(--red) 22%,var(--panel))}
+.msg.good{color:#c9f2dc;background:color-mix(in srgb,var(--ok) 20%,var(--panel))}
+ul.tips{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:6px}
+.back{background:none;border:0;color:var(--muted);font:500 .95rem var(--f-body);cursor:pointer;padding:6px 0;align-self:flex-start}
+.back:hover{color:var(--text)}
+.term-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.badge{font-family:var(--f-mono);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;text-align:right;font-size:.8rem;color:var(--muted);max-width:50%;overflow-wrap:anywhere}
+.badge b{display:block;color:var(--gold);font-size:1.1rem;letter-spacing:.12em}
+.alert{border-left:3px solid var(--red);padding:2px 0 2px 12px;font-family:var(--f-mono);font-size:.85rem;color:#ffc2bf}
+.key{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.key span{font:600 .8rem var(--f-mono);text-align:center;padding:10px 4px;border-radius:6px;border:1px dashed var(--line);color:var(--muted);letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis}
+.key span.on{border-style:solid;border-color:var(--gold);color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+.st-num{font:700 2rem var(--f-display);color:var(--gold);line-height:1}
+.deck{position:relative;height:300px;touch-action:pan-y}
+.swipe{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;user-select:none;transition:transform .25s ease,opacity .25s ease;cursor:grab}
+.swipe .from{font:600 .8rem var(--f-mono);color:var(--muted)}
+.swipe .body{font-size:1.08rem}
+.swipe .stamp{position:absolute;top:16px;right:16px;font:700 1.1rem var(--f-display);padding:4px 10px;border:2px solid;border-radius:6px;opacity:0;transform:rotate(8deg)}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{font:500 1rem var(--f-body);text-align:left;background:var(--night);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer;width:100%}
+.opt[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,var(--night))}
+.opt.right{border-color:var(--ok)} .opt.wrong{border-color:var(--red)}
+.cipher{font:600 1.35rem var(--f-mono);letter-spacing:.18em;word-break:break-word;color:var(--gold)}
+.codebox{font:700 2.2rem var(--f-mono);letter-spacing:.3em;text-align:center;color:var(--gold);padding:14px;border:1px solid var(--gold);border-radius:10px;background:color-mix(in srgb,var(--gold) 8%,transparent);overflow-wrap:anywhere}
+.url{font-family:var(--f-mono);font-size:.92rem;word-break:break-all}
+.bar{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold);border-radius:99px;transition:width .6s ease}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-size:.92rem;vertical-align:middle}
+th{font:600 .72rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+td.num,th.num{text-align:right}
+.tablewrap{overflow-x:auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font:600 .9rem var(--f-body);background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:8px 14px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--gold);color:#1d1606;border-color:var(--gold)}
+.members{display:flex;flex-wrap:wrap;gap:6px}
+.screen{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.screen{grid-template-columns:1fr}}
+.school{display:grid;grid-template-columns:64px 1fr auto;gap:18px;align-items:center;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.school .place{font:700 3rem var(--f-display);color:var(--muted);text-align:center}
+.school.first{border-color:var(--gold)} .school.first .place{color:var(--gold)}
+.school .nm{font:700 1.6rem var(--f-display)}
+.school .avg{font:700 2.6rem var(--f-display);font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.school .avg small{display:block;font:500 .8rem var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.school .bar{height:14px;margin-top:10px}
+.clock{font:700 2.4rem var(--f-display);font-variant-numeric:tabular-nums}
+.feed{display:flex;flex-direction:column;gap:8px}
+.feed div{font-family:var(--f-mono);font-size:.95rem;padding:8px 12px;border-radius:8px;background:var(--panel)}
+.feed b{color:var(--ok)}
+.mail{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mline{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;font:400 .95rem/1.45 var(--f-body);color:var(--text);border-left:3px solid transparent}
+.mline:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.mline.sel{background:color-mix(in srgb,var(--gold) 12%,var(--panel));border-left-color:var(--gold)}
+.mline.right{border-left-color:var(--ok)} .mline.wrong{border-left-color:var(--red)}
+.mline.mlink{color:#8fc1ff;text-decoration:underline;font-family:var(--f-mono);font-size:.85rem;overflow-wrap:anywhere}
+.mline.matt{font-family:var(--f-mono);font-size:.88rem}
+.mline .why{display:block;margin-top:6px;font:400 .85rem var(--f-body);color:var(--muted);text-decoration:none}
+.browser{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.browser-bar{display:flex;gap:6px;align-items:center;padding:8px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.browser-bar .lock{font-size:.9rem}
+.urlbar{font:500 .92rem var(--f-mono);min-height:38px;padding:6px 10px;flex:1;min-width:0}
+.browser-page{padding:16px;display:flex;flex-direction:column;gap:8px;min-height:160px}
+.logs{display:flex;flex-direction:column;gap:4px;background:#060d18;border:1px solid var(--line);border-radius:10px;padding:8px;overflow-x:auto}
+.logline{all:unset;box-sizing:border-box;display:grid;grid-template-columns:64px 112px 78px 1fr;gap:8px;font:500 .8rem/1.4 var(--f-mono);color:var(--text);padding:6px 8px;border-radius:6px;cursor:pointer;min-width:420px}
+.logline:hover:not(:disabled){background:var(--panel2)} .logline:focus-visible{outline:2px solid var(--gold)}
+.logline.fail .lr{color:#ff9d98} .logline .lt{color:var(--muted)}
+.logline.hit{background:color-mix(in srgb,var(--ok) 22%,transparent)}
+.logline.gap{cursor:default;color:var(--muted);display:block;text-align:center;font-style:italic}
+.door{border-radius:16px;border:2px solid var(--line);background:var(--panel);padding:28px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;min-height:280px;justify-content:center;transition:background .2s,border-color .2s}
+.door.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--panel))}
+.door.deny{border-color:var(--red);background:color-mix(in srgb,var(--red) 16%,var(--panel))}
+.door.learn{border-color:var(--gold)}
+.door-icon{font-size:3.4rem;line-height:1}
+.door-title{font:700 1.6rem var(--f-display)}
+.door-sub{font:500 .9rem var(--f-mono);color:var(--muted);overflow-wrap:anywhere}
+.door .codebox{width:100%}
+.vault{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.vault{grid-template-columns:1fr}}
+.vault-side{position:sticky;top:16px}
+@media (max-width:900px){.vault-side{position:static}}
+.vopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:420px){.vopts{grid-template-columns:1fr}}
+.vopts .opt b{font-weight:600}
+.hashline{font:600 1.15rem var(--f-mono);letter-spacing:.06em;color:var(--gold);overflow-wrap:anywhere}
+.console{font:500 .88rem/1.5 var(--f-mono);background:#060d18;border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-height:300px;max-height:300px;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere}
+.console .dim{color:var(--muted)} .console .good{color:var(--ok);font-weight:600} .console .bad{color:#ff9d98} .console .hint{color:var(--gold)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app" class="wrap"><p class="muted">Uruchamiam terminal…</p></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, runTransaction, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* Konfiguracja Firebase. Na Firebase Hosting pobiera się sama z /__/firebase/init.json.
+   Do testów na innym hostingu wklej tu obiekt z konsoli (Ustawienia projektu → Twoje aplikacje). */
+const MANUAL_CONFIG = null;
+
+/* ===================== DANE GRY ===================== */
+const STATION_PTS = 100;
+const STATIONS = [
+  { id:"s1", nr:1, name:"Przechwycenie", topic:"Wi-Fi i Flipper Zero", frag:"SANIE",
+    intro:"Grinch postawił przy fabryce fałszywą sieć Wi-Fi. Elfy logowały się do niej i oddawały hasła. Zobaczcie, jak działa taka pułapka, a potem jak szybko pada słabe hasło do routera warsztatu. To hasło jest waszym PIN-em.",
+    story:"Fałszywy hotspot wyłączony. W logach widać, że Grinch podsłuchiwał elfów z parkingu. Pierwszy fragment klucza odzyskany.",
+    tips:["Otwarte Wi-Fi z ładną stroną logowania mógł postawić każdy. Nie wpisujcie tam haseł do kont.","W kawiarni czy na dworcu korzystajcie z internetu komórkowego.","Krótkie hasło do domowego Wi-Fi da się złamać bardzo szybko. Ustawcie długie."] },
+  { id:"s2", nr:2, name:"Złam skarbiec", topic:"Symulator łamania haseł", frag:"ZORZA",
+    intro:"Grinch zmienił hasło administratora do skarbca z listą prezentów, ale zostawił ślady w sali. Dobierzcie w symulatorze typ hasha, słownik i maskę. Złamane hasło to wasz PIN.",
+    story:"Skarbiec otwarty. Hasło administratora składało się z imienia renifera i daty. Takie hasła wpadają w kilka sekund. Drugi fragment klucza jest wasz.",
+    tips:["Imiona, daty i nazwy drużyn to pierwsze, co sprawdza słownik.","Długa fraza z kilku losowych słów jest dużo mocniejsza niż krótkie „H@sło1!”.","Menedżer haseł pozwala mieć różne hasło do każdego konta."] },
+  { id:"s3", nr:3, name:"Fałszywy Mikołaj", topic:"Śledztwo SOC: phishing, portal, logi", frag:"PIERNIK", hasTask:true,
+    intro:"Księgowa fabryki dostała maila „od Mikołaja” i zatwierdziła przelew. Chwilę później ktoś grzebał w portalu prezentów. Jesteście zespołem SOC: przeanalizujcie maila, portal i logi serwera. Każde zadanie daje fragment PIN-u. Kod wejścia do śledztwa poda prowadzący.",
+    story:"Mail przyszedł z podrobionym adresem do odpowiedzi, portal pokazywał cudze listy po zmianie numeru w adresie, a w logach widać, że Grinch zgadywał hasło admina przez 7 minut. Trzeci fragment klucza odzyskany.",
+    tips:["Zanim klikniecie, sprawdźcie, kto naprawdę pisze i dokąd prowadzi link.","„Pilne!” i „do 17:00” to presja, która ma wyłączyć myślenie. Prośbę o pieniądze potwierdzajcie telefonicznie.","Jeśli po zmianie numeru w adresie widać cudze dane, to błąd strony. Zgłoście go, nie wykorzystujcie.","Setki nieudanych logowań z jednego adresu to atak. Dlatego konta blokują się po kilku próbach, a hasło admina musi być długie."] },
+  { id:"s4", nr:4, name:"Biuro Grincha", topic:"Bezpieczeństwo fizyczne i Flipper Zero", frag:"RENIFER",
+    intro:"Grinch wszedł do warsztatu z kopią karty elfa. Powtórzcie jego drogę: przeszukajcie biurko i ustalcie, czyja karta otwiera warsztat. Potem z pomocą członka koła skopiujcie ją Flipperem i przyłóżcie kopię do czytnika przy drzwiach. Czytnik pokaże PIN.",
+    story:"Grinch nie musiał niczego łamać. Grafik dyżurów zdradził, czyja karta otwiera warsztat, a kartę elfa dało się skopiować w kilka sekund, gdy wyjął ją z etui. Ostatni fragment klucza jest wasz.",
+    tips:["Karteczka z hasłem przy monitorze przekreśla nawet najlepsze hasło.","Grafiki, identyfikatory i plany budynku na widoku mówią obcym, kogo i gdzie szukać.","Karty dostępu to klucze. Część z nich da się odczytać z bliska i skopiować w kilka sekund. Trzymajcie je w etui ekranującym.","Nie podłączajcie znalezionych pendrive'ów."] }
+];
+const SIDE = [
+  { id:"p1", name:"Prezent czy pułapka?", max:30, short:"Oceńcie 8 wiadomości. Trzeba trafić co najmniej 6." },
+  { id:"p2", name:"Hasło do sań", max:20, short:"4 pytania o hasła. Trzeba trafić co najmniej 3." },
+  { id:"p3", name:"Szyfr elfów", max:20, short:"Odszyfrujcie wiadomość przechwyconą od Grincha." },
+  { id:"p4", name:"Co zdradza zdjęcie?", max:20, short:"Znajdźcie wszystko, co relacja mówi o autorce." },
+  { id:"p5", name:"Darmowe pierniki", max:30, short:"Gdzieś na korytarzu wisi plakat z darmowymi piernikami. Znajdźcie go." }
+];
+const BONUS_MAX = 100;
+const MESSAGES = [
+  { from:"SMS · 8080", body:"InPost: Twoja paczka jest wstrzymana. Dopłać 1,99 zł za dostawę: inpost-pl.delivery-24.com", bad:true, why:"Prawdziwa domena to inpost.pl. Tu „inpost” jest tylko ozdobą przed delivery-24.com." },
+  { from:"Aplikacja banku", body:"Zalogowano w aplikacji na nowym telefonie. To nie Ty? Zadzwoń na numer z odwrotu swojej karty.", bad:false, why:"Nie ma linku i nikt nie prosi o dane. Każe zadzwonić na numer, który sam znasz." },
+  { from:"Messenger · Kuba z 2B", body:"Hej, pilne!! Możesz mi podać kod BLIK na 200 zł? Oddam jutro, przysięgam", bad:true, why:"Klasyka przejętego konta. Zadzwoń do Kuby na zwykły numer, zanim cokolwiek zrobisz." },
+  { from:"e-mail · konkurs@biedronka-nagrody.shop", body:"Gratulacje! Wylosowano Cię w świątecznym konkursie. Odbierz iPhone 17 w ciągu 24 h.", bad:true, why:"Konkurs, w którym nie brałeś udziału, obca domena i presja czasu. Trzy czerwone flagi naraz." },
+  { from:"SMS · Allegro", body:"Ostatnie godziny Black Week! Do -70%: allegro.pl.okazje-swieta.com", bad:true, why:"Liczy się końcówka adresu. Ta strona należy do okazje-swieta.com, nie do allegro.pl." },
+  { from:"Powiadomienie w aplikacji Librus", body:"Nowa wiadomość od wychowawcy: zmiana godziny wigilii klasowej.", bad:false, why:"Przyszło w samej aplikacji, a nie SMS-em z linkiem. Nikt nie prosi o hasło." },
+  { from:"Na parkomacie przy szkole", body:"Naklejka: „Zapłać szybciej – zeskanuj kod QR”", bad:true, why:"Naklejone kody QR to częsta pułapka. Płać w oficjalnej aplikacji albo na samym parkomacie." },
+  { from:"e-mail · Steam", body:"Znajomy wysłał Ci skin w prezencie! Zaloguj się, aby odebrać: steamcommunlty.com", bad:true, why:"Przyjrzyj się: „communlty” z literą l zamiast i. Fałszywa strona ukradnie konto." }
+];
+const PASS_Q = [
+  { q:"Które hasło najtrudniej złamać?", a:["Mikolaj2026!","qwerty123","renifer-pierniki-sanki-zorza","M1k0l@j"], ok:2, why:"Długość wygrywa. Cztery losowe słowa są dużo mocniejsze niż krótkie hasło z podmienionymi literami." },
+  { q:"Elf ma to samo hasło do Instagrama i do poczty. Instagram ma wyciek. Co się stanie?", a:["Nic, wyciekł tylko Instagram","Przestępcy spróbują tego hasła na poczcie i innych kontach","Hasło samo się zmieni"], ok:1, why:"Wykradzione hasła sprawdza się automatycznie na setkach serwisów. Każde konto potrzebuje innego hasła." },
+  { q:"Co najlepiej chroni konto, nawet gdy hasło wycieknie?", a:["Dłuższy login","Weryfikacja dwuetapowa (np. aplikacja z kodami)","Zmiana zdjęcia profilowego"], ok:1, why:"Z samym hasłem przestępca nie przejdzie drugiego kroku." },
+  { q:"Gdzie trzymać 30 różnych haseł?", a:["W notatce w telefonie","Na karteczce przy monitorze","W menedżerze haseł","Wszędzie to samo hasło"], ok:2, why:"Menedżer haseł zapamięta je za Ciebie i podpowie tylko na właściwej stronie." }
+];
+const CIPHER = "PQZHE IT XFS YT UNJWSNP";
+const PHOTO = [
+  { t:"Leżąca na ławce legitymacja z imieniem, nazwiskiem i nazwą szkoły", leak:true },
+  { t:"Widok z okna na charakterystyczną wieżę kościoła naprzeciwko szkoły", leak:true },
+  { t:"Kubek z herbatą", leak:false },
+  { t:"Karteczka z hasłem do Wi-Fi przyklejona do monitora", leak:true },
+  { t:"Choinka z bombkami", leak:false },
+  { t:"Oznaczona lokalizacja w relacji", leak:true }
+];
+const URLS = [
+  { u:"https://www.instagram.com/accounts/login", fake:false },
+  { u:"https://instagram.com-login.verify-account.io", fake:true },
+  { u:"https://www.facebook.com.secure-login.pl", fake:true },
+  { u:"https://allegro.pl/moje-allegro", fake:false },
+  { u:"https://www.paypa1.com/signin", fake:true },
+  { u:"https://accounts.google.com/signin", fake:false },
+  { u:"https://vinted-pl.payment-confirm.shop", fake:true },
+  { u:"https://www.gov.pl/web/mobywatel", fake:false }
+];
+const DEFAULT_SCHOOLS = ["Szkoła 1","Szkoła 2","Szkoła 3"];
+const ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_RE = /^[A-Z2-9]{4}$/;
+
+/* ===================== NARZĘDZIA ===================== */
+function h(tag, props, ...kids){
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(props||{})){
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, "");
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const c of kids.flat(Infinity)){
+    if (c == null || c === false) continue;
+    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+const norm = s => String(s||"").toUpperCase().replace(/\s+/g,"");
+const app = document.getElementById("app");
+const put = (...n) => app.replaceChildren(...n.flat(Infinity).filter(x => x != null && x !== false));
+const ls = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k,v); } catch(e){} }
+};
+function randomCode(){ const b = crypto.getRandomValues(new Uint8Array(4)); return [...b].map(x=>ALPH[x%32]).join(""); }
+function denied(e){ return e && (e.code === "permission-denied" || e.code === "firestore/permission-denied"); }
+
+/* ===================== STAN ===================== */
+const S = {
+  fb:null, auth:null, db:null, user:null,
+  code: ls.get("ob_team") || "", nick: ls.get("ob_nick") || "",
+  team:null, teamLoaded:false, members:[],
+  teams:[], teamsLoaded:false, config:{},
+  isAdmin:false, error:"", notice:""
+};
+let view = { type:"home" };
+let unsubTeam = null, unsubMembers = null;
+
+function schools(){ const s = S.config.schools; return Array.isArray(s) && s.length===3 ? s.map((x,i)=>String(x||DEFAULT_SCHOOLS[i])) : DEFAULT_SCHOOLS; }
+function pointsOf(t){
+  const u = t.unlocked||{}, s = t.side||{};
+  return STATIONS.filter(x=>u[x.id]).length * STATION_PTS + SIDE.filter(x=>s[x.id]).reduce((a,x)=>a+x.max,0) + (Number(t.bonus)||0);
+}
+function stationsOf(t){ return STATIONS.filter(x=>(t.unlocked||{})[x.id]).length; }
+function ranking(){
+  const teams = S.teams.map(t=>({ ...t, points:pointsOf(t), st:stationsOf(t) })).sort((a,b)=>b.points-a.points || a.name.localeCompare(b.name));
+  const sch = schools().map((name,i)=>{
+    // do średniej liczą się tylko drużyny, które zaliczyły co najmniej 1 stację (puste drużyny nie psują wyniku)
+    const ts = teams.filter(t=>t.school===i && t.st>0);
+    const sum = ts.reduce((a,t)=>a+t.points,0);
+    return { i, name, count:ts.length, sum, avg: ts.length ? Math.round(sum/ts.length) : 0 };
+  }).sort((a,b)=>b.avg-a.avg || b.sum-a.sum);
+  return { teams, sch };
+}
+
+/* ===================== FIREBASE ===================== */
+async function boot(){
+  let cfg = MANUAL_CONFIG;
+  if (!cfg){
+    try { const r = await fetch("/__/firebase/init.json"); if (r.ok) cfg = await r.json(); } catch(e){}
+  }
+  if (!cfg){ put(h("h1",null,"Operacja Biegun"), h("div",{class:"msg err"},"Brak konfiguracji Firebase. Wgraj stronę na Firebase Hosting albo wklej konfigurację w MANUAL_CONFIG.")); return; }
+  S.fb = initializeApp(cfg); S.auth = getAuth(S.fb); S.db = getFirestore(S.fb);
+  onAuthStateChanged(S.auth, async user => {
+    if (!user){
+      try { await signInAnonymously(S.auth); } catch(e){ S.error = "Nie mogę połączyć się z serwerem gry. Sprawdź internet i odśwież stronę."; render(); }
+      return;
+    }
+    S.user = user; S.isAdmin = false;
+    if (!user.isAnonymous){
+      try { S.isAdmin = (await getDoc(doc(S.db,"admins",user.uid))).exists(); } catch(e){ S.isAdmin = false; }
+    }
+    if (S.code) watchTeam(S.code);
+    render();
+  });
+  onSnapshot(collection(S.db,"teams"), snap=>{
+    const first = !S.teamsLoaded;
+    const before = Object.fromEntries(S.teams.map(t=>[t.id, pointsOf(t)]));
+    S.teams = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    S.teamsLoaded = true;
+    if (!first) for (const t of S.teams){ const d = pointsOf(t) - (before[t.id] ?? 0); if (d > 0) FEED.unshift({ team:t.name, d, at:Date.now() }); }
+    FEED.length = Math.min(FEED.length, 6);
+    refresh();
+  }, ()=>{ S.error = "Nie mogę pobrać rankingu."; refresh(); });
+  onSnapshot(doc(S.db,"config","main"), s=>{ S.config = s.exists() ? s.data() : {}; refresh(); }, ()=>{});
+  render();
+}
+const FEED = [];
+
+function watchTeam(code){
+  unsubTeam?.(); unsubMembers?.();
+  S.teamLoaded = false;
+  unsubTeam = onSnapshot(doc(S.db,"teams",code), async s=>{
+    if (!s.exists()){
+      leaveLocal("Waszej drużyny nie ma już w grze (organizator mógł ją usunąć). Załóżcie nową albo dołączcie do innej.");
+      return;
+    }
+    S.team = { id:s.id, ...s.data() }; S.teamLoaded = true;
+    refresh();
+  }, ()=>{});
+  unsubMembers = onSnapshot(collection(S.db,"teams",code,"members"), async s=>{
+    S.members = s.docs.map(d=>({ id:d.id, ...d.data() }));
+    // ten telefon zgubił członkostwo (np. wyczyszczone dane) – dołącz ponownie po cichu
+    if (S.user && !S.members.some(m=>m.id===S.user.uid)){
+      try { await setDoc(doc(S.db,"teams",code,"members",S.user.uid), { nick:S.nick.slice(0,20), joinedAt:serverTimestamp() }); } catch(e){}
+    }
+    refresh();
+  }, ()=>{});
+}
+function leaveLocal(notice){
+  unsubTeam?.(); unsubMembers?.(); unsubTeam = unsubMembers = null;
+  S.code = ""; S.team = null; S.members = []; S.teamLoaded = false; ls.set("ob_team", null);
+  S.notice = notice || ""; view = { type:"home" }; joinMode = "join"; render();
+}
+async function createTeam(name, school, nick){
+  for (let i=0;i<5;i++){
+    const code = randomCode();
+    const b = writeBatch(S.db);
+    b.set(doc(S.db,"teams",code), { name, school, createdAt:serverTimestamp(), createdBy:S.user.uid, unlocked:{}, side:{} });
+    b.set(doc(S.db,"teams",code,"members",S.user.uid), { nick, joinedAt:serverTimestamp() });
+    try { await b.commit(); return code; } catch(e){ if (!denied(e)) throw e; /* kod zajęty – losuj dalej */ }
+  }
+  throw new Error("Nie udało się założyć drużyny. Spróbujcie jeszcze raz.");
+}
+async function joinTeam(code, nick){
+  const t = await getDoc(doc(S.db,"teams",code));
+  if (!t.exists()) return false;
+  await setDoc(doc(S.db,"teams",code,"members",S.user.uid), { nick, joinedAt:serverTimestamp() });
+  return true;
+}
+// Transakcja zamiast zwykłego zapisu: wynik pojawia się dopiero, gdy serwer go przyjmie
+// (zwykły zapis na chwilę pokazałby „odblokowane” nawet przy złym PIN-ie).
+async function saveProgress(path, value){
+  const ref = doc(S.db,"teams",S.code);
+  await runTransaction(S.db, async tx => { const s = await tx.get(ref); if (!s.exists()) throw { code:"not-found" }; tx.update(ref, { [path]: value }); });
+}
+
+/* ===================== WIDOK GRACZA ===================== */
+function renderPlayer(){
+  app.className = "wrap";
+  if (!S.user){ put(header(), S.error ? h("div",{class:"msg err"},S.error) : h("p",{class:"muted"},"Łączę z Centrum Logistyki Mikołaja…")); return; }
+  if (!S.code) return renderJoin();
+  if (!S.teamLoaded || !S.team){ put(header(), h("p",{class:"muted"},"Wczytuję drużynę…")); return; }
+  if (view.type === "station") return renderStation(STATIONS.find(s=>s.id===view.id));
+  if (view.type === "side") return renderSide(view.id);
+  if (view.type === "s3task") return renderS3Task();
+  if (view.type === "s3hub") return renderS3Hub();
+  if (view.type === "s3mail") return renderS3Mail();
+  if (view.type === "s3idor") return renderS3Idor();
+  if (view.type === "s3logs") return renderS3Logs();
+  if (view.type === "key") return renderKey();
+  renderHome();
+}
+function header(){
+  return h("div",{class:"term-head"},
+    h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Terminal misji · CLM-06"), h("h1",null,"Operacja Biegun")),
+    S.team ? h("div",{class:"badge"}, S.team.name, h("b",null,S.team.id)) : null);
+}
+let joinMode = "join";
+function renderJoin(){
+  const sch = schools();
+  const err = h("div",{class:"msg err",hidden:true});
+  const fail = t => { err.textContent = t; err.hidden = false; };
+  const nick = h("input",{id:"j-nick",maxlength:"20",placeholder:"np. Ola",autocomplete:"nickname",value:S.nick});
+  const nickL = h("label",{for:"j-nick"},"Twój pseudonim (bez nazwiska)", nick);
+  let form;
+  if (joinMode === "join"){
+    const code = h("input",{id:"j-code",class:"code",maxlength:"4",placeholder:"KOD",autocomplete:"off",autocapitalize:"characters"});
+    form = h("form",{class:"card",onsubmit:async e=>{
+        e.preventDefault(); const c = norm(code.value), n = nick.value.trim().slice(0,20);
+        if (!CODE_RE.test(c)) return fail("Kod drużyny ma 4 znaki, np. KX7P. Weźcie go z telefonu osoby, która założyła drużynę.");
+        const btn = e.submitter; if (btn) btn.disabled = true;
+        try {
+          if (!(await joinTeam(c, n))){ if (btn) btn.disabled = false; return fail("Nie ma drużyny z kodem " + c + ". Sprawdźcie, czy nie pomyliliście litery."); }
+          S.code = c; S.nick = n; ls.set("ob_team", c); ls.set("ob_nick", n); S.notice = ""; watchTeam(c); render();
+        } catch(ex){ if (btn) btn.disabled = false; fail("Nie udało się dołączyć. Sprawdźcie internet i spróbujcie jeszcze raz."); }
+      }},
+      h("h2",null,"Dołącz do drużyny"),
+      h("label",{for:"j-code"},"Kod drużyny", code), nickL, err,
+      h("button",{class:"btn",type:"submit"},"Dołącz"));
+  } else {
+    const name = h("input",{id:"j-name",maxlength:"28",placeholder:"np. Elfy z 3B"});
+    const school = h("select",{id:"j-school"}, h("option",{value:""},"Wybierz szkołę…"), sch.map((s,i)=>h("option",{value:String(i)}, s)));
+    form = h("form",{class:"card",onsubmit:async e=>{
+        e.preventDefault(); const nm = name.value.trim().slice(0,28), n = nick.value.trim().slice(0,20);
+        if (nm.length < 2) return fail("Nazwa drużyny musi mieć co najmniej 2 znaki.");
+        if (school.value === "") return fail("Wybierzcie szkołę, dla której gracie.");
+        const btn = e.submitter; if (btn) btn.disabled = true;
+        try {
+          const c = await createTeam(nm, +school.value, n);
+          S.code = c; S.nick = n; ls.set("ob_team", c); ls.set("ob_nick", n); S.notice = "Drużyna założona. Pokażcie kod " + c + " reszcie drużyny, żeby mogli dołączyć."; watchTeam(c); render();
+        } catch(ex){ if (btn) btn.disabled = false; fail(ex.message && !ex.code ? ex.message : "Nie udało się założyć drużyny. Sprawdźcie internet."); }
+      }},
+      h("h2",null,"Załóż drużynę"),
+      h("label",{for:"j-name"},"Nazwa drużyny (zobaczy ją cała sala)", name),
+      h("label",{for:"j-school"},"Szkoła", school), nickL, err,
+      h("button",{class:"btn",type:"submit"},"Załóż i pokaż kod"),
+      h("p",{class:"muted small"},"Zakłada jedna osoba z drużyny. Reszta dołącza kodem."));
+  }
+  put(
+    header(),
+    S.notice ? h("div",{class:"msg"},S.notice) : null,
+    h("p",{class:"alert"},"ALARM 03:12 · nieautoryzowany dostęp do Centrum Logistyki Mikołaja · podpis: GR1NCH"),
+    h("p",null,"W nocy ktoś włamał się do systemu, który rozdziela prezenty. Wasza drużyna to zespół reagowania na incydenty. Przejdźcie 4 laboratoria, odzyskajcie 4 fragmenty klucza głównego i zdobądźcie punkty dla swojej szkoły."),
+    h("div",{class:"tabs",role:"tablist"},
+      h("button",{class:"tab",role:"tab","aria-selected":String(joinMode==="join"),onclick:()=>{joinMode="join";render();}},"Mam kod drużyny"),
+      h("button",{class:"tab",role:"tab","aria-selected":String(joinMode==="create"),onclick:()=>{joinMode="create";render();}},"Zakładam drużynę")),
+    form);
+}
+function keyStrip(){
+  const u = S.team.unlocked||{};
+  return h("div",{class:"key"}, STATIONS.map(s=>h("span",{class:u[s.id]?"on":""}, u[s.id] ? s.frag : "· · ·")));
+}
+function renderHome(){
+  const t = S.team, u = t.unlocked||{}, sd = t.side||{};
+  const got = stationsOf(t), sideDone = SIDE.filter(s=>sd[s.id]).length;
+  const nodes = [
+    header(),
+    S.notice ? h("div",{class:"msg good"},S.notice) : null,
+    h("section",{class:"card"},
+      h("div",{class:"spread"}, h("h2",null,"Wasza drużyna"), h("span",{class:"pill gold"}, pointsOf(t) + " pkt")),
+      h("p",{class:"small muted"},"Kod do dołączenia: ", h("b",{class:"mono",style:"color:var(--gold);letter-spacing:.15em"}, t.id), " · " + (schools()[t.school]||"")),
+      h("div",{class:"members"}, S.members.map(m=>h("span",{class:"pill" + (m.id===S.user?.uid ? " ok" : "")}, (m.nick || "elf") + (m.id===S.user?.uid ? " (ty)" : ""))))),
+    h("section",{class:"card"},
+      h("div",{class:"spread"}, h("h2",null,"Klucz główny"), h("span",{class:"pill gold"}, got + "/4 fragmenty")),
+      keyStrip(),
+      got === 4 ? h("button",{class:"btn",onclick:()=>{view={type:"key"};render();}},"Przywróć system Mikołaja")
+                : h("p",{class:"muted small"},"Na każdej stacji dostaniecie PIN. Wpiszcie go tutaj, a cała drużyna zobaczy nowy fragment klucza.")),
+    h("section",{class:"stack"},
+      h("h2",null,"Laboratoria"),
+      h("div",{class:"grid2"}, STATIONS.map(s=>h("button",{class:"card",onclick:()=>{view={type:"station",id:s.id};render();}},
+        h("div",{class:"spread"}, h("span",{class:"st-num"}, s.nr), u[s.id] ? h("span",{class:"pill ok"},"✓ zaliczona") : h("span",{class:"pill lock"},"zablokowana")),
+        h("h3",null,s.name), h("span",{class:"muted small"}, s.topic))))),
+    h("section",{class:"stack"},
+      h("div",{class:"spread"}, h("h2",null,"Zadania poboczne"), h("span",{class:"pill"}, sideDone + "/" + SIDE.length)),
+      h("p",{class:"muted small"},"Do zrobienia w drodze między salami. Punkty dopisują się same."),
+      SIDE.map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
+        h("div",{class:"spread"}, h("h3",null,s.name), sd[s.id] ? h("span",{class:"pill ok"},"✓ +" + s.max) : h("span",{class:"pill gold"},"+" + s.max + " pkt")),
+        h("span",{class:"muted small"}, s.short)))),
+    S.teamsLoaded ? rankingCard() : null,
+    h("div",{class:"row",style:"justify-content:center"}, leaveBtn())
+  ];
+  put(...nodes);
+}
+function leaveBtn(){
+  const wrap = h("div",{class:"row",style:"justify-content:center"});
+  const reset = ()=> wrap.replaceChildren(h("button",{class:"btn sm ghost",onclick:ask},"Opuść drużynę na tym telefonie"));
+  const ask = ()=> wrap.replaceChildren(h("span",{class:"muted small"},"Na pewno? Postęp drużyny zostaje, możesz wrócić kodem " + S.code + "."),
+      h("button",{class:"btn sm red",onclick:async ()=>{ const ref = doc(S.db,"teams",S.code,"members",S.user.uid); leaveLocal(""); try { await deleteDoc(ref); } catch(e){} }},"Opuść"),
+      h("button",{class:"btn sm ghost",onclick:reset},"Anuluj"));
+  reset(); return wrap;
+}
+function backBtn(){ return h("button",{class:"back",onclick:()=>{view={type:"home"};S.notice="";render();}},"← Wróć do terminala"); }
+
+function renderStation(s){
+  const done = (S.team.unlocked||{})[s.id];
+  const nodes = [backBtn(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium " + s.nr + " · " + s.topic), h("h1",null,s.name))];
+  if (!done){
+    const err = h("div",{class:"msg err",hidden:true});
+    const pin = h("input",{id:"pin-"+s.id,class:"code",placeholder:"PIN",autocomplete:"off",maxlength:"16",autocapitalize:"characters"});
+    nodes.push(h("p",null,s.intro));
+    if (s.hasTask) nodes.push(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"🔎 Otwórz śledztwo"));
+    nodes.push(h("form",{class:"card",onsubmit:async e=>{
+        e.preventDefault(); const btn = e.submitter; if (btn) btn.disabled = true;
+        try { await saveProgress("unlocked." + s.id, norm(pin.value)); pin.blur(); S.team = { ...S.team, unlocked:{ ...(S.team.unlocked||{}), [s.id]:true } }; render(); }
+        catch(ex){
+          if (btn) btn.disabled = false;
+          err.textContent = denied(ex) ? "Serwer odrzucił ten PIN. Sprawdźcie, czy to PIN z tej stacji." : "Brak połączenia. Spróbujcie jeszcze raz.";
+          err.hidden = false; pin.select();
+        }
+      }},
+      h("label",{for:"pin-"+s.id},"PIN od prowadzącego stację", pin), err,
+      h("button",{class:"btn",type:"submit"},"Odblokuj fragment klucza"),
+      h("p",{class:"muted small"},"PIN sprawdza serwer, a nie telefon.")));
+  } else {
+    nodes.push(h("div",{class:"msg good"},"Fragment klucza odzyskany: ", h("b",{class:"mono"}, s.frag), " · +" + STATION_PTS + " pkt"));
+    nodes.push(h("p",null,s.story));
+    nodes.push(h("section",{class:"card"}, h("h3",null,"Jak się bronić"), h("ul",{class:"tips"}, s.tips.map(t=>h("li",null,t)))));
+    if (s.hasTask) nodes.push(h("button",{class:"btn ghost",onclick:()=>{view={type:"s3hub"};render();}},"Wróć do śledztwa"));
+  }
+  put(...nodes);
+}
+
+/* ---- stacja 3: śledztwo SOC (3 zadania → fragmenty PIN-u) ---- */
+const S3_GATE = "SOC";
+const S3_PARTS = [
+  { id:"mail", name:"Mail od „Mikołaja”", what:"Analiza phishingu", frag:"GR", view:"s3mail" },
+  { id:"idor", name:"Portal prezentów", what:"Podglądanie cudzych danych", frag:"IN", view:"s3idor" },
+  { id:"logs", name:"Logi serwera", what:"Kto, kiedy i skąd się włamał", frag:"CH", view:"s3logs" }
+];
+let S3 = {};
+try { S3 = JSON.parse(ls.get("ob_s3") || "{}") || {}; } catch(e){ S3 = {}; }
+const saveS3 = () => ls.set("ob_s3", JSON.stringify(S3));
+const s3Back = () => h("button",{class:"back",onclick:()=>{view={type:"s3hub"};render();}},"← Wróć do śledztwa");
+function s3Done(id, container){
+  S3[id] = true; saveS3();
+  const p = S3_PARTS.find(x=>x.id===id);
+  container.replaceChildren(h("div",{class:"card",style:"text-align:center"},
+    h("span",{class:"eyebrow",style:"color:var(--ok)"},"Dowód zabezpieczony"),
+    h("p",null,"Fragment PIN-u:"), h("div",{class:"codebox"}, p.frag),
+    h("button",{class:"btn ghost",onclick:()=>{view={type:"s3hub"};render();}},"Wróć do śledztwa")));
+  container.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function renderS3Hub(){
+  const back = h("button",{class:"back",onclick:()=>{view={type:"station",id:"s3"};render();}},"← Wróć do stacji 3");
+  const head = h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 3 · zespół SOC"), h("h1",null,"Śledztwo: Fałszywy Mikołaj"));
+  if (!S3.open){
+    const inp = h("input",{id:"s3-gate",class:"code",placeholder:"KOD",autocomplete:"off",autocapitalize:"characters",maxlength:"10"});
+    const err = h("div",{class:"msg err",hidden:true});
+    return put(back, head, h("form",{class:"card",onsubmit:e=>{ e.preventDefault();
+        if (norm(inp.value) === S3_GATE){ S3.open = true; saveS3(); inp.blur(); render(); }
+        else { err.textContent = "To nie ten kod. Poda go prowadzący na stacji 3."; err.hidden = false; } }},
+      h("label",{for:"s3-gate"},"Kod wejścia od prowadzącego", inp), err, h("button",{class:"btn",type:"submit"},"Wejdź do centrum SOC")));
+  }
+  const all = S3_PARTS.every(p=>S3[p.id]);
+  put(back, head,
+    h("p",null,"Podzielcie się: każdy telefon bierze inne zadanie. Za każde rozwiązane dostaniecie fragment PIN-u. Złóżcie je w kolejności i wpiszcie w stacji 3."),
+    h("div",{class:"key",style:"grid-template-columns:repeat(3,1fr)"}, S3_PARTS.map(p=>h("span",{class:S3[p.id]?"on":""}, S3[p.id] ? p.frag : "· ·"))),
+    S3_PARTS.map((p,i)=>h("button",{class:"card",onclick:()=>{view={type:p.view};render();}},
+      h("div",{class:"spread"}, h("h3",null,(i+1) + ". " + p.name), S3[p.id] ? h("span",{class:"pill ok"},"✓ " + p.frag) : h("span",{class:"pill gold"},"do zrobienia")),
+      h("span",{class:"muted small"}, p.what))),
+    all ? h("div",{class:"msg good"},"Macie wszystkie fragmenty. Złóżcie je w kolejności 1-2-3 i wpiszcie jako PIN stacji 3.") : null,
+    all ? h("button",{class:"btn",onclick:()=>{view={type:"station",id:"s3"};render();}},"Wpisz PIN stacji 3") : null,
+    h("button",{class:"card",onclick:()=>{view={type:"s3task"};render();}},
+      h("div",{class:"spread"}, h("h3",null,"Dla szybkich: fałszywe strony"), h("span",{class:"pill"},"na czas")),
+      h("span",{class:"muted small"},"8 adresów logowania. Prawdziwy czy fałszywy?")));
+}
+
+/* zadanie 1: analiza maila */
+const MAIL = [
+  { id:"from",   t:"Od: Mikołaj <mikolaj@fabryka-mikolaja.pl>", bad:false, why:"Nazwa i adres nadawcy wyglądają dobrze. Właśnie dlatego trzeba czytać dalej." },
+  { id:"reply",  t:"Odpowiedz do: mikolaj.pilne@poczta-biegun.top", bad:true, why:"Odpowiedź poszłaby na zupełnie inny adres niż nadawca." },
+  { id:"subj",   t:"Temat: PILNE!!! Przelew na prezenty do 17:00", bad:true, why:"Presja czasu i wykrzykniki mają wyłączyć myślenie." },
+  { id:"greet",  t:"Cześć Basiu,", bad:false, why:"Zwykłe powitanie, samo w sobie niczego nie zdradza." },
+  { id:"body",   t:"Jestem na spotkaniu z reniferami i nie mogę rozmawiać. Zatwierdź dziś przelew 48 000 zł dla nowego dostawcy pierników. Nikomu o tym nie mów.", bad:true, why:"Nietypowa prośba o pieniądze, „nie mogę rozmawiać” i „nikomu nie mów”. To klasyczne oszustwo „na prezesa”." },
+  { id:"link",   t:"[ Zatwierdź przelew ] → fabryka-mikolaja.pl.zatwierdz-przelew.top/login", bad:true, why:"Prawdziwa domena to zatwierdz-przelew.top. „fabryka-mikolaja.pl” jest tylko ozdobą na początku." },
+  { id:"att",    t:"📎 Faktura_pierniki.pdf.exe", bad:true, why:"Podwójne rozszerzenie: to program udający PDF." },
+  { id:"sig",    t:"Pozdrawiam, Mikołaj · Biegun Północny", bad:false, why:"Podpis łatwo skopiować, więc nic nie dowodzi, ale też nie jest sygnałem ataku." }
+];
+function renderS3Mail(){
+  const sel = {}; const res = h("div",{class:"stack"});
+  const box = h("div",{class:"stack"});
+  const draw = checked => {
+    const nBad = MAIL.filter(m=>m.bad).length;
+    const okAll = MAIL.every(m=>!!sel[m.id] === m.bad);
+    box.replaceChildren(
+      h("div",{class:"mail"}, MAIL.map(m=>{
+        let cls = "mline" + (m.id==="link" ? " mlink" : "") + (m.id==="att" ? " matt" : "");
+        if (sel[m.id]) cls += " sel";
+        if (checked){ if (m.bad) cls += " right"; else if (sel[m.id]) cls += " wrong"; }
+        return h("button",{class:cls,"aria-pressed":String(!!sel[m.id]),disabled:checked,onclick:()=>{ sel[m.id] = !sel[m.id]; draw(false); }}, m.t,
+          checked && (m.bad || sel[m.id]) ? h("span",{class:"why"}, m.why) : null);
+      })),
+      h("p",{class:"muted small"},"Zaznaczonych: " + Object.values(sel).filter(Boolean).length + " · podejrzanych elementów jest " + nBad + "."),
+      !checked ? h("button",{class:"btn",onclick:()=>draw(true)},"Sprawdź")
+      : okAll ? h("div",{class:"msg good"},"Wszystkie sygnały ostrzegawcze znalezione.")
+      : h("div",{class:"stack"}, h("div",{class:"msg err"},"Jeszcze nie. Zielone ramki to sygnały, które trzeba było zaznaczyć. Spróbujcie jeszcze raz."), h("button",{class:"btn",onclick:()=>renderS3Mail()},"Od nowa")),
+      res);
+    if (checked && okAll) s3Done("mail", res);
+  };
+  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Zadanie 1 · analiza phishingu"), h("h1",null,"Mail od „Mikołaja”")),
+    h("p",null,"Ten mail dostała księgowa Basia, zanim zatwierdziła przelew. Dotknijcie każdego elementu, który powinien ją zaniepokoić, i kliknijcie „Sprawdź”."), box);
+  draw(false);
+}
+
+/* zadanie 2: portal prezentów (IDOR) */
+const LISTS = {
+  1040:{ who:"Kasia, 8 lat · Gdańsk", items:["rower","kredki","książka o kosmosie"] },
+  1041:{ who:"Tomek, 6 lat · Opole", items:["klocki","dinozaur T-Rex"] },
+  1042:{ who:"Wasza drużyna", items:["złoty klucz główny","pierniki dla całej szkoły"], mine:true },
+  1043:{ who:"Zuzia, 10 lat · Lublin", items:["łyżwy","gra planszowa"], note:"Notatka admina: wczoraj o 03:14 ktoś założył nowe konto z numerem 1337. Nikt z elfów się nie przyznaje. Sprawdzić!" },
+  1044:{ who:"Antek, 12 lat · Toruń", items:["słuchawki","zestaw do lutowania"] },
+  1337:{ grinch:true }
+};
+function renderS3Idor(){
+  let id = 1042;
+  const url = h("input",{id:"idor-url",class:"urlbar",value:"prezenty.biegun/lista?id=1042",autocomplete:"off",autocapitalize:"off",spellcheck:"false",inputmode:"url"});
+  const page = h("div",{class:"browser-page"});
+  const res = h("div");
+  const open = ()=>{
+    const m = url.value.match(/id=(\d{1,6})/);
+    id = m ? +m[1] : NaN;
+    const L = LISTS[id];
+    if (!L){ page.replaceChildren(h("h3",null,"404"), h("p",{class:"muted"},"Nie ma listy o tym numerze.")); return; }
+    if (L.grinch){
+      page.replaceChildren(h("span",{class:"eyebrow",style:"color:var(--red)"},"Lista nr 1337 · konto: GR1NCH"),
+        h("h3",null,"Do zabrania: WSZYSTKIE prezenty"),
+        h("p",{class:"mono small"},"notatka: przelew zatwierdzony ✓ · eksport listy prezentów ✓ · fragment klucza: IN"));
+      if (!S3.idor) s3Done("idor", res);
+      else res.replaceChildren();
+      res.prepend(h("section",{class:"card"}, h("h3",null,"Co tu się stało?"),
+        h("p",{class:"small"},"Portal pokazuje każdą listę, jeśli znacie jej numer. Nie sprawdza, czy lista jest wasza. Taki błąd nazywa się IDOR i należy do najczęstszych błędów stron internetowych."),
+        h("p",{class:"small muted"},"Na prawdziwych stronach nie podglądajcie cudzych danych, to przestępstwo. Błąd zgłoście właścicielowi strony.")));
+      return;
+    }
+    page.replaceChildren(h("span",{class:"eyebrow"}, "Lista nr " + id + (L.mine ? " · wasza" : "")),
+      h("h3",null, L.who), h("ul",{class:"tips"}, L.items.map(x=>h("li",null,x))),
+      L.note ? h("div",{class:"msg",style:"margin-top:8px"}, L.note) : null);
+  };
+  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Zadanie 2 · portal prezentów"), h("h1",null,"Czyje to listy?")),
+    h("p",null,"Zalogowaliście się do portalu prezentów i widzicie swoją listę. Grinch też tu był. Przyjrzyjcie się adresowi strony: co się stanie, gdy zmienicie numer na końcu?"),
+    h("form",{class:"browser",onsubmit:e=>{ e.preventDefault(); url.blur(); open(); }},
+      h("div",{class:"browser-bar"}, h("span",{class:"lock"},"🔒"), url, h("button",{class:"btn sm",type:"submit"},"Idź")),
+      page),
+    res);
+  open();
+}
+
+/* zadanie 3: logi serwera */
+const LOGS = [
+  { t:"02:51:07", ip:"10.0.4.21",     u:"elf_ania",   r:"LOGIN OK",   why:"Adres wewnętrzny fabryki (10.x.x.x), zwykłe logowanie elfa na nocnej zmianie." },
+  { t:"03:05:12", ip:"185.220.101.7", u:"admin",      r:"LOGIN FAIL", why:"Pierwsza nieudana próba. Włamanie jeszcze się nie udało." },
+  { t:"03:05:13", ip:"185.220.101.7", u:"admin",      r:"LOGIN FAIL", why:"Kolejna nieudana próba, sekundę po poprzedniej. Tak szybko zgaduje program, nie człowiek." },
+  { gap:"… 418 podobnych linii z 185.220.101.7 pominięto …" },
+  { t:"03:11:58", ip:"185.220.101.7", u:"admin",      r:"LOGIN FAIL", why:"Wciąż nieudana próba." },
+  { t:"03:12:03", ip:"185.220.101.7", u:"admin",      r:"LOGIN OK",   hit:true, why:"Ten sam zewnętrzny adres, po setkach prób, o 03:12. Dokładnie wtedy włączył się alarm." },
+  { t:"03:12:41", ip:"185.220.101.7", u:"admin",      r:"EXPORT lista_prezentow.csv", why:"To już skutek włamania. Szukamy momentu wejścia." },
+  { t:"08:02:44", ip:"10.0.4.21",     u:"elf_ania",   r:"LOGIN FAIL", why:"Rano, z adresu wewnętrznego. Ania pomyliła hasło." },
+  { t:"08:02:51", ip:"10.0.4.21",     u:"elf_ania",   r:"LOGIN OK",   why:"Ania wpisała hasło poprawnie przy drugiej próbie. Nic podejrzanego." }
+];
+function renderS3Logs(){
+  const fb = h("div"); const res = h("div");
+  let solved = !!S3.logs;
+  const draw = ()=> list.replaceChildren(...LOGS.map(l=>{
+    if (l.gap) return h("div",{class:"logline gap"}, l.gap);
+    return h("button",{class:"logline" + (solved && l.hit ? " hit" : "") + (/FAIL/.test(l.r) ? " fail" : ""),disabled:solved,onclick:()=>{
+      if (l.hit){ solved = true; draw(); fb.replaceChildren(h("div",{class:"msg good"}, l.why)); s3Done("logs", res); }
+      else fb.replaceChildren(h("div",{class:"msg err"},"Nie ta linia. " + l.why));
+    }}, h("span",{class:"lt"},l.t), h("span",{class:"lip"},l.ip), h("span",{class:"lu"},l.u), h("span",{class:"lr"},l.r));
+  }));
+  const list = h("div",{class:"logs"});
+  draw();
+  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Zadanie 3 · logi serwera"), h("h1",null,"Moment włamania")),
+    h("p",null,"To dziennik logowań do panelu fabryki z nocy włamania. Dotknijcie linii, w której Grinch naprawdę dostał się do środka."),
+    h("p",{class:"muted small"},"Podpowiedź: adresy 10.x.x.x to komputery w fabryce, reszta to internet. Alarm włączył się o 03:12."),
+    list, fb, res);
+}
+
+/* ---- stacja 3: fałszywe strony (dla zabawy, bez punktów) ---- */
+function renderS3Task(){
+  let i = 0, good = 0; const t0 = Date.now();
+  const box = h("div",{class:"stack"});
+  const step = ()=>{
+    if (i >= URLS.length){
+      const sec = Math.round((Date.now()-t0)/1000);
+      box.replaceChildren(h("div",{class:"card",style:"text-align:center"},
+        h("span",{class:"eyebrow"},"Wasz wynik"), h("div",{class:"codebox"}, good + "/" + URLS.length), h("p",{class:"mono"}, "czas: " + sec + " s"),
+        h("p",{class:"muted small"},"Pobijecie rekord stacji?")),
+        h("button",{class:"btn ghost",onclick:()=>renderS3Task()},"Jeszcze raz"));
+      return;
+    }
+    const it = URLS[i];
+    const answer = fake => { if (fake === it.fake) good++; i++; step(); };
+    box.replaceChildren(
+      h("div",{class:"spread"}, h("span",{class:"pill"}, "adres " + (i+1) + "/" + URLS.length), h("span",{class:"pill gold"},"trafione: " + good)),
+      h("div",{class:"card"}, h("span",{class:"eyebrow"},"Strona logowania"), h("div",{class:"url"}, it.u)),
+      h("div",{class:"choice"}, h("button",{class:"btn ok",onclick:()=>answer(false)},"Prawdziwa"), h("button",{class:"btn red",onclick:()=>answer(true)},"Fałszywa")));
+  };
+  put(s3Back(),
+    h("h1",null,"Fałszywe strony"), h("p",{class:"muted"},"Na czas. Patrzcie, co stoi tuż przed pierwszym ukośnikiem."), box);
+  step();
+}
+
+/* ---- zadania poboczne ---- */
+function sideShell(id, ...content){
+  const s = SIDE.find(x=>x.id===id);
+  put(backBtn(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Zadanie poboczne · +" + s.max + " pkt"), h("h1",null,s.name)), ...content);
+}
+function doneCard(id){
+  const s = SIDE.find(x=>x.id===id);
+  return h("div",{class:"card",style:"text-align:center"},
+    h("span",{class:"eyebrow",style:"color:var(--ok)"},"Zadanie zaliczone"),
+    h("div",{class:"codebox"}, "+" + s.max),
+    h("p",{class:"muted small"},"Punkty są już w rankingu waszej szkoły."),
+    h("button",{class:"btn ghost",onclick:()=>{view={type:"home"};render();}},"Wróć do terminala"));
+}
+async function finishSide(id, container, value){
+  container.replaceChildren(h("p",{class:"muted"},"Zapisuję…"));
+  try { await saveProgress("side." + id, value ?? true); container.replaceChildren(doneCard(id)); }
+  catch(e){ container.replaceChildren(h("div",{class:"msg err"}, denied(e) ? "Serwer nie przyjął wyniku." : "Brak połączenia."),
+    h("button",{class:"btn",onclick:()=>finishSide(id, container, value)},"Spróbuj zapisać jeszcze raz")); }
+}
+function renderSide(id){
+  if ((S.team.side||{})[id]) return sideShell(id, doneCard(id));
+  ({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint })[id](id);
+}
+function sideSwipe(id){
+  let i = 0, good = 0;
+  const box = h("div",{class:"stack"});
+  const step = ()=>{
+    if (i >= MESSAGES.length){
+      if (good >= 6){ const c = h("div"); box.replaceChildren(h("div",{class:"msg good"},"Trafione " + good + "/8."), c); finishSide(id, c); }
+      else box.replaceChildren(h("div",{class:"msg err"},"Trafione " + good + "/8. Potrzeba co najmniej 6."), h("button",{class:"btn",onclick:()=>sideSwipe(id)},"Jeszcze raz"));
+      return;
+    }
+    const m = MESSAGES[i];
+    const stamp = h("div",{class:"stamp"});
+    const card = h("div",{class:"swipe"}, h("span",{class:"from"}, m.from), h("p",{class:"body"}, m.body), stamp,
+      h("p",{class:"muted",style:"margin-top:auto;font-size:.85rem"},"← pułapka · bezpieczne →"));
+    const deck = h("div",{class:"deck"}, card);
+    const verdict = h("div");
+    let answered = false;
+    const btns = h("div",{class:"choice"});
+    const answer = bad => {
+      if (answered) return; answered = true;
+      const right = bad === m.bad; if (right) good++;
+      card.style.transform = "translateX(" + (bad ? -120 : 120) + "%) rotate(" + (bad ? -12 : 12) + "deg)"; card.style.opacity = "0";
+      verdict.replaceChildren(h("div",{class:"msg " + (right ? "good" : "err")}, (right ? "Dobrze. " : "Nie tym razem. ") + (m.bad ? "To pułapka. " : "To bezpieczne. ") + m.why),
+        h("button",{class:"btn",style:"margin-top:10px;width:100%",onclick:()=>{ i++; step(); }}, i+1 < MESSAGES.length ? "Następna wiadomość" : "Zobacz wynik"));
+      btns.hidden = true;
+    };
+    btns.append(h("button",{class:"btn red",onclick:()=>answer(true)},"💀 Pułapka"), h("button",{class:"btn ok",onclick:()=>answer(false)},"🎁 Bezpieczne"));
+    let x0 = null, dx = 0;
+    card.addEventListener("pointerdown", e=>{ if (answered) return; x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.style.transition = "none"; });
+    card.addEventListener("pointermove", e=>{ if (x0 === null) return; dx = e.clientX - x0; card.style.transform = "translateX(" + dx + "px) rotate(" + dx/20 + "deg)";
+      stamp.textContent = dx < 0 ? "PUŁAPKA" : "BEZPIECZNE"; stamp.style.color = stamp.style.borderColor = dx < 0 ? "var(--red)" : "var(--ok)"; stamp.style.opacity = Math.min(Math.abs(dx)/90,1); });
+    const end = ()=>{ if (x0 === null) return; x0 = null; card.style.transition = ""; if (Math.abs(dx) > 90) answer(dx < 0); else { card.style.transform = ""; stamp.style.opacity = 0; } };
+    card.addEventListener("pointerup", end); card.addEventListener("pointercancel", end);
+    box.replaceChildren(h("div",{class:"spread"}, h("span",{class:"pill"},"wiadomość " + (i+1) + "/8"), h("span",{class:"pill gold"},"trafione: " + good)), deck, btns, verdict);
+  };
+  sideShell(id, h("p",{class:"muted"},"Przesuńcie kartę w lewo, jeśli to pułapka, albo w prawo, jeśli jest bezpieczna. Możecie też użyć przycisków."), box);
+  step();
+}
+function sidePass(id){
+  const picks = PASS_Q.map(()=>null);
+  const box = h("div",{class:"stack"});
+  const draw = checked => {
+    const qs = PASS_Q.map((q,qi)=>h("div",{class:"card"}, h("h3",null,(qi+1) + ". " + q.q),
+      h("div",{class:"stack",style:"gap:8px"}, q.a.map((a,ai)=>{
+        let cls = "opt"; if (checked){ if (ai===q.ok) cls += " right"; else if (picks[qi]===ai) cls += " wrong"; }
+        return h("button",{class:cls,"aria-pressed":String(picks[qi]===ai),disabled:checked,onclick:()=>{ picks[qi]=ai; draw(false); }}, a);
+      })),
+      checked ? h("p",{class:"muted small"}, q.why) : null));
+    const score = picks.filter((p,qi)=>p===PASS_Q[qi].ok).length;
+    const foot = h("div",{class:"stack"});
+    if (!checked) foot.append(h("button",{class:"btn",disabled:picks.includes(null),onclick:()=>draw(true)},"Sprawdź odpowiedzi"));
+    else if (score >= 3){ const c = h("div"); foot.append(h("div",{class:"msg good"},"Trafione " + score + "/4."), c); finishSide(id, c); }
+    else foot.append(h("div",{class:"msg err"},"Trafione " + score + "/4. Potrzeba co najmniej 3."), h("button",{class:"btn",onclick:()=>sidePass(id)},"Jeszcze raz"));
+    box.replaceChildren(...qs, foot);
+  };
+  sideShell(id, box); draw(false);
+}
+function sideCipher(id){
+  const shift = (t,k)=>t.replace(/[A-Z]/g,ch=>String.fromCharCode((ch.charCodeAt(0)-65-k+26)%26+65));
+  const out = h("div",{class:"cipher"}, CIPHER);
+  const lab = h("span",{class:"pill gold"},"przesunięcie: 0");
+  const slider = h("input",{id:"cipher-shift",type:"range",min:"0",max:"25",value:"0",style:"padding:0;min-height:36px"});
+  slider.addEventListener("input",()=>{ out.textContent = shift(CIPHER, +slider.value); lab.textContent = "przesunięcie: " + slider.value; });
+  const ans = h("input",{id:"cipher-ans",class:"code",placeholder:"hasło",autocomplete:"off",autocapitalize:"characters"});
+  const err = h("div",{class:"msg err",hidden:true});
+  const res = h("div");
+  const form = h("form",{class:"card",onsubmit:async e=>{ e.preventDefault();
+      const w = norm(ans.value).replace(/[^A-Z]/g,"");
+      try { await saveProgress("side." + id, w); form.hidden = true; res.replaceChildren(doneCard(id)); }
+      catch(ex){ err.textContent = denied(ex) ? "Serwer mówi: to nie to hasło. Szukajcie jednego słowa po „TO”." : "Brak połączenia. Spróbujcie jeszcze raz."; err.hidden = false; }
+    }}, h("label",{for:"cipher-ans"},"Jakie jest hasło do sań? (jedno słowo)", ans), err, h("button",{class:"btn",type:"submit"},"Sprawdź"));
+  sideShell(id,
+    h("p",null,"Grinch szyfruje wiadomości jak starożytni Rzymianie: przesuwa każdą literę o kilka miejsc w alfabecie. Przesuwajcie suwak, aż tekst zacznie mieć sens."),
+    h("div",{class:"card"}, h("span",{class:"eyebrow"},"Przechwycona wiadomość"), out, h("div",{class:"spread"}, lab), slider),
+    h("p",{class:"muted small"},"To szyfr Cezara. Ma tylko 25 możliwych kluczy, więc komputer sprawdza je wszystkie w ułamku sekundy. Prawdziwe szyfry mają klucze tak długie, że nie da się ich przejrzeć."),
+    form, res);
+}
+function sidePhoto(id){
+  const sel = PHOTO.map(()=>false);
+  const box = h("div",{class:"stack"});
+  const draw = checked => {
+    const allOk = sel.every((v,i)=>v===PHOTO[i].leak);
+    const res = h("div");
+    box.replaceChildren(
+      h("div",{class:"stack",style:"gap:8px"}, PHOTO.map((p,i)=>{
+        let cls = "opt"; if (checked){ if (p.leak) cls += " right"; else if (sel[i]) cls += " wrong"; }
+        return h("button",{class:cls,"aria-pressed":String(sel[i]),disabled:checked,onclick:()=>{ sel[i]=!sel[i]; draw(false); }}, (sel[i] ? "☑ " : "☐ ") + p.t);
+      })),
+      !checked ? h("button",{class:"btn",onclick:()=>draw(true)},"Sprawdź")
+      : allOk ? h("div",{class:"msg good"},"Wszystko trafione. Z takiej relacji obcy ustali imię, szkołę, okolicę i hasło do Wi-Fi.")
+      : h("div",{class:"stack"}, h("div",{class:"msg err"},"Prawie. Zielone ramki to rzeczy, które zdradzają autorkę. Kubek i choinka nic nie mówią."), h("button",{class:"btn",onclick:()=>sidePhoto(id)},"Jeszcze raz")),
+      res);
+    if (checked && allOk) finishSide(id, res);
+  };
+  sideShell(id,
+    h("div",{class:"card"}, h("span",{class:"eyebrow"},"Relacja @ola.elf · 2 godz. temu"), h("p",null,"„Ostatni dzień przed feriami 🎄”"),
+      h("p",{class:"muted small"},"Zaznaczcie wszystko, co na zdjęciu zdradza coś o Oli.")), box);
+  draw(false);
+}
+function sideQrHint(id){
+  sideShell(id,
+    h("p",null,"Gdzieś na korytarzu wisi plakat z darmowymi piernikami i kodem QR. Znajdźcie go i zeskanujcie aparatem telefonu."),
+    h("p",{class:"muted small"},"Wskazówka: szukajcie tam, gdzie zwykle wisi plan lekcji."));
+}
+
+/* ---- pułapka z plakatu (#pulapka) ---- */
+function renderTrap(){
+  app.className = "wrap";
+  const res = h("div",{class:"stack"});
+  const opts = ["Czy kod jest kolorowy i ładny","Adres strony, który aparat pokazuje przed otwarciem","Nic, kody QR są zawsze bezpieczne"];
+  const quiz = h("div",{class:"card"}, h("h3",null,"Co sprawdzić, zanim otworzysz link z kodu QR?"),
+    h("div",{class:"stack",style:"gap:8px"}, opts.map((o,i)=>h("button",{class:"opt",onclick:async ()=>{
+      if (i !== 1){ res.replaceChildren(h("div",{class:"msg err"},"Nie. Spróbujcie jeszcze raz.")); return; }
+      quiz.hidden = true;
+      if (!S.code || !S.team){
+        res.replaceChildren(h("div",{class:"msg good"},"Tak. Najpierw adres, potem decyzja."),
+          h("p",null,"Ten telefon nie jest jeszcze w żadnej drużynie. Otwórzcie terminal i dołączcie kodem, a potem zeskanujcie plakat jeszcze raz."),
+          h("a",{class:"btn",href:"#",style:"text-align:center;text-decoration:none"},"Otwórz terminal"));
+        return;
+      }
+      if ((S.team.side||{}).p5){ res.replaceChildren(doneCard("p5")); return; }
+      const c = h("div"); res.replaceChildren(h("div",{class:"msg good"},"Tak. Najpierw adres, potem decyzja."), c); finishSide("p5", c);
+    }}, o))));
+  put(
+    h("span",{class:"eyebrow",style:"color:var(--red)"},"Ostrzeżenie"),
+    h("h1",null,"Darmowych pierników nie ma 🍪"),
+    h("p",{style:"font-size:1.1rem"},"Właśnie zeskanowaliście nieznany kod QR z korytarza. Tak działa quishing: oszust nakleja kod w miejscu publicznym, a telefon otwiera stronę, której adresu nikt nie sprawdził."),
+    h("div",{class:"card"}, h("h3",null,"W prawdziwym życiu ta strona mogła:"),
+      h("ul",{class:"tips"}, h("li",null,"poprosić o login i hasło do konta,"), h("li",null,"wyłudzić płatność za „parking” albo „dostawę”,"), h("li",null,"namówić do instalacji fałszywej aplikacji."))),
+    h("p",null,"Dobra wiadomość: punkty i tak zdobyliście. Odpowiedzcie na jedno pytanie."), quiz, res);
+}
+function renderKey(){
+  put(backBtn(),
+    h("span",{class:"eyebrow",style:"color:var(--ok)"},"System przywrócony"),
+    h("h1",null,"Prezenty znowu jadą"), keyStrip(),
+    h("div",{class:"codebox",style:"font-size:1.1rem;letter-spacing:.12em"}, STATIONS.map(s=>s.frag).join("-")),
+    h("p",null,"To wasz klucz główny. To cztery zwykłe słowa, a i tak jest bardzo trudny do złamania. Tak buduje się dobre hasło."),
+    h("p",{class:"muted"},"O 12:00 widzimy się w auli na finale."));
+}
+
+/* ===================== RANKING ===================== */
+function rankingCard(){
+  const { sch } = ranking();
+  const top = Math.max(1, ...sch.map(s=>s.avg));
+  return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Ranking szkół"), h("span",{class:"pill"},"na żywo")),
+    sch.map((s,i)=>h("div",{class:"stack",style:"gap:4px"},
+      h("div",{class:"spread"}, h("span",null,(i+1) + ". " + s.name), h("span",{class:"mono"}, s.avg + " pkt/drużynę")),
+      h("div",{class:"bar"}, h("i",{style:"width:" + Math.round(s.avg/top*100) + "%"})))),
+    h("p",{class:"muted small"},"Liczy się średnia drużyn, które zaliczyły co najmniej jedną stację."));
+}
+let clockTimer = null;
+function renderScreen(){
+  app.className = "wrap wide";
+  if (!S.teamsLoaded){ put(h("p",{class:"muted"},"Wczytuję ranking…")); return; }
+  const { teams, sch } = ranking();
+  const top = Math.max(1, ...sch.map(s=>s.avg));
+  const clock = h("div",{class:"clock"}), left = h("div",{class:"muted mono",style:"text-align:right"});
+  const tick = ()=>{ const n = new Date(); clock.textContent = n.toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+    const [hh,mm] = String(S.config.endTime||"11:25").split(":").map(Number); const end = new Date(n); end.setHours(hh||0, mm||0, 0, 0);
+    const d = Math.round((end-n)/1000); left.textContent = d > 0 ? "do końca gry głównej: " + Math.floor(d/60) + " min " + String(d%60).padStart(2,"0") + " s" : "gra główna zakończona"; };
+  tick(); clearInterval(clockTimer); clockTimer = setInterval(tick, 1000);
+  put(
+    h("div",{class:"spread"}, h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Centrum Logistyki Mikołaja · ranking na żywo"), h("h1",{style:"font-size:2.6rem"},"Operacja Biegun")),
+      h("div",{class:"stack",style:"gap:2px;align-items:flex-end"}, clock, left)),
+    h("div",{class:"screen"},
+      h("div",{class:"stack",style:"gap:14px"}, h("h2",null,"Szkoły · średnia punktów na drużynę"),
+        sch.map((s,i)=>h("div",{class:"school" + (i===0 && s.avg>0 ? " first" : "")},
+          h("div",{class:"place"}, i+1),
+          h("div",{style:"min-width:0"}, h("div",{class:"nm"}, s.name), h("div",{class:"muted mono"}, "grających drużyn: " + s.count + " · razem " + s.sum + " pkt"), h("div",{class:"bar"}, h("i",{style:"width:" + Math.round(s.avg/top*100) + "%"}))),
+          h("div",{class:"avg"}, s.avg, h("small",null,"pkt / drużynę"))))),
+      h("div",{class:"stack",style:"gap:14px"},
+        h("section",{class:"card"}, h("h2",null,"Najlepsze drużyny"),
+          teams.length ? h("table",null, h("tbody",null, teams.slice(0,8).map((t,i)=>h("tr",null, h("td",{class:"mono muted"}, i+1), h("td",null, t.name, " ", h("span",{class:"muted small"}, schools()[t.school]||"")), h("td",{class:"num mono"}, t.points)))))
+          : h("p",{class:"muted"},"Drużyny pojawią się tu, gdy się zarejestrują.")),
+        h("section",{class:"stack"}, h("h2",null,"Ostatnie punkty"),
+          FEED.length ? h("div",{class:"feed"}, FEED.map(f=>h("div",null, h("b",null,"+" + f.d), " · " + f.team)))
+          : h("p",{class:"muted"},"Czekamy na pierwsze punkty.")))));
+}
+
+/* ===================== PANEL ADMINA (#admin) ===================== */
+let adminMsg = { text:"", kind:"" };
+function renderAdmin(){
+  app.className = "wrap";
+  const top = h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Panel koła"), h("h1",null,"Operacja Biegun"));
+  if (!S.user){ put(top, h("p",{class:"muted"},"Łączę…")); return; }
+  if (S.user.isAnonymous){
+    const email = h("input",{id:"a-email",type:"email",autocomplete:"username"}), pass = h("input",{id:"a-pass",type:"password",autocomplete:"current-password"});
+    const err = h("div",{class:"msg err",hidden:true});
+    put(top, h("form",{class:"card",onsubmit:async e=>{ e.preventDefault();
+        try { await signInWithEmailAndPassword(S.auth, email.value.trim(), pass.value); }
+        catch(ex){
+          const c = ex && ex.code || "";
+          err.textContent =
+            c === "auth/invalid-credential" || c === "auth/wrong-password" || c === "auth/user-not-found" || c === "auth/invalid-login-credentials"
+              ? "Serwer nie przyjął tego e-maila i hasła. Sprawdź literówki albo ustaw nowe hasło w konsoli (Authentication → Users)."
+            : c === "auth/operation-not-allowed" ? "Logowanie e-mailem jest wyłączone. Włącz Email/Password w Authentication → Sign-in method."
+            : c === "auth/too-many-requests" ? "Za dużo prób. Odczekaj kilka minut albo ustaw nowe hasło w konsoli."
+            : c === "auth/invalid-email" ? "To nie wygląda na poprawny adres e-mail."
+            : c === "auth/network-request-failed" ? "Brak połączenia z internetem."
+            : "Nie udało się zalogować (" + (c || "nieznany błąd") + ").";
+          err.hidden = false;
+        } }},
+      h("h2",null,"Logowanie organizatora"), h("label",{for:"a-email"},"E-mail", email), h("label",{for:"a-pass"},"Hasło", pass), err,
+      h("button",{class:"btn",type:"submit"},"Zaloguj")));
+    return;
+  }
+  const logout = h("button",{class:"btn sm ghost",onclick:async ()=>{ await signOut(S.auth); }},"Wyloguj");
+  if (!S.isAdmin){
+    put(top, h("div",{class:"msg err"},"To konto nie jest na liście adminów. W konsoli Firebase dodaj w kolekcji „admins” dokument o ID równym temu UID:"),
+      h("div",{class:"codebox",style:"font-size:1rem;letter-spacing:.04em"}, S.user.uid), logout);
+    return;
+  }
+  const sch = schools();
+  const inputs = sch.map((s,i)=>h("input",{id:"set-s"+i,maxlength:"40",value:s}));
+  const end = h("input",{id:"set-end",type:"time",value:S.config.endTime || "11:25"});
+  const settings = h("form",{class:"card",onsubmit:async e=>{ e.preventDefault();
+      try { await setDoc(doc(S.db,"config","main"), { schools: inputs.map((x,i)=>x.value.trim()||DEFAULT_SCHOOLS[i]), endTime: end.value || "11:25" }); flash("Zapisano ustawienia.","good"); }
+      catch(ex){ flash("Nie udało się zapisać ustawień.","err"); } }},
+    h("h2",null,"Ustawienia"), inputs.map((inp,i)=>h("label",{for:"set-s"+i},"Szkoła " + (i+1), inp)),
+    h("label",{for:"set-end"},"Koniec gry głównej (odliczanie na ekranie)", end),
+    h("button",{class:"btn",type:"submit"},"Zapisz"));
+  const { teams } = ranking();
+  const table = h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Drużyny"), h("span",{class:"pill"}, teams.length + " drużyn")),
+    h("p",{class:"muted small"},"„Finał” to opcjonalne punkty z teleturnieju (0–" + BONUS_MAX + "). Usuń drużynę, jeśli ma nieodpowiednią nazwę."),
+    teams.length ? h("div",{class:"tablewrap"}, h("table",null,
+      h("thead",null,h("tr",null,h("th",null,"Drużyna"),h("th",null,"Szkoła"),h("th",{class:"num"},"Stacje"),h("th",{class:"num"},"Pkt"),h("th",null,"Finał"),h("th",null,""))),
+      h("tbody",null, teams.map(t=>h("tr",null,
+        h("td",null, t.name, h("div",{class:"muted mono small"}, t.id)), h("td",{class:"small"}, sch[t.school]||"?"),
+        h("td",{class:"num"}, t.st + "/4"), h("td",{class:"num mono"}, t.points), h("td",null, bonusInput(t)), h("td",{class:"num"}, delBtn(t)))))))
+    : h("p",{class:"muted"},"Nikt się jeszcze nie zarejestrował."));
+  put(top,
+    h("div",{class:"row"}, h("a",{class:"tab",href:"#ekran",style:"text-decoration:none"},"Ekran do rzutnika ↗"), logout),
+    adminMsg.text ? h("div",{class:"msg " + adminMsg.kind}, adminMsg.text) : null,
+    settings, table);
+}
+function flash(text, kind){ adminMsg = { text, kind }; render(); }
+function bonusInput(t){
+  const inp = h("input",{id:"b-"+t.id,type:"number",min:"0",max:String(BONUS_MAX),inputmode:"numeric",value:t.bonus ?? "",style:"width:80px;min-height:36px;padding:6px 8px"});
+  const save = h("button",{class:"btn sm ghost",onclick:async ()=>{
+    const v = inp.value === "" ? null : Math.round(Number(inp.value));
+    if (v !== null && !(v >= 0 && v <= BONUS_MAX)) return flash("Punkty z finału: od 0 do " + BONUS_MAX + ".","err");
+    try { await updateDoc(doc(S.db,"teams",t.id), { bonus: v === null ? deleteField() : v }); flash("Zapisano finał dla „" + t.name + "”.","good"); }
+    catch(e){ flash("Nie udało się zapisać.","err"); } }},"OK");
+  return h("div",{class:"row",style:"gap:6px;flex-wrap:nowrap"}, inp, save);
+}
+function delBtn(t){
+  const wrap = h("span");
+  const ask = ()=> wrap.replaceChildren(h("button",{class:"btn sm red",onclick:async ()=>{
+    try { const ms = await getDocs(collection(S.db,"teams",t.id,"members")); for (const m of ms.docs) await deleteDoc(m.ref); await deleteDoc(doc(S.db,"teams",t.id)); flash("Usunięto drużynę „" + t.name + "”.","good"); }
+    catch(e){ flash("Nie udało się usunąć drużyny.","err"); } }},"Na pewno usuń"));
+  wrap.replaceChildren(h("button",{class:"btn sm ghost",onclick:ask},"Usuń"));
+  return wrap;
+}
+
+/* ===================== STACJA 2: SYMULATOR (#skarbiec) =====================
+   To NIE jest prawdziwe łamanie haseł. Symulator liczy tylko, ilu kandydatów
+   trzeba by sprawdzić przy wybranych ustawieniach, i pokazuje animację.
+   Hasło pada wyłącznie przy ustawieniach zgodnych ze wskazówkami z sali. */
+const V = {
+  user:"admin_grinch",
+  hash:"e55de48c923e50a2a9b6d8c4de77d4a9",          // MD5("RUDOLF06")
+  answer:{ type:"md5", dict:"reindeer", mask:"d2", kase:"upper" },
+  types:[
+    { id:"md5",    name:"MD5",     note:"32 znaki szesnastkowe", len:32, speed:2e9 },
+    { id:"sha1",   name:"SHA-1",   note:"40 znaków szesnastkowych", len:40, speed:7e8 },
+    { id:"sha256", name:"SHA-256", note:"64 znaki szesnastkowe", len:64, speed:3e8 },
+    { id:"bcrypt", name:"bcrypt",  note:"zaczyna się od $2b$, 60 znaków", len:60, speed:5e3 }
+  ],
+  dicts:[
+    { id:"top",      name:"Najpopularniejsze hasła", size:10000,   words:["PASSWORD","QWERTY","ZAQ1","MONKEY","DRAGON","SLONECZKO","KOCHAM","MARCIN"] },
+    { id:"reindeer", name:"Imiona reniferów",        size:9,       words:["DASHER","DANCER","PRANCER","VIXEN","COMET","CUPID","DONNER","BLITZEN","RUDOLF"] },
+    { id:"cities",   name:"Miasta Polski",           size:1000,    words:["WARSZAWA","KRAKOW","GDANSK","POZNAN","LODZ","LUBLIN","TORUN","OPOLE"] },
+    { id:"pl",       name:"Słownik języka polskiego", size:3000000, words:["ABAKUS","ABAZUR","BALWAN","CHOINKA","DZWONEK","GWIAZDKA","KOMINEK","SANKI"] }
+  ],
+  masks:[
+    { id:"none", name:"samo słowo",                      n:1,     suf:()=>"" },
+    { id:"d2",   name:"słowo + 2 cyfry (np. dzień)",     n:100,   suf:i=>String(i%100).padStart(2,"0") },
+    { id:"d4",   name:"słowo + 4 cyfry (np. rok)",       n:10000, suf:i=>String(i%10000).padStart(4,"0") },
+    { id:"sym",  name:"słowo + znak specjalny",          n:32,    suf:i=>"!@#$%&*?"[i%8] }
+  ],
+  kases:[
+    { id:"lower", name:"małe litery",     f:w=>w.toLowerCase() },
+    { id:"title", name:"Pierwsza wielka", f:w=>w[0]+w.slice(1).toLowerCase() },
+    { id:"upper", name:"WIELKIE LITERY",  f:w=>w }
+  ]
+};
+const VS = { type:null, dict:null, mask:null, kase:null, running:false, fails:0, t0:Date.now(), done:false };
+let vaultRoot = null, vaultTimer = null;
+function fmtTime(s){
+  if (s < 1) return s < 0.001 ? "poniżej 0,001 s" : s.toFixed(3).replace(".",",") + " s";
+  if (s < 60) return Math.round(s) + " s";
+  if (s < 3600) return Math.round(s/60) + " min";
+  if (s < 86400) return Math.round(s/3600) + " godz.";
+  if (s < 86400*365) return Math.round(s/86400) + " dni";
+  const y = s/(86400*365);
+  return y < 1e6 ? Math.round(y).toLocaleString("pl-PL") + " lat" : y.toExponential(1).replace(".",",") + " lat";
+}
+const fmtNum = n => n.toLocaleString("pl-PL");
+function renderVault(){
+  app.className = "wrap wide";
+  if (vaultRoot && app.contains(vaultRoot)) return;          // nie przerywaj trwającej rundy
+  clearInterval(vaultTimer);
+  const log = h("div",{class:"console",role:"log","aria-live":"polite"});
+  const line = (t, cls) => { log.append(h("div",{class:cls||""}, t)); while (log.childNodes.length > 14) log.firstChild.remove(); log.scrollTop = log.scrollHeight; };
+  const est = h("div",{class:"mono small muted"});
+  const clock = h("span",{class:"pill gold"});
+  const tick = ()=>{ const s = Math.floor((Date.now()-VS.t0)/1000); clock.textContent = "czas rundy " + Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+  tick(); vaultTimer = setInterval(()=>{ if (!VS.done) tick(); }, 1000);
+  const groups = {};
+  const group = (key, title, items, label) => {
+    const box = h("div",{class:"stack",style:"gap:8px"});
+    const draw = ()=> box.replaceChildren(h("h3",null,title), h("div",{class:"vopts"}, items.map(it=>h("button",{class:"opt","aria-pressed":String(VS[key]===it.id),disabled:VS.running,onclick:()=>{ VS[key]=it.id; drawAll(); }},
+      h("b",null,it.name), label(it) ? h("span",{class:"muted small",style:"display:block"}, label(it)) : null))));
+    groups[key] = draw; return box;
+  };
+  const runBtn = h("button",{class:"btn",style:"width:100%"},"Uruchom atak");
+  const drawAll = ()=>{
+    Object.values(groups).forEach(d=>d());
+    const ready = VS.type && VS.dict && VS.mask && VS.kase;
+    runBtn.disabled = !ready || VS.running || VS.done;
+    if (ready){
+      const d = V.dicts.find(x=>x.id===VS.dict), m = V.masks.find(x=>x.id===VS.mask), t = V.types.find(x=>x.id===VS.type);
+      const total = d.size * m.n;
+      est.textContent = "Kandydatów do sprawdzenia: " + fmtNum(total) + " · laptop koła: " + fmtNum(t.speed) + " prób/s · szacowany czas: " + fmtTime(total/t.speed);
+    } else est.textContent = "Wybierzcie wszystkie 4 ustawienia.";
+  };
+  runBtn.addEventListener("click", ()=>runAttack());
+  function runAttack(){
+    const t = V.types.find(x=>x.id===VS.type), d = V.dicts.find(x=>x.id===VS.dict), m = V.masks.find(x=>x.id===VS.mask), k = V.kases.find(x=>x.id===VS.kase);
+    log.replaceChildren();
+    line("> atak na konto " + V.user + " · " + t.name + " · " + d.name + " · " + m.name + " · " + k.name, "dim");
+    if (t.len !== V.hash.length){
+      line("✗ Ten hash ma " + V.hash.length + " znaki, a " + t.name + " ma " + (t.id==="bcrypt" ? "60 znaków i zaczyna się od $2b$" : t.len + " znaków") + ".", "bad");
+      line("  Zły typ hasha. Policzcie znaki jeszcze raz.", "bad");
+      return fail();
+    }
+    const total = d.size * m.n, secs = total / t.speed;
+    if (secs > 86400){
+      line("Kandydatów: " + fmtNum(total) + " · szacowany czas: " + fmtTime(secs), "bad");
+      line("✗ Atak przerwany: nie zdążymy przed świętami. Zawęźcie słownik albo maskę.", "bad");
+      return fail();
+    }
+    const correct = VS.type===V.answer.type && VS.dict===V.answer.dict && VS.mask===V.answer.mask && VS.kase===V.answer.kase;
+    const hitAt = correct ? 8*100 + 6 : -1;                    // RUDOLF + "06"
+    const steps = correct ? hitAt + 1 : Math.min(total, 1500);
+    VS.running = true; drawAll();
+    let i = 0;
+    const per = Math.max(1, Math.ceil(steps / 90));            // ok. 3 sekundy animacji
+    const anim = setInterval(()=>{
+      for (let j=0; j<per && i<steps; j++, i++){
+        const w = d.words[Math.floor(i / m.n) % d.words.length];
+        const cand = k.f(w) + m.suf(i % m.n);
+        if (j === per-1 || i === steps-1) line((i === hitAt ? "✓ " : "  ") + cand.padEnd(14," ") + (i === hitAt ? "PASUJE" : "✗"), i === hitAt ? "good" : "dim");
+      }
+      if (i >= steps){
+        clearInterval(anim); VS.running = false;
+        if (correct) success(total, t);
+        else {
+          line("Przeszukano " + fmtNum(total) + " kandydatów w " + fmtTime(secs) + ". Brak trafienia.", "bad");
+          fail();
+        }
+      }
+    }, 33);
+  }
+  function fail(){
+    VS.fails++; drawAll();
+    if (VS.fails >= 2) line("Podpowiedź: rozejrzyjcie się po sali. Kalendarz, zdjęcie i karteczki przy biurku administratora mówią, jakie hasło wybrał Grinch.", "hint");
+    if (VS.fails >= 4){
+      const a = V.answer;
+      const tip = VS.type!==a.type ? "typ hasha (policzcie znaki)" : VS.dict!==a.dict ? "słownik (zobaczcie zdjęcie na ścianie)" : VS.mask!==a.mask ? "maskę (zobaczcie kalendarz)" : "wielkość liter (zobaczcie karteczkę)";
+      line("Druga podpowiedź: coś jest nie tak z ustawieniem: " + tip + ".", "hint");
+    }
+  }
+  function success(total, t){
+    VS.done = true; drawAll();
+    line("✓ Hasło administratora odzyskane po " + fmtNum(total > 806 ? 807 : total) + " próbach.", "good");
+    const S2 = 7776**4;   // fraza z 4 losowych słów (lista 7776 słów)
+    const bc = V.types.find(x=>x.id==="bcrypt");
+    result.replaceChildren(h("div",{class:"card",style:"text-align:center"},
+        h("span",{class:"eyebrow",style:"color:var(--ok)"},"Skarbiec otwarty"),
+        h("div",{class:"codebox"},"RUDOLF06"),
+        h("p",null,"To wasz PIN. Wpiszcie go w terminalu: Laboratoria → 2 · Złam skarbiec.")),
+      h("section",{class:"card"}, h("h3",null,"Dlaczego poszło tak szybko?"),
+        h("div",{class:"tablewrap"}, h("table",null,
+          h("thead",null,h("tr",null,h("th",null,"Hasło"),h("th",{class:"num"},"MD5"),h("th",{class:"num"},"bcrypt"))),
+          h("tbody",null,
+            h("tr",null,h("td",null,"RUDOLF06 (imię + dzień)"),h("td",{class:"num mono"},fmtTime(900/t.speed)),h("td",{class:"num mono"},fmtTime(900/bc.speed))),
+            h("tr",null,h("td",null,"4 losowe słowa, np. sanki-zorza-piernik-kominek"),h("td",{class:"num mono"},fmtTime(S2/t.speed)),h("td",{class:"num mono"},fmtTime(S2/bc.speed)))))),
+        h("p",{class:"muted small"},"Słabe hasło pada nawet przy wolnym bcrypt. Długa fraza z losowych słów wytrzymuje tygodnie przy MD5 i tysiące lat przy bcrypt."),
+        h("button",{class:"btn ghost",onclick:()=>{ Object.assign(VS,{type:null,dict:null,mask:null,kase:null,running:false,fails:0,t0:Date.now(),done:false}); vaultRoot=null; renderVault(); }},"Nowa drużyna (reset)")));
+    result.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  const result = h("div",{class:"stack"});
+  const leak = h("section",{class:"card"},
+    h("div",{class:"spread"}, h("span",{class:"eyebrow",style:"color:var(--red)"},"Wyciek z serwera fabryki"), clock),
+    h("div",{class:"mono small"},"login: ", h("b",null,V.user)),
+    h("div",{class:"hashline"}, V.hash.match(/.{1,8}/g).join(" ")),
+    h("p",{class:"muted small"},"Hash to „odcisk palca” hasła. Nie da się go odwrócić, ale można sprawdzać kandydatów, aż odcisk się zgodzi. Waszym zadaniem jest dobrać tak, żeby kandydatów było jak najmniej."));
+  vaultRoot = h("div",{class:"stack",style:"gap:20px"},
+    h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 2 · symulator"), h("h1",null,"Złam skarbiec")),
+    h("div",{class:"vault"},
+      h("div",{class:"stack",style:"gap:18px"},
+        leak,
+        group("type","1. Typ hasha", V.types, it=>it.note),
+        group("dict","2. Słownik", V.dicts, it=>fmtNum(it.size) + " słów"),
+        group("mask","3. Maska", V.masks, it=>"×" + fmtNum(it.n)),
+        group("kase","4. Wielkość liter", V.kases, ()=>"")),
+      h("div",{class:"stack vault-side",style:"gap:12px"},
+        h("h3",null,"Konsola"), log, est, runBtn, result)),
+    h("p",{class:"muted small"},"To symulator: niczego naprawdę nie łamie, tylko liczy, ilu kandydatów trzeba by sprawdzić."));
+  put(vaultRoot);
+  line("> gotowy. Wybierzcie ustawienia i uruchomcie atak.", "dim");
+  drawAll();
+}
+
+/* ===================== STACJA 4: CZYTNIK DRZWI (#drzwi) =====================
+   Telefon koła z Androidem i Chrome udaje czytnik kart przy drzwiach warsztatu.
+   Wpuszcza tylko kartę o numerze (UID) zapisanym w ustawieniach, a po wpuszczeniu
+   pokazuje PIN wpisany przez organizatora. PIN-u nie ma w kodzie strony:
+   leży tylko w pamięci telefonu-czytnika. */
+let doorCfg = {};
+try { doorCfg = JSON.parse(ls.get("ob_door") || "{}") || {}; } catch(e){ doorCfg = {}; }
+const saveDoor = () => ls.set("ob_door", JSON.stringify(doorCfg));
+let doorRoot = null, doorAbort = null, doorReset = null, doorLearn = false, doorWake = null;
+const uidNorm = s => String(s||"").toUpperCase().replace(/[^0-9A-F]/g,"");
+const uidShow = s => uidNorm(s).match(/.{1,2}/g)?.join(":") || "—";
+function renderDoor(){
+  app.className = "wrap";
+  if (doorRoot && app.contains(doorRoot)) return;
+  try { doorCfg = JSON.parse(ls.get("ob_door") || "{}") || {}; } catch(e){ doorCfg = {}; }
+  const supported = "NDEFReader" in window;
+  const screen = h("div",{class:"door idle"});
+  const setState = (cls, title, sub, big) => {
+    screen.className = "door " + cls;
+    screen.replaceChildren(...[h("div",{class:"door-icon"}, cls==="ok" ? "🔓" : cls==="deny" ? "⛔" : cls==="learn" ? "📝" : "🔒"),
+      h("div",{class:"door-title"}, title), sub ? h("div",{class:"door-sub"}, sub) : null, big ? h("div",{class:"codebox"}, big) : null].filter(Boolean));
+  };
+  const idle = () => setState(doorLearn ? "learn" : "idle", doorLearn ? "Przyłóż kartę elfa, żeby ją zapisać" : "Przyłóż kartę dostępu", doorLearn ? "Tryb organizatora" : "Warsztat Mikołaja · wejście tylko dla elfów z dyżuru");
+  const later = ms => { clearTimeout(doorReset); doorReset = setTimeout(idle, ms); };
+  const onRead = uid => {
+    const u = uidNorm(uid);
+    if (!u){ setState("deny","Nie udało się odczytać numeru karty","Przyłóżcie jeszcze raz, spokojnie, na 2 sekundy."); return later(4000); }
+    if (doorLearn){
+      doorCfg.uid = u; saveDoor(); doorLearn = false; drawCfg();
+      setState("ok","Zapisano kartę elfa", uidShow(u)); return later(5000);
+    }
+    if (doorCfg.uid && u === doorCfg.uid){
+      setState("ok","DOSTĘP PRZYZNANY","Karta elfa nr 77 · " + uidShow(u), doorCfg.pin || "(PIN nieustawiony)");
+      try { navigator.vibrate?.([120,60,120]); } catch(e){}
+      return later(20000);
+    }
+    setState("deny","ODMOWA","Nieznana karta · " + uidShow(u));
+    try { navigator.vibrate?.(400); } catch(e){}
+    later(5000);
+  };
+  const start = async () => {
+    try {
+      doorAbort?.abort(); doorAbort = new AbortController();
+      const r = new NDEFReader();
+      await r.scan({ signal: doorAbort.signal });
+      r.onreading = e => onRead(e.serialNumber);
+      r.onreadingerror = () => { setState("deny","Nie udało się odczytać karty","Przyłóżcie jeszcze raz."); later(4000); };
+      try { doorWake = await navigator.wakeLock?.request("screen"); } catch(e){}
+      startBtn.hidden = true; idle();
+    } catch(e){
+      setState("deny","Czytnik nie wystartował", e && e.name === "NotAllowedError" ? "Zezwól stronie na NFC i włącz NFC w telefonie." : "Włącz NFC w ustawieniach telefonu i spróbujcie ponownie.");
+    }
+  };
+  const startBtn = h("button",{class:"btn",style:"width:100%",onclick:start},"Uruchom czytnik");
+  const pinIn = h("input",{id:"door-pin",class:"code",maxlength:"16",placeholder:"PIN",value:doorCfg.pin||"",autocomplete:"off"});
+  const cfgInfo = h("p",{class:"small muted"});
+  const drawCfg = () => { cfgInfo.textContent = "Zapisana karta: " + (doorCfg.uid ? uidShow(doorCfg.uid) : "brak") + " · PIN: " + (doorCfg.pin ? "ustawiony" : "brak"); };
+  drawCfg();
+  const cfg = h("details",{class:"card"},
+    h("summary",{style:"cursor:pointer"},"Ustawienia czytnika (dla koła)"),
+    h("p",{class:"small"},"1. Uruchom czytnik. 2. Kliknij „Zapisz kartę elfa” i przyłóż oryginalną kartę elfa. 3. Wpisz PIN stacji i zapisz. Ustawienia zostają w tym telefonie."),
+    h("button",{class:"btn ghost",onclick:()=>{ doorLearn = true; idle(); }},"Zapisz kartę elfa"),
+    h("form",{class:"row",onsubmit:e=>{ e.preventDefault(); doorCfg.pin = norm(pinIn.value); saveDoor(); pinIn.blur(); drawCfg(); }},
+      h("label",{for:"door-pin",style:"flex:1"},"PIN pokazywany po wpuszczeniu", pinIn), h("button",{class:"btn sm",type:"submit",style:"align-self:flex-end"},"Zapisz PIN")),
+    cfgInfo,
+    h("button",{class:"btn sm ghost",onclick:()=>onRead(doorCfg.uid || "")},"Test: udawaj dobrą kartę"));
+  if (!supported) setState("deny","Ten telefon nie obsługuje czytania NFC w przeglądarce","Potrzebny jest telefon z Androidem, włączonym NFC i przeglądarką Chrome.");
+  else idle();
+  doorRoot = h("div",{class:"stack",style:"gap:16px"},
+    h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 4 · drzwi warsztatu"), h("h1",null,"Czytnik kart")),
+    screen, supported ? startBtn : null, cfg);
+  put(doorRoot);
+}
+
+/* ===================== ROUTER ===================== */
+const route = () => (location.hash||"").replace("#","");
+function render(){
+  const r = route();
+  if (r !== "ekran") clearInterval(clockTimer);
+  if (r !== "skarbiec"){ clearInterval(vaultTimer); vaultRoot = null; }
+  if (r !== "drzwi"){ doorAbort?.abort(); doorAbort = null; doorRoot = null; try { doorWake?.release(); } catch(e){} }
+  if (r === "ekran") renderScreen();
+  else if (r === "admin") renderAdmin();
+  else if (r === "pulapka") renderTrap();
+  else if (r === "skarbiec") renderVault();
+  else if (r === "drzwi") renderDoor();
+  else renderPlayer();
+}
+// odświeżenie po zmianie danych – bez przerywania kogoś w trakcie pisania albo zadania
+function refresh(){
+  const r = route(), a = document.activeElement, typing = a && ["INPUT","SELECT","TEXTAREA"].includes(a.tagName);
+  if (r === "ekran") return renderScreen();
+  if (typing) return;
+  if (r === "admin") return S.user && !S.user.isAnonymous ? renderAdmin() : undefined; // nie kasuj formularza logowania
+  if (r === "pulapka" || r === "skarbiec" || r === "drzwi") return;
+  if (!S.code || !S.teamLoaded || view.type === "home" || view.type === "station" || view.type === "key") renderPlayer();
+}
+window.addEventListener("hashchange", ()=>{ adminMsg = {text:"",kind:""}; render(); window.scrollTo(0,0); });
+boot();
+</script>
+</body>
+</html>

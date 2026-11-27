@@ -1,0 +1,92 @@
+rules_version = '2';
+
+// Operacja Biegun – reguły bezpieczeństwa bazy.
+// To jest WZÓR z zaślepkami zamiast PIN-ów (repozytorium jest publiczne).
+// Wdrażany jest plik firestore.local.rules (nie trafia do gita):
+//   1. skopiuj ten plik jako firestore.local.rules,
+//   2. wpisz prawdziwe PIN-y (WIELKIMI LITERAMI, bez spacji),
+//   3. firebase deploy.
+// Baza sama sprawdza, czy PIN pasuje, więc PIN-ów nie ma w kodzie strony.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isMember(code) {
+      return signedIn() && exists(/databases/$(database)/documents/teams/$(code)/members/$(request.auth.uid));
+    }
+
+    // ---- PIN-y stacji ----
+    function stationsOk(u, old) {
+      return u.keys().hasOnly(['s1', 's2', 's3', 's4'])
+        && u.keys().hasAll(old.keys())               // postępu nie da się cofnąć
+        && (!('s1' in u) || u.s1 == 'PIN_STACJI_1')
+        && (!('s2' in u) || u.s2 == 'PIN_STACJI_2')
+        && (!('s3' in u) || u.s3 == 'PIN_STACJI_3')
+        && (!('s4' in u) || u.s4 == 'PIN_STACJI_4');
+    }
+    // ---- zadania poboczne ----
+    function sideOk(s, old) {
+      return s.keys().hasOnly(['p1', 'p2', 'p3', 'p4', 'p5'])
+        && s.keys().hasAll(old.keys())
+        && (!('p1' in s) || s.p1 == true)
+        && (!('p2' in s) || s.p2 == true)
+        && (!('p3' in s) || s.p3 == 'HASLO_SZYFRU')
+        && (!('p4' in s) || s.p4 == true)
+        && (!('p5' in s) || s.p5 == true);
+    }
+
+    // Ustawienia (nazwy szkół, godzina końca) – czytają wszyscy, zmienia admin.
+    match /config/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Lista adminów – dokumenty o ID = UID konta, dodawane ręcznie w konsoli.
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /teams/{code} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && code.matches('^[A-Z2-9]{4}$')
+        && request.resource.data.keys().hasOnly(['name', 'school', 'createdAt', 'createdBy', 'unlocked', 'side'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 28
+        && request.resource.data.school in [0, 1, 2]
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.unlocked == {}
+        && request.resource.data.side == {};
+
+      // Członek drużyny może tylko DOPISYWAĆ postęp (z poprawnym PIN-em). Admin może wszystko.
+      allow update: if isAdmin() || (
+        isMember(code)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked', 'side'])
+        && stationsOk(request.resource.data.unlocked, resource.data.unlocked)
+        && sideOk(request.resource.data.side, resource.data.side)
+      );
+
+      allow delete: if isAdmin();
+
+      match /members/{uid} {
+        allow read: if true;
+        allow create, update: if signedIn()
+          && request.auth.uid == uid
+          && existsAfter(/databases/$(database)/documents/teams/$(code))
+          && request.resource.data.keys().hasOnly(['nick', 'joinedAt'])
+          && request.resource.data.nick is string
+          && request.resource.data.nick.size() <= 20
+          && request.resource.data.joinedAt == request.time;
+        allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      }
+    }
+  }
+}

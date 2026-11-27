@@ -1,0 +1,9 @@
+.firebase/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# sekrety – tylko lokalnie
+firestore.local.rules
+SEKRETY.md
