@@ -4,7 +4,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# sekrety – tylko lokalnie
-firestore.local.rules
+# Historyczna prywatna ściąga – nie jest już używana przez aplikację.
+# Oba pliki reguł są teraz bez sekretów i mogą być wersjonowane.
 SEKRETY.md
 .claude/

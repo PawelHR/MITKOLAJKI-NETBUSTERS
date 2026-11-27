@@ -1,0 +1,14 @@
+{
+  "name": "operacja-biegun",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/core.test.mjs tests/static.test.cjs tests/missions.test.cjs tests/migration.test.cjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-operacja-biegun \"node --test tests/firestore.test.cjs\"",
+    "emulators": "firebase emulators:start --project demo-operacja-biegun"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.10.0",
+    "firebase-tools": "^14.0.0"
+  }
+}

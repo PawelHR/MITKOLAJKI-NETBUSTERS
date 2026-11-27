@@ -1,204 +1,120 @@
 # 🎅 Operacja Biegun
 
-Mikołajkowa gra terenowa koła cyberbezpieczeństwa dla 3 szkół średnich.
-Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem. Telefon służy im za **terminal misji**: prowadzi fabułę, odblokowuje kolejne etapy po wpisaniu PIN-u i pokazuje **ranking szkół na żywo**.
+Polska gra terenowa koła cyberbezpieczeństwa dla uczniów trzech szkół średnich.
+Noc polarna, cztery laboratoria i wspólna misja: odzyskać system rozdzielania prezentów przejęty przez Grincha.
 
-**Gra:** https://operacja-biegun.web.app
+**Bez frameworka i płatnego backendu:** HTML/CSS/JS, Firebase Hosting, Auth i Firestore na Spark.
+Gra: https://operacja-biegun.web.app (zmiany w repozytorium nie oznaczają wdrożenia).
 
-> Grinch włamał się do Centrum Logistyki Mikołaja i zablokował system rozdzielania prezentów.
-> Zespoły reagowania na incydenty muszą odzyskać 4 fragmenty klucza głównego przed 13:00.
+## Wydarzenie
 
----
+Drużyny po 3–4 osoby. Cztery rotacje po 25 min + 5 min przejścia.
+**8 prowadzących (po 2 na stację) oraz koordynator wydarzenia.** Na stacji 4 pomocnik jest jednocześnie elfem z kartą i operatorem Flippera.
 
-## Spis treści
-- [Jak wygląda wydarzenie](#jak-wygląda-wydarzenie)
-- [Stacje](#stacje)
-- [Aplikacja](#aplikacja)
-- [Punktacja i ranking](#punktacja-i-ranking)
-- [Architektura i bezpieczeństwo](#architektura-i-bezpieczeństwo)
-- [Struktura repozytorium](#struktura-repozytorium)
-- [Uruchomienie i wdrożenie](#uruchomienie-i-wdrożenie)
-- [Materiały do druku](#materiały-do-druku)
-- [Checklista przed eventem](#checklista-przed-eventem)
-
----
-
-## Jak wygląda wydarzenie
-
-| Godzina | Miejsce | Co się dzieje |
-|---|---|---|
-| 09:00 – 09:25 | Aula | Wprowadzenie fabularne. Drużyny skanują QR, zakładają drużynę w apce i dołączają do niej. |
-| 09:25 – 11:25 | 4 sale + korytarze | Gra główna: rotacja po 4 stacjach, po 25 min każda. Między salami zadania poboczne w apce. |
-| 11:25 – 12:00 | Hol | stoisko koła ze sprzętem, ranking szkół na dużym ekranie (`#ekran`). |
-| 12:00 – 12:40 | Aula | Finałowy teleturniej (Kahoot / Quizizz). Wynik można dopisać w panelu jako bonus. |
-| 12:40 – 13:00 | Aula | Wyniki, puchar dla zwycięskiej szkoły, nagrody dla najlepszych drużyn. |
-
-Stacje są **dla zabawy, bez oceniania**. Prowadzący nikogo nie punktuje, tylko po zabawie podaje drużynie PIN.
-
-## Stacje
-
-| # | Nazwa | Co robią uczniowie | Skąd PIN |
-|---|---|---|---|
-| 1 | Przechwycenie | Łączą się z fałszywym hotspotem z Flippera i wpisują dane z kartki. Głosują, które hasło do Wi-Fi jest najmocniejsze, i oglądają, jak słabe pada. | Złamane hasło routera testowego |
-| 2 | Złam skarbiec | Szukają wskazówek w sali i ustawiają w symulatorze typ hasha, słownik i maskę. | Wynik symulatora |
-| 3 | Fałszywy Mikołaj | Śledztwo SOC na telefonach (w stylu Advent of Cyber): szukają sygnałów phishingu w mailu, podglądają cudze listy przez zmianę numeru w adresie (IDOR) i znajdują w logach moment włamania, a na koniec decydują, jak zareagować na incydent. | Złożony z 3 fragmentów: GR + IN + CH (kod wejścia `SOC`) |
-| 4 | Biuro Grincha | Audytują biurko „elfa” i z grafiku dyżurów ustalają, czyja karta otwiera warsztat. Z pomocą członka koła kopiują ją Flipperem i otwierają kopią czytnik przy drzwiach. W finale prowadzący podłącza „podrzucony pendrive” (Flipper BadUSB), który sam pisze na laptopie. | Czytnik `#drzwi` po przyłożeniu kopii karty |
-
-**Dokładne scenariusze minuta po minucie, sprzęt, plan B i lista zakupów są w [STACJE.md](STACJE.md).**
-
-**Zasada bezpieczeństwa stacji:** wszystko dzieje się na sprzęcie i kontach koła. Odizolowany router, fałszywe dane z kartek, karta elfa należąca do koła. Nie używamy szkolnej sieci, legitymacji ani prywatnych kont i urządzeń uczniów.
-
-## Aplikacja
-
-Jedna strona (`public/index.html`) z sześcioma widokami:
-
-| Adres | Dla kogo | Co robi |
-|---|---|---|
-| `/` | uczniowie | Zakładanie drużyny lub dołączanie kodem, klucz główny, 4 laboratoria, zadania poboczne, ranking |
-| `/#ekran` | rzutnik w holu | Ranking szkół (średnia na drużynę), top 8 drużyn, ostatnie punkty, zegar i odliczanie |
-| `/#admin` | koło | Logowanie e-mailem, nazwy szkół, godzina końca gry, punkty z finału, usuwanie drużyn |
-| `/#pulapka` | plakat „Darmowe pierniki” | Lekcja o quishingu: kto zeskanował nieznany kod, dowiaduje się, czym to grozi, i dostaje punkty |
-| `/#skarbiec` | laptopy na stacji 2 | Symulator łamania haseł: typ hasha, słownik, maska, wielkość liter. Daje PIN stacji 2 i porównanie z mocnym hasłem |
-| `/#drzwi` | telefon z Androidem przy drzwiach na stacji 4 | Czytnik kart (Web NFC): wpuszcza tylko zapisaną kartę elfa i pokazuje PIN ustawiony w tym telefonie |
-
-**Zadania poboczne** (w drodze między salami, punkty dopisują się same):
-
-| Zadanie | Na czym polega | Punkty |
-|---|---|---|
-| Prezent czy pułapka? | 8 wiadomości (SMS-y o paczkach, BLIK, fałszywe promocje) przesuwanych jak karty | 30 |
-| Hasło do sań | 4 pytania o hasła, 2FA i menedżery haseł | 20 |
-| Szyfr elfów | Szyfr Cezara z suwakiem; serwer sprawdza odpowiedź | 20 |
-| Co zdradza zdjęcie? | Co relacja na Instagramie mówi o autorce | 20 |
-| Darmowe pierniki | Plakat-pułapka z kodem QR na korytarzu | 30 |
-| Zhakuj elfa-bota | Prompt injection: symulowany bot pilnuje słowa, trzeba go okrężnie namówić do zdradzenia | 30 |
-| Dziurawy panel elfów | SQL injection: logowanie bez hasła z podglądem zapytania na żywo, puenta o zapytaniach parametryzowanych | 30 |
-
-**Drużyny:** jedna osoba zakłada drużynę (nazwa i szkoła) i dostaje 4-znakowy kod. Reszta dołącza, wpisując kod i pseudonim. Postęp jest wspólny: PIN wpisany na jednym telefonie odblokowuje fragment klucza na wszystkich. Nie zbieramy imion, nazwisk, klas ani e-maili uczniów.
-
-## Punktacja i ranking
-
-| Za co | Punkty |
+| Czas | Etap |
 |---|---|
-| Każda stacja (poprawny PIN) | 100 |
-| Zadania poboczne | 30 + 20 + 20 + 20 + 30 + 30 + 30 |
-| Finał (opcjonalnie, wpisuje admin) | 0–100 |
-| **Maksimum** | **680** |
+| 09:00–09:25 | Rejestracja, wprowadzenie w auli |
+| 09:25–11:25 | Gra główna: 4 rotacje |
+| 11:25–12:00 | Przerwa, stoisko koła |
+| 12:00–12:40 | Finał fabularny i opcjonalny teleturniej |
+| 12:40–13:00 | Zakończenie, podium |
 
-**Ranking szkół** to **średnia punktów drużyn, które zaliczyły co najmniej jedną stację**. Dzięki temu:
-- szkoła z większą liczbą drużyn nie ma przewagi,
-- puste drużyny-żarty, założone choćby po to, żeby zaniżyć wynik rywala, nie wchodzą do średniej (PIN da się zdobyć tylko fizycznie na stacji).
+Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu. Deadline zapisów ma **datę i godzinę**, nie sam zegar. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
 
-## Architektura i bezpieczeństwo
+## Cztery stacje
+
+| # | Laboratorium | Zadanie | Zaliczenie |
+|---|---|---|---|
+| 1 | Zhakuj grę | Skok Mikołaja: siła skoku, klucze, rola | Obserwacja prowadzącego |
+| 2 | Złam skarbiec | Dobór hasha, słownika i maski w symulatorze | Wynik pokazany prowadzącemu |
+| 3 | Fałszywy Mikołaj | Mail → portal → logi → konsola SOC (4) → osobno reakcja (5) | Raport po reakcji sprawdza prowadzący |
+| 4 | Biuro Grincha | Audyt biurka, własna karta demonstracyjna UID, pokaz BadUSB | Prowadzący, także awaryjnie |
+
+Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Nie ma już wspólnych PIN-ów zaliczenia.** Szczegóły, sprzęt i plan B: [STACJE.md](STACJE.md).
+
+## Widoki aplikacji
+
+| Adres | Zastosowanie |
+|---|---|
+| `/` | Drużyna, misja, sale/rotacje, zadania, ranking |
+| `/#admin` | Logowanie organizatora, etapy, członkostwo, stacje, finał, CSV |
+| `/#ekran` | Publiczny ranking na żywo; logowanie nie jest potrzebne |
+| `/#final` | Centrum dowodzenia: odliczanie, cztery systemy, gotowe drużyny, podium |
+| `/#gra` | Izolowana piaskownica Skoku Mikołaja |
+| `/#skarbiec` | Symulator haseł; odpowiedź to jawny rekwizyt |
+| `/#drzwi` | Demonstracyjny czytnik NFC i pełny ekran; konfiguracja tylko po logowaniu |
+| `/#pulapka` | Edukacyjny plakat o quishingu |
+
+### Punkty
+
+- **Oficjalnie:** 100 za stację, maks. 400; finał 0–100 wpisany przez organizatora **tylko w etapie Finał**. Maksimum **500**.
+- **Edukacyjnie, poza rankingiem:** Prezent czy pułapka 30, Hasło do sań 20, Szyfr elfów 20, Co zdradza zdjęcie 20, Darmowe pierniki 30, Elf-bot (oba etapy) 30, SQL injection 30, Grand Scam Auto VI 30, ClickFix 20. Maksimum **230**.
+- Ranking szkoły: dokładna średnia oficjalnych punktów drużyn z co najmniej jedną stacją. Zaokrąglamy tylko wyświetlanie. **Remis = wspólne miejsce**, bez premii za sumę czy liczbę drużyn.
+- CSV UTF-8 z BOM i średnikami, z zabezpieczeniem przed formułami w nazwach.
+
+### Nowe misje
+
+- **Grand Scam Auto VI (2–4 min)**: ukryty sygnał 06 w terminalu. Fikcyjny Discord, domena `.example`, atrapa instalatora, infostealer i odzyskanie konta. „MISSION PASSED – RESPECT +”, odznaka „Vice City Defender”. Autorska scenografia CSS w neonach, bez materiałów Rockstar i pobierania plików.
+- **ClickFix (1–2 min)**: atrapa CAPTCHA, odmowa uruchomienia „poprawki”, wyjaśnienie. Brak poleceń systemowych i dostępu do schowka.
+- **AI Agent Security**: po bezpośrednim prompt injection drugi etap z dokumentem. Rozpoznanie indirect injection, minimalne uprawnienia, blokada wysyłki i zgoda człowieka. Deterministycznie, bez API AI.
+
+## Bezpieczeństwo i dane
 
 ```
- Telefon ucznia ──(anonimowe logowanie)──► Firebase Auth
-       │
-       └──► Firestore  teams/{KOD}              nazwa, szkoła, unlocked{}, side{}, bonus
-                       teams/{KOD}/members/{uid} pseudonim
-                       config/main               nazwy szkół, godzina końca
-                       config/ranking            streszczenie rankingu dla telefonów (zapisuje #ekran)
-                       admins/{uid}              lista organizatorów (dodawana ręcznie)
-       ▲
- Rzutnik / panel ──(onSnapshot, na żywo)
+config/main                         publiczne etapy, deadline, sale, finał
+leaderboard/{publicznyID}            publiczna projekcja: nazwa, szkoła, statusy true, bonus, aktualizacja
+teams/{publicznyID}                  prywatny stan drużyny i wspólne dowody SOC
+teams/{ID}/members/{uid}             członkowie: czytają drużyna i organizatorzy
+teams/{ID}/requests/{uid}            prośba z zaproszeniem: tylko autor i organizatorzy
+teams/{ID}/revoked/{uid}             cofnięte członkostwo: tylko organizatorzy
+teams/{ID}/awards/{stacja}           jednokrotny audyt zaliczenia
+invites/{losowy128bitToken}          niewylistowywalne zaproszenia z terminem ważności
+retiredTeams/{ID}                    wycofane ID: zakaz ponownego użycia
+admins/{uid}                        lista organizatorów, dodawana w konsoli
 ```
 
-- **Hosting:** Firebase Hosting. Konfiguracja SDK pobiera się sama z `/__/firebase/init.json`.
-- **Logowanie:** uczniowie logują się anonimowo, bez kont. Organizatorzy logują się e-mailem i hasłem, a rejestracja nowych kont jest wyłączona w konsoli.
-- **Reguły (`firestore.rules`) są całym zabezpieczeniem gry:**
-  - **PIN-y stacji i hasło szyfru są tylko w regułach na serwerze.** Strona ich nie zna, więc nie da się ich wyczytać z kodu ani z ruchu sieciowego.
-  - Członek drużyny może tylko **dopisywać** postęp. Nie może cofnąć postępu, zmienić nazwy drużyny ani wpisać punktów.
-  - Stację da się zaliczyć tylko z prawdziwym PIN-em, nawet przy ręcznym zapisie do bazy z konsoli przeglądarki.
-  - Drużynę tworzy się z poprawnymi polami (nazwa 2–28 znaków, szkoła 0–2, pusty postęp, czas serwera).
-  - Usuwać drużyny i zmieniać ustawienia może tylko UID z kolekcji `admins`.
-- **Oszczędzanie limitu darmowego planu (50 tys. odczytów dziennie):** na żywo wszystkie drużyny śledzą tylko `#ekran` i `#admin`. Ekran zalogowany jako admin co ok. 15 s zapisuje streszczenie rankingu w jednym dokumencie `config/ranking`. Telefony czytają ten dokument przy wejściu i na przycisk „Odśwież” (co najwyżej raz na 30 s), więc odświeżenie to 1 odczyt zamiast kilkudziesięciu.
-- Postęp zapisuje się **transakcją**, więc zły PIN nie mignie na chwilę jako „odblokowany”.
+Założyciel tworzy drużynę i pierwsze członkostwo w jednym batchu. Publiczny czteroznakowy ID **nie jest zaproszeniem**. Pełne `ID.token` przekazuje się prywatnie. Sekret nie trafia do rankingu, adresu URL ani localStorage. Na telefonie założyciela jest widoczny tylko do przeładowania. Nowe zaproszenie wydaje organizator. Użytkownik z zaproszeniem może złożyć prośbę, ale **nie może sam utworzyć członkostwa**. Prowadzący zatwierdza konkretny telefon podczas rejestracji.
 
-> 🔑 Repozytorium jest publiczne, więc `firestore.rules` ma **zaślepki zamiast PIN-ów**. Prawdziwe reguły leżą lokalnie w `firestore.local.rules` (to on jest wdrażany), a ściąga dla prowadzących w `SEKRETY.md`. Oba pliki są w `.gitignore`. PIN stacji 2, kod wejścia i fragmenty stacji 3 są w kodzie strony **zaszyfrowane** (AES-GCM, klucz z poprawnego rozwiązania zadania), więc w źródle widać tylko szyfrogram. Nowe szyfrogramy generuje `narzedzia/szyfruj-odpowiedzi.js`.
+Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga świadomego usunięcia blokady, nowej prośby i zatwierdzenia.
 
-**Celowe uproszczenia (dobry temat na stoisko koła):**
-- Zadania poboczne 1, 2, 4 i 5 sprawdza telefon, nie serwer. Uparta osoba z DevTools może je zaliczyć bez grania. Za to stacji nie zaliczy.
-- Szyfrowanie w przeglądarce chroni przed podejrzeniem odpowiedzi, ale nie przed uporem: kombinacji w symulatorze jest tylko 192, więc da się je sprawdzić skryptem. Kto to zrobi, zasłużył na nagrodę „Łowca bugów”.
-- Kod drużyny jest jak zaproszenie, nie jak hasło: kto go zna, ten może dołączyć.
+Zaliczenie stacji zapisuje organizator atomowo ze statusem `true`, publiczną projekcją i niezmienialnym audytem. Powtórka nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
 
-## Struktura repozytorium
+**Kompromisy Spark:** przeglądarka może oszukać symulacje i dowody SOC, dlatego nie decydują o oficjalnych punktach. Zaufanym weryfikatorem jest prowadzący. AES-GCM z publicznego rozwiązania nie zapewnia tajności. Szyfr w symulatorze to dekoracja dydaktyczna, nie autoryzacja. Nie ma Functions, zewnętrznych usług AI ani płatnego serwera.
 
-```
-operacja-biegun/
-├── public/
-│   └── index.html        # cała aplikacja (HTML + CSS + JS, Firebase SDK z CDN)
-├── firestore.rules       # reguły bazy (wzór z zaślepkami zamiast PIN-ów)
-├── firebase.json         # hosting + reguły
-├── .firebaserc           # domyślny projekt Firebase
-├── plakaty/
-│   ├── plakat-gra.pdf    # plakat A4 z QR do gry
-│   ├── plakat-pierniki.pdf  # plakat-pułapka A4 z QR do #pulapka
-│   ├── ulotki.pdf        # 8 ulotek z QR na A4
-│   ├── *.html            # źródła plakatów (edycja + druk z przeglądarki)
-│   └── qr-*.svg          # same kody QR
-├── STACJE.md             # scenariusze 4 stacji dla prowadzących
-├── final/
-│   └── kahoot-final.xlsx # 18 pytań na finał do importu w Kahoot + omówienie dla prowadzącego
-├── stacja4-badusb/
-│   └── operacja-biegun.txt # skrypt BadUSB (DuckyScript) do finału stacji 4
-├── stacja1-portal/
-│   └── index.html        # strona logowania do pokazu Evil Portal (Flipper) na stacji 1
-├── narzedzia/
-│   └── szyfruj-odpowiedzi.js # generuje zaszyfrowane odpowiedzi stacji 2 i 3
-├── INSTRUKCJA.md         # konfiguracja Firebase krok po kroku
-└── README.md
-```
+Piaskownica gry ma `sandbox="allow-scripts"` **bez** `allow-same-origin`, blokadę sieci CSP, atrapę localStorage i brak mostu do rankingu. Pozostałe demonstracje też niczego naprawdę nie atakują. Używamy tylko sprzętu i kart koła, nigdy prywatnych kart, kont i danych uczniów.
 
-## Uruchomienie i wdrożenie
+### Odczyty i offline
 
-Pełna konfiguracja od zera (projekt, logowanie, baza, admini) jest w **[INSTRUKCJA.md](INSTRUKCJA.md)**.
+Telefony słuchają własnej drużyny i członków oraz jednego dokumentu konfiguracji. Ranking pobierają na żądanie, maks. raz na 30 s (N odczytów dla N drużyn). Tylko ekran, finał i zalogowany panel słuchają publicznych wyników na żywo. Punkty publikowane są przy zaliczeniu, **bez zależności od rzutnika**. Dla 40 drużyn i 160 telefonów, po 20 odświeżeń rankingu: ok. 12800 odczytów samego rankingu; dodaj aktualizacje drużyn, reguły i ekrany, monitoruj limit Spark 50 tys./dzień.
 
-Gdy projekt już istnieje:
+Service worker przechowuje wyłącznie publiczną stronę, moduł punktacji i wcześniej pobrane moduły SDK. Nie cache'uje odpowiedzi Auth/Firestore. Wczytane zadania można dokończyć bez sieci; nowa sesja i zaliczenie wymagają połączenia. Transakcja nie pokazuje sukcesu przed potwierdzeniem serwera. Offline nie jest pełną lokalną kopią gry.
+
+## Uruchomienie i testy
+
+Wymagane Node 20+ i Java 21 do emulatora (żadnych zależności runtime poza SDK z CDN).
 
 ```powershell
-npm install -g firebase-tools
-firebase login
-firebase deploy
+npm ci
+npm test
+npm run test:rules
+npm run emulators
 ```
 
-Polecenie wgrywa naraz stronę i reguły. Przed pierwszym wdrożeniem skopiuj `firestore.rules` jako `firestore.local.rules` i wpisz prawdziwe PIN-y. Zmiana PIN-u: popraw `firestore.local.rules` i uruchom `firebase deploy` jeszcze raz.
+Projekt `demo-operacja-biegun` nie dotyka produkcji. Lokalna aplikacja na `http://127.0.0.1:5000` automatycznie używa emulatorów Auth/Firestore. Konto i konfigurację demonstracyjną można przygotować w drugim terminalu:
 
-**Usunięcie drużyny testowej z konsoli:**
 ```powershell
-firebase firestore:delete teams/KOD --recursive --force
+$env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'
+node tests/seed.cjs
 ```
 
-## Materiały do druku
+Konto testowe jest wyłącznie w `tests/seed.cjs`; nigdy nie używaj go na produkcji. Testy reguł obejmują izolację, zaproszenia, członkostwo, punkty, duplikaty, współbieżność SOC, etapy, czas serwera i organizatorów. `npm test` sprawdza punktację, remisy, CSV, składnię i osłony piaskownicy.
 
-W folderze `plakaty/`:
-- **`plakat-gra.pdf`**: główny plakat A4 z QR do gry. Wieszamy w aulach, na korytarzach i przy wejściu.
-- **`plakat-pierniki.pdf`**: plakat-pułapka A4. Wieszamy przy planie lekcji i **nie mówimy, że jest częścią gry**.
-- **`ulotki.pdf`**: 8 ulotek z QR na jednej kartce A4, do rozcięcia po liniach.
+## Bezpieczne wdrożenie
 
-Drukować w skali 100% („Rzeczywisty rozmiar”), bez dopasowania do strony.
+**Nie wdrażaj na stare dokumenty bez migracji schematu.** Dawne PIN-y uznaj za ujawnione. Usunięcie z pliku nie usuwa ich z historii repozytorium. Nie używaj ich nigdzie ponownie.
 
-## Finał (teleturniej)
+Szczegóły konfiguracji, kontrolowanej migracji bez kasowania drużyn i kolejności wdrażania: **[INSTRUKCJA.md](INSTRUKCJA.md)**. Jedynym źródłem wdrażanych reguł jest `firestore.rules`; `firestore.local.rules` zawiera ten sam bezsekretowy zestaw dla zgodności lokalnej, nie inne PIN-y. Narzędzia nie wdrażają nic samoczynnie. Wdrożenie na wyraźne polecenie właściciela opisuje **[WDROZENIE.md](WDROZENIE.md)**.
 
-Plik [`final/kahoot-final.xlsx`](final/kahoot-final.xlsx) ma 18 pytań z tematów stacji (ok. 5 minut samego odpowiadania, z wynikami ok. 12–15 minut):
+Materiały drukowane pozostają w `plakaty/`, teleturniej w `final/kahoot-final.xlsx`, skrypt demonstracyjny w `stacja4-badusb/`. Stary wariant portalu w `stacja1-portal/` jest archiwalny, nie należy do obecnej stacji 1.
 
-- **Arkusz „Kahoot”** do importu: w Kahoocie *Utwórz → Dodaj pytanie → Importuj arkusz*.
-- **Arkusz „Omówienie dla prowadzącego”**: poprawne odpowiedzi i jedno zdanie komentarza po każdym pytaniu.
-
-Jeśli import się nie uda, pobierz w Kahoocie oficjalny szablon i wklej do niego kolumny B–H. Punkty z finału wpisuje admin w `#admin` (0–100 na drużynę).
-
-## Checklista przed eventem
-
-- [ ] Nazwy 3 szkół wpisane w `#admin`
-- [ ] Konta adminów dla prowadzących, ich UID-y w kolekcji `admins`
-- [ ] Sprzęt i rekwizyty z listy zakupów w [STACJE.md](STACJE.md)
-- [ ] PIN-y pasują do stacji: hasło routera testowego (1), wynik symulatora (2), fragmenty ze śledztwa (3), czytnik `#drzwi` skonfigurowany i przetestowany z kopią z Flippera (4)
-- [ ] Na każdą stację 2 osoby z koła
-- [ ] Próba generalna: 2 telefony, jedna drużyna, wszystkie 4 PIN-y, podgląd `#ekran`
-- [ ] Drużyny testowe usunięte
-- [ ] Kahoot na finał zaimportowany i przeklikany
-- [ ] Plakaty i ulotki wydrukowane, plakat z piernikami powieszony
-- [ ] Laptop z `#ekran` podłączony do rzutnika w holu i **zalogowany jako admin** (najpierw `#admin`, potem `#ekran`), bo tylko wtedy telefony dostają ranking
-- [ ] Wi-Fi lub zasięg komórkowy w salach sprawdzony
-
----
-
-Projekt koła cyberbezpieczeństwa · Mikołajki 2026
+**Przed wydarzeniem:** [CHECKLISTA.md](CHECKLISTA.md). Wyniki weryfikacji i ograniczenia: [TESTY.md](TESTY.md).

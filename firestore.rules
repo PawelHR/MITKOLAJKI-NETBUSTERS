@@ -1,94 +1,150 @@
 rules_version = '2';
-
-// Operacja Biegun – reguły bezpieczeństwa bazy.
-// To jest WZÓR z zaślepkami zamiast PIN-ów (repozytorium jest publiczne).
-// Wdrażany jest plik firestore.local.rules (nie trafia do gita):
-//   1. skopiuj ten plik jako firestore.local.rules,
-//   2. wpisz prawdziwe PIN-y (WIELKIMI LITERAMI, bez spacji),
-//   3. firebase deploy.
-// Baza sama sprawdza, czy PIN pasuje, więc PIN-ów nie ma w kodzie strony.
-
+// Bez sekretów. Identyczne reguły lokalnie i przy wdrożeniu.
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function signedIn() { return request.auth != null; }
-    function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    function signed() { return request.auth != null; }
+    function admin() { return signed() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function team(t) { return get(/databases/$(database)/documents/teams/$(t)).data; }
+    function member(t) { return signed() && exists(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid)); }
+    function config() { return get(/databases/$(database)/documents/config/main).data; }
+    function registration() { return config().phase == 'registration'; }
+    function playing() { return config().phase == 'main' && request.time < config().mainEndsAt; }
+    function monotone(old, next, keys) {
+      return next is map && next.keys().hasOnly(keys) && next.keys().hasAll(old.keys())
+        && next.values().hasOnly([true]);
     }
-    function isMember(code) {
-      return signedIn() && exists(/databases/$(database)/documents/teams/$(code)/members/$(request.auth.uid));
+    function validTeam(d) {
+      return d.keys().hasAll(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus'])
+        && d.keys().hasOnly(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus'])
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 28
+        && d.school in [0,1,2] && d.registrationOpen is bool
+        && d.bonus is int && d.bonus >= 0 && d.bonus <= 100
+        && monotone({},d.unlocked,['s1','s2','s3','s4'])
+        && monotone({},d.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
+        && monotone({},d.soc,['open','mail','idor','logs','triage','resp']);
     }
-
-    // ---- PIN-y stacji ----
-    function stationsOk(u, old) {
-      return u.keys().hasOnly(['s1', 's2', 's3', 's4'])
-        && u.keys().hasAll(old.keys())               // postępu nie da się cofnąć
-        && (!('s1' in u) || u.s1 == 'PIN_STACJI_1')
-        && (!('s2' in u) || u.s2 == 'PIN_STACJI_2')
-        && (!('s3' in u) || u.s3 == 'PIN_STACJI_3')
-        && (!('s4' in u) || u.s4 == 'PIN_STACJI_4');
+    function mirrored(t, d) {
+      let p = getAfter(/databases/$(database)/documents/leaderboard/$(t)).data;
+      return p.name == d.name && p.school == d.school && p.unlocked == d.unlocked && p.bonus == d.bonus;
     }
-    // ---- zadania poboczne ----
-    function sideOk(s, old) {
-      return s.keys().hasOnly(['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'])
-        && s.keys().hasAll(old.keys())
-        && (!('p1' in s) || s.p1 == true)
-        && (!('p2' in s) || s.p2 == true)
-        && (!('p3' in s) || s.p3 == 'HASLO_SZYFRU')
-        && (!('p4' in s) || s.p4 == true)
-        && (!('p6' in s) || s.p6 == true)
-        && (!('p7' in s) || s.p7 == true)
-        && (!('p5' in s) || s.p5 == true);
+    function award(t, id, old, next) {
+      return (id in old && next[id] == old[id]) || (!(id in old) && !(id in next))
+        || (!(id in old) && id in next && next[id] == true
+          && !exists(/databases/$(database)/documents/teams/$(t)/awards/$(id))
+          && existsAfter(/databases/$(database)/documents/teams/$(t)/awards/$(id)));
     }
-
-    // Ustawienia (nazwy szkół, godzina końca) – czytają wszyscy, zmienia admin.
-    match /config/{id} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Lista adminów – dokumenty o ID = UID konta, dodawane ręcznie w konsoli.
     match /admins/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if false;
+      allow get: if signed() && request.auth.uid == uid;
+      allow list, write: if false;
     }
-
-    match /teams/{code} {
+    match /config/main {
       allow read: if true;
-
-      allow create: if signedIn()
-        && code.matches('^[A-Z2-9]{4}$')
-        && request.resource.data.keys().hasOnly(['name', 'school', 'createdAt', 'createdBy', 'unlocked', 'side'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 2
-        && request.resource.data.name.size() <= 28
-        && request.resource.data.school in [0, 1, 2]
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.unlocked == {}
-        && request.resource.data.side == {};
-
-      // Członek drużyny może tylko DOPISYWAĆ postęp (z poprawnym PIN-em). Admin może wszystko.
-      allow update: if isAdmin() || (
-        isMember(code)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked', 'side'])
-        && stationsOk(request.resource.data.unlocked, resource.data.unlocked)
-        && sideOk(request.resource.data.side, resource.data.side)
+      allow write: if admin() && request.resource.data.phase in ['registration','main','break','final','ended']
+        && request.resource.data.mainEndsAt is timestamp;
+    }
+    match /invites/{token} {
+      allow get: if admin();
+      allow list: if false;
+      allow create: if signed() && registration() && token.matches('^[a-f0-9]{32}$')
+        && request.resource.data.keys().hasOnly(['teamId','expiresAt'])
+        && request.resource.data.expiresAt is timestamp && request.resource.data.expiresAt > request.time
+        && (admin() || (!exists(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+          && getAfter(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.createdBy == request.auth.uid));
+      allow delete: if admin();
+      allow update: if false;
+    }
+    match /leaderboard/{t} {
+      allow read: if true;
+      allow create, update: if signed()
+        && request.resource.data.keys().hasOnly(['name','school','unlocked','bonus','updatedAt'])
+        && monotone({},request.resource.data.unlocked,['s1','s2','s3','s4'])
+        && request.resource.data.bonus is int && request.resource.data.bonus >= 0 && request.resource.data.bonus <= 100
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.name == getAfter(/databases/$(database)/documents/teams/$(t)).data.name
+        && request.resource.data.school == getAfter(/databases/$(database)/documents/teams/$(t)).data.school
+        && request.resource.data.unlocked == getAfter(/databases/$(database)/documents/teams/$(t)).data.unlocked
+        && request.resource.data.bonus == getAfter(/databases/$(database)/documents/teams/$(t)).data.bonus
+        && (admin() || (!exists(/databases/$(database)/documents/teams/$(t))
+          && getAfter(/databases/$(database)/documents/teams/$(t)).data.createdBy == request.auth.uid));
+      allow delete: if admin();
+    }
+    match /teams/{t} {
+      allow get, list: if admin() || member(t);
+      allow create: if signed() && registration() && t.matches('^[A-Z2-9]{4}$')
+        && !exists(/databases/$(database)/documents/retiredTeams/$(t))
+        && validTeam(request.resource.data) && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time && request.resource.data.registrationOpen == true
+        && request.resource.data.unlocked == {} && request.resource.data.side == {}
+        && request.resource.data.soc == {} && request.resource.data.bonus == 0
+        && existsAfter(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid))
+        && mirrored(t,request.resource.data);
+      allow update: if validTeam(request.resource.data) && (
+        (admin() && mirrored(t,request.resource.data)
+          && monotone(resource.data.unlocked,request.resource.data.unlocked,['s1','s2','s3','s4'])
+          && award(t,'s1',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s2',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s3',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s4',resource.data.unlocked,request.resource.data.unlocked)
+          && (request.resource.data.bonus == resource.data.bonus || config().phase == 'final'))
+        || (member(t) && playing()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['side','soc'])
+          && monotone(resource.data.side,request.resource.data.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
+          && request.resource.data.side.diff(resource.data.side).addedKeys().size()
+             + request.resource.data.soc.diff(resource.data.soc).addedKeys().size() == 1
+          && monotone(resource.data.soc,request.resource.data.soc,['open','mail','idor','logs','triage','resp'])
+          && request.resource.data.soc.get('open',false) == resource.data.soc.get('open',false)
+          && (request.resource.data.soc == resource.data.soc || resource.data.soc.get('open',false))
+          && (!request.resource.data.soc.get('resp',false) || resource.data.soc.get('resp',false)
+            || (resource.data.soc.get('mail',false) && resource.data.soc.get('idor',false) && resource.data.soc.get('logs',false) && resource.data.soc.get('triage',false))))
+        || (signed() && resource.data.createdBy == request.auth.uid && registration()
+          && member(t) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registrationOpen']))
       );
-
-      allow delete: if isAdmin();
-
+      allow delete: if admin() && existsAfter(/databases/$(database)/documents/retiredTeams/$(t));
       match /members/{uid} {
-        allow read: if true;
-        allow create, update: if signedIn()
-          && request.auth.uid == uid
-          && existsAfter(/databases/$(database)/documents/teams/$(code))
-          && request.resource.data.keys().hasOnly(['nick', 'joinedAt'])
-          && request.resource.data.nick is string
-          && request.resource.data.nick.size() <= 20
-          && request.resource.data.joinedAt == request.time;
-        allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+        allow read: if admin() || member(t);
+        allow create: if signed() && request.resource.data.keys().hasOnly(['nick','joinedAt'])
+          && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
+          && request.resource.data.joinedAt == request.time
+          && ((admin() && registration() && team(t).registrationOpen
+            && !exists(/databases/$(database)/documents/teams/$(t)/revoked/$(uid))
+            && exists(/databases/$(database)/documents/teams/$(t)/requests/$(uid)))
+          || (request.auth.uid == uid && !exists(/databases/$(database)/documents/teams/$(t))
+            && getAfter(/databases/$(database)/documents/teams/$(t)).data.createdBy == uid));
+        allow update: if false;
+        allow delete: if admin() || (signed() && request.auth.uid == uid);
       }
+      match /requests/{uid} {
+        allow get: if admin() || (signed() && request.auth.uid == uid);
+        allow list: if admin();
+        allow create: if signed() && request.auth.uid == uid && registration() && team(t).registrationOpen
+          && !exists(/databases/$(database)/documents/teams/$(t)/members/$(uid))
+          && !exists(/databases/$(database)/documents/teams/$(t)/revoked/$(uid))
+          && request.resource.data.keys().hasOnly(['nick','token','at'])
+          && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
+          && request.resource.data.at == request.time && request.resource.data.token.matches('^[a-f0-9]{32}$')
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.token)).data.teamId == t
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.token)).data.expiresAt > request.time;
+        allow update: if false;
+        allow delete: if admin() || (signed() && request.auth.uid == uid);
+      }
+      match /revoked/{uid} { allow read, write: if admin(); }
+      match /awards/{id} {
+        allow read: if admin() || member(t);
+        allow create: if admin() && id in ['s1','s2','s3','s4']
+          && request.resource.data.keys().hasOnly(['by','at','emergency','reason'])
+          && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time
+          && request.resource.data.reason is string && request.resource.data.reason.size() <= 200
+          && ((playing() && request.resource.data.emergency == false)
+            || (request.resource.data.emergency == true && request.resource.data.reason.size() >= 5))
+          && !(id in team(t).unlocked)
+          && getAfter(/databases/$(database)/documents/teams/$(t)).data.unlocked[id] == true;
+        allow update, delete: if false;
+      }
+    }
+    // Nie używamy ponownie ID z pozostałymi podkolekcjami starej drużyny.
+    match /retiredTeams/{t} {
+      allow create: if admin();
+      allow read, update, delete: if false;
     }
   }
 }

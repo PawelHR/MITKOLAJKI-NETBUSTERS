@@ -1,0 +1,148 @@
+const {test,before,after,beforeEach}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/rules-unit-testing');
+const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,runTransaction,serverTimestamp,Timestamp}=require('firebase/firestore');
+let env;
+const token='a'.repeat(32), id='ABCD';
+const team=(uid='alice')=>({name:'Elfy',school:0,createdBy:uid,createdAt:Timestamp.now(),unlocked:{},side:{},soc:{open:true},registrationOpen:true,bonus:0});
+const pub=t=>({name:t.name,school:t.school,unlocked:t.unlocked,bonus:t.bonus,updatedAt:serverTimestamp()});
+const db=uid=>uid?env.authenticatedContext(uid).firestore():env.unauthenticatedContext().firestore();
+async function phase(value,expired=false){await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'config/main'),{phase:value,mainEndsAt:Timestamp.fromMillis(Date.now()+(expired?-60000:3600000))}));}
+before(async()=>{env=await initializeTestEnvironment({projectId:'demo-operacja-biegun',firestore:{rules:fs.readFileSync('firestore.rules','utf8')}});});
+after(async()=>{await env?.cleanup();});
+beforeEach(async()=>{
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async c=>{
+    const d=c.firestore(),t=team();
+    await Promise.all([setDoc(doc(d,'admins/org'),{role:'organizer'}),setDoc(doc(d,'teams',id),t),setDoc(doc(d,'leaderboard',id),pub(t)),
+      setDoc(doc(d,'teams',id,'members','alice'),{nick:'A',joinedAt:Timestamp.now()}),
+      setDoc(doc(d,'teams',id,'members','bob'),{nick:'B',joinedAt:Timestamp.now()}),
+      setDoc(doc(d,'invites',token),{teamId:id,expiresAt:Timestamp.fromMillis(Date.now()+3600000)})]);
+  });
+  await phase('main');
+});
+test('izolacja: drużyna i członkowie prywatni, ranking publiczny',async()=>{
+  await assertSucceeds(getDoc(doc(db('alice'),'teams',id)));
+  for(const who of [null,'eve']){
+    await assertFails(getDoc(doc(db(who),'teams',id)));
+    await assertFails(getDocs(collection(db(who),'teams',id,'members')));
+    await assertSucceeds(getDocs(collection(db(who),'leaderboard')));
+  }
+  await assertFails(getDocs(collection(db('alice'),'teams')));
+});
+test('zaproszeń nie da się odczytać ani wylistować; brak PIN-ów w publicznym schemacie',async()=>{
+  await assertFails(getDoc(doc(db('eve'),'invites',token)));
+  await assertFails(getDocs(collection(db('org'),'invites')));
+  await assertFails(setDoc(doc(db('org'),'leaderboard',id),{...pub(team()),pin:'SECRET'}));
+  await assertFails(updateDoc(doc(db('org'),'teams',id),{'unlocked.s1':'SECRET'}));
+  await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{'unlocked.s1':'OLD-DEMO'}));
+  await assertFails(setDoc(doc(db('org'),'leaderboard',id),pub({...team(),unlocked:{s1:'OLD-DEMO'}})));
+});
+test('publiczny ID i poprawny sekret nie nadają członkostwa; wymagana akceptacja',async()=>{
+  await phase('registration');
+  const d=db('eve');
+  await assertFails(setDoc(doc(d,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp()}));
+  await assertFails(setDoc(doc(d,'teams',id,'requests','eve'),{nick:'E',token:'b'.repeat(32),at:serverTimestamp()}));
+  await assertSucceeds(setDoc(doc(d,'teams',id,'requests','eve'),{nick:'E',token,at:serverTimestamp()}));
+  await assertFails(getDoc(doc(d,'teams',id)));
+  const org=db('org'),b=writeBatch(org); b.set(doc(org,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp()}); b.delete(doc(org,'teams',id,'requests','eve'));
+  await assertSucceeds(b.commit());
+  await assertSucceeds(getDoc(doc(d,'teams',id)));
+});
+test('tworzenie drużyny atomowo z twórcą, zaproszeniem i publiczną projekcją',async()=>{
+  await phase('registration'); const d=db('new'),t={...team('new'),createdAt:serverTimestamp(),soc:{}};
+  await assertFails(setDoc(doc(d,'teams','NEW2'),t));
+  const b=writeBatch(d); b.set(doc(d,'teams','NEW2'),t); b.set(doc(d,'teams','NEW2','members','new'),{nick:'N',joinedAt:serverTimestamp()});
+  b.set(doc(d,'leaderboard','NEW2'),pub(t));b.set(doc(d,'invites','c'.repeat(32)),{teamId:'NEW2',expiresAt:Timestamp.fromMillis(Date.now()+3600000)});
+  await assertSucceeds(b.commit());
+});
+test('zamknięta rejestracja i cofnięte członkostwo',async()=>{
+  await phase('registration');
+  await assertSucceeds(updateDoc(doc(db('alice'),'teams',id),{registrationOpen:false}));
+  await assertFails(setDoc(doc(db('eve'),'teams',id,'requests','eve'),{nick:'E',token,at:serverTimestamp()}));
+  await assertSucceeds(updateDoc(doc(db('alice'),'teams',id),{registrationOpen:true}));
+  const org=db('org'),b=writeBatch(org); b.set(doc(org,'teams',id,'revoked','bob'),{at:serverTimestamp()});b.delete(doc(org,'teams',id,'members','bob'));await b.commit();
+  await assertFails(getDoc(doc(db('bob'),'teams',id)));
+  await assertFails(setDoc(doc(db('bob'),'teams',id,'requests','bob'),{nick:'B',token,at:serverTimestamp()}));
+  await assertFails(setDoc(doc(db('bob'),'teams',id,'members','bob'),{nick:'B',joinedAt:serverTimestamp()}));
+});
+test('uczestnik nie zmieni punktacji, uprawnień ani konfiguracji',async()=>{
+  const d=db('alice');
+  for(const fields of [{bonus:100},{'unlocked.s1':true},{school:1},{'soc.open':false, 'soc.mail':true}]) await assertFails(updateDoc(doc(d,'teams',id),fields));
+  await assertFails(setDoc(doc(d,'leaderboard',id),pub({...team(),bonus:100})));
+  await assertFails(setDoc(doc(d,'admins/alice'),{}));
+  await assertFails(setDoc(doc(d,'config/main'),{phase:'main',mainEndsAt:Timestamp.now()}));
+});
+test('jednokrotny zapis zadania, brak cofania postępu',async()=>{
+  const r=doc(db('alice'),'teams',id);
+  await assertSucceeds(updateDoc(r,{'side.p1':true}));
+  await assertFails(updateDoc(r,{'side.p1':true}));
+  await assertFails(updateDoc(r,{side:{}}));
+});
+test('równoczesne transakcje z dwóch telefonów zachowują oba dowody SOC',async()=>{
+  async function done(uid,key){const d=db(uid),r=doc(d,'teams',id);return runTransaction(d,async tx=>{await tx.get(r);tx.update(r,{['soc.'+key]:true});});}
+  await Promise.all([done('alice','mail'),done('bob','logs')]);
+  const s=await getDoc(doc(db('alice'),'teams',id)); assert.equal(s.data().soc.mail,true);assert.equal(s.data().soc.logs,true);
+});
+test('reakcja SOC dopiero po 4 zadaniach; uczestnik nie otworzy SOC',async()=>{
+  const r=doc(db('alice'),'teams',id);
+  await assertFails(updateDoc(r,{'soc.resp':true}));
+  for(const k of ['mail','idor','logs']) await assertSucceeds(updateDoc(r,{['soc.'+k]:true}));
+  await assertFails(updateDoc(r,{'soc.resp':true}));
+  await assertSucceeds(updateDoc(r,{'soc.triage':true}));
+  await assertSucceeds(updateDoc(r,{'soc.resp':true}));
+  await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{soc:{}}));
+  await assertFails(updateDoc(r,{'soc.open':true}));await assertFails(updateDoc(r,{'soc.mail':true}));
+});
+test('nowa konsola SOC nie odbiera wcześniej potwierdzonej reakcji',async()=>{
+  await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{soc:{open:true,mail:true,idor:true,logs:true,resp:true}}));
+  const r=doc(db('alice'),'teams',id);await assertSucceeds(updateDoc(r,{'soc.triage':true}));
+  assert.equal((await getDoc(r)).data().soc.resp,true);
+});
+test('etapy i czas serwera blokują dopisywanie po grze',async()=>{
+  for(const p of ['registration','break','final','ended']) {await phase(p);await assertFails(updateDoc(doc(db('alice'),'teams',id),{'side.p1':true}));}
+  await phase('main',true);await assertFails(updateDoc(doc(db('alice'),'teams',id),{'soc.mail':true}));
+});
+async function award(emergency=false,reason=''){
+  const d=db('org'),t={...team(),unlocked:{s1:true}},b=writeBatch(d);
+  b.update(doc(d,'teams',id),{unlocked:t.unlocked});b.set(doc(d,'leaderboard',id),pub(t));
+  b.set(doc(d,'teams',id,'awards','s1'),{by:'org',at:serverTimestamp(),emergency,reason});return b.commit();
+}
+test('organizator: zaliczenie atomowe, audyt, brak podwójnych punktów',async()=>{
+  await assertFails(updateDoc(doc(db('org'),'teams',id),{'unlocked.s1':true}));
+  await assertSucceeds(award());await assertFails(award());
+  const s=await getDoc(doc(db('alice'),'leaderboard',id));assert.equal(s.data().unlocked.s1,true);
+});
+test('awaryjne zaliczenie wymaga organizatora i uzasadnienia',async()=>{
+  await phase('ended');await assertFails(award());await assertFails(award(true,''));await assertSucceeds(award(true,'Awaria czytnika NFC'));
+});
+test('bonus wyłącznie organizator w finale',async()=>{
+  const d=db('org'),b=()=>{const x=writeBatch(d);x.update(doc(d,'teams',id),{bonus:50});x.set(doc(d,'leaderboard',id),pub({...team(),bonus:50}));return x.commit();};
+  await assertFails(b());await phase('final');await assertSucceeds(b());await phase('ended');
+  await assertFails(updateDoc(doc(d,'teams',id),{bonus:60}));
+});
+test('zaproszenie jest związane z drużyną i czasem serwera',async()=>{
+  await phase('registration');
+  await env.withSecurityRulesDisabled(async c=>{
+    await setDoc(doc(c.firestore(),'teams','EFGH'),team('other'));
+    await setDoc(doc(c.firestore(),'invites','f'.repeat(32)),{teamId:id,expiresAt:Timestamp.fromMillis(Date.now()-60000)});
+  });
+  const d=db('eve');
+  await assertFails(setDoc(doc(d,'teams','EFGH','requests','eve'),{nick:'E',token,at:serverTimestamp()}));
+  await assertFails(setDoc(doc(d,'teams',id,'requests','eve'),{nick:'E',token:'f'.repeat(32),at:serverTimestamp()}));
+});
+test('uczestnik nie może wystawić awaryjnego zaliczenia ani edytować audytu',async()=>{
+  const fields={by:'alice',at:serverTimestamp(),emergency:true,reason:'Fałszywe zaliczenie'};
+  await assertFails(setDoc(doc(db('alice'),'teams',id,'awards','s1'),fields));
+  await assertSucceeds(award());
+  await assertFails(updateDoc(doc(db('org'),'teams',id,'awards','s1'),{reason:'Zmiana historii'}));
+});
+test('wycofany ID nie może odziedziczyć starych członków po usunięciu',async()=>{
+  const d=db('org');await assertFails(deleteDoc(doc(d,'teams',id)));
+  const b=writeBatch(d);b.set(doc(d,'retiredTeams',id),{at:serverTimestamp()});b.delete(doc(d,'teams',id));b.delete(doc(d,'leaderboard',id));await assertSucceeds(b.commit());
+  await phase('registration');
+  const n=db('new'),t={...team('new'),createdAt:serverTimestamp(),soc:{}},c=writeBatch(n);
+  c.set(doc(n,'teams',id),t);c.set(doc(n,'teams',id,'members','new'),{nick:'N',joinedAt:serverTimestamp()});c.set(doc(n,'leaderboard',id),pub(t));
+  await assertFails(c.commit());
+});
