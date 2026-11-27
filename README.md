@@ -133,6 +133,8 @@ operacja-biegun/
 │   ├── *.html            # źródła plakatów (edycja + druk z przeglądarki)
 │   └── qr-*.svg          # same kody QR
 ├── STACJE.md             # scenariusze 4 stacji dla prowadzących
+├── final/
+│   └── kahoot-final.xlsx # 18 pytań na finał do importu w Kahoot + omówienie dla prowadzącego
 ├── INSTRUKCJA.md         # konfiguracja Firebase krok po kroku
 └── README.md
 ```
@@ -165,6 +167,15 @@ W folderze `plakaty/`:
 
 Drukować w skali 100% („Rzeczywisty rozmiar”), bez dopasowania do strony.
 
+## Finał (teleturniej)
+
+Plik [`final/kahoot-final.xlsx`](final/kahoot-final.xlsx) ma 18 pytań z tematów stacji (ok. 5 minut samego odpowiadania, z wynikami ok. 12–15 minut):
+
+- **Arkusz „Kahoot”** do importu: w Kahoocie *Utwórz → Dodaj pytanie → Importuj arkusz*.
+- **Arkusz „Omówienie dla prowadzącego”**: poprawne odpowiedzi i jedno zdanie komentarza po każdym pytaniu.
+
+Jeśli import się nie uda, pobierz w Kahoocie oficjalny szablon i wklej do niego kolumny B–H. Punkty z finału wpisuje admin w `#admin` (0–100 na drużynę).
+
 ## Checklista przed eventem
 
 - [ ] Nazwy 3 szkół wpisane w `#admin`
@@ -174,6 +185,7 @@ Drukować w skali 100% („Rzeczywisty rozmiar”), bez dopasowania do strony.
 - [ ] Na każdą stację 2 osoby z koła
 - [ ] Próba generalna: 2 telefony, jedna drużyna, wszystkie 4 PIN-y, podgląd `#ekran`
 - [ ] Drużyny testowe usunięte
+- [ ] Kahoot na finał zaimportowany i przeklikany
 - [ ] Plakaty i ulotki wydrukowane, plakat z piernikami powieszony
 - [ ] Laptop z `#ekran` podłączony do rzutnika w holu i **zalogowany jako admin** (najpierw `#admin`, potem `#ekran`), bo tylko wtedy telefony dostają ranking
 - [ ] Wi-Fi lub zasięg komórkowy w salach sprawdzony
