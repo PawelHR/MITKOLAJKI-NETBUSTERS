@@ -67,6 +67,13 @@ Na każdą stację potrzebne są **2 osoby z koła**:
 
 **Plan B:** gdy Flipper albo moduł nie działa, pokaż nagranie z próby i przejdź od razu do głosowania nad hasłami.
 
+### Wariant alternatywny (gdybyście kiedyś chcieli zamienić tę stację): Sub-GHz „Pilot Grincha”
+Zamiast Wi-Fi można oprzeć stację 1 na radiu. Nie jest wdrożony, ale zostawiamy pomysł na przyszłość.
+- **Sprzęt:** Flipper Zero (sam wystarczy, bez modułu Wi-Fi) i **tani własny pilot 433 MHz** koła: brama od zabawki, pilot do listwy LED, dzwonek bezprzewodowy. Opcjonalnie drugi pilot z **kodem zmiennym (rolling code)**, np. od nowszej bramy, do porównania.
+- **Przebieg:** uczniowie nagrywają Flipperem sygnał z pilota (**Sub-GHz → Read**), zapisują go i odtwarzają (**Send**), a urządzenie reaguje, jakby użyto oryginału. Potem próbują to samo z pilotem rolling code — powtórka nie działa.
+- **Lekcja:** stare piloty z kodem stałym da się skopiować i powtórzyć; dlatego nowe piloty samochodowe i bramowe używają kodu zmiennego. PIN stacji (np. słowo z obudowy pilota albo kod, który „otwiera bramę”) podajecie po pokazie.
+- **Bezpieczeństwo i prawo:** kopiujemy **wyłącznie własny sprzęt koła**. Nagrywanie i odtwarzanie cudzego pilota do bramy, auta czy szlabanu jest nielegalne — to też dobry temat do omówienia.
+
 ---
 
 ## Stacja 2 · Złam skarbiec (symulator łamania haseł)

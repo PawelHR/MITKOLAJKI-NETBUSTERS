@@ -30,12 +30,13 @@ service cloud.firestore {
     }
     // ---- zadania poboczne ----
     function sideOk(s, old) {
-      return s.keys().hasOnly(['p1', 'p2', 'p3', 'p4', 'p5'])
+      return s.keys().hasOnly(['p1', 'p2', 'p3', 'p4', 'p5', 'p6'])
         && s.keys().hasAll(old.keys())
         && (!('p1' in s) || s.p1 == true)
         && (!('p2' in s) || s.p2 == true)
         && (!('p3' in s) || s.p3 == 'HASLO_SZYFRU')
         && (!('p4' in s) || s.p4 == true)
+        && (!('p6' in s) || s.p6 == true)
         && (!('p5' in s) || s.p5 == true);
     }
 
