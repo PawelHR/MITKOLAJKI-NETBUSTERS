@@ -879,6 +879,17 @@ function sideSqli(id){
     query.innerHTML = 'SELECT * FROM elfy\nWHERE login = <span class="sv">\'' + esc(login.value) + '\'</span>\n  AND haslo = <span class="sv">\'' + esc(pass.value) + '\'</span>;';
   };
   login.addEventListener("input", refreshQuery); pass.addEventListener("input", refreshQuery);
+  // przycisk podpowiedzi dla osób nietechnicznych — stopniuje pomoc, na końcu wpisuje przykład
+  let hintLvl = 0; const hintBox = h("div");
+  const hintBtn = h("button",{class:"btn ghost",type:"button",onclick:()=>{
+    hintLvl++;
+    if (hintLvl === 1)
+      hintBox.replaceChildren(h("div",{class:"msg",style:"margin-top:10px"},"Nie zgadujcie hasła. Spójrzcie na zapytanie pod spodem: wasz tekst wchodzi w nie wprost. Gdyby warunek po „WHERE” był zawsze prawdziwy, baza wpuściłaby każdego."));
+    else
+      hintBox.replaceChildren(h("div",{class:"msg",style:"margin-top:10px"},
+        "Wpiszcie w pole ", h("b",null,"Login"), " dokładnie to (z apostrofami): ", h("b",{class:"mono"},"' OR '1'='1"), ", a w ", h("b",null,"Hasło"), " cokolwiek, i kliknijcie Zaloguj.",
+        h("button",{class:"btn sm",type:"button",style:"margin-top:8px",onclick:()=>{ login.value = "' OR '1'='1"; pass.value = "elf"; refreshQuery(); fb.replaceChildren(); }},"Wpisz przykład za mnie")));
+  }},"Podpowiedź 💡");
   const form = h("form",{class:"card",onsubmit:e=>{
     e.preventDefault(); tries++;
     if (bypass(login.value, pass.value)){
@@ -900,7 +911,7 @@ function sideSqli(id){
     h("span",{class:"eyebrow"},"Panel logowania elfów"),
     h("label",{for:"sqli-l"},"Login", login),
     h("label",{for:"sqli-p"},"Hasło", pass),
-    h("button",{class:"btn",type:"submit"},"Zaloguj"), fb);
+    h("div",{class:"row",style:"gap:8px"}, h("button",{class:"btn",type:"submit"},"Zaloguj"), hintBtn), hintBox, fb);
   sideShell(id,
     h("p",null,"To stary, dziurawy panel elfów. Nie znacie hasła — i nie musicie. Spróbujcie wejść, podglądając na żywo, co wasz wpis robi z zapytaniem do bazy."),
     form,
