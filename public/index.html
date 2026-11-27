@@ -111,6 +111,16 @@ td.num,th.num{text-align:right}
 .bub b{display:block;font-size:.72rem;letter-spacing:.04em;opacity:.7;margin-bottom:3px}
 .bub.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
 .bub.me{align-self:flex-end;background:color-mix(in srgb,var(--gold) 16%,var(--panel));border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);border-bottom-right-radius:4px}
+.ordlist{display:flex;flex-direction:column;gap:8px}
+.ord{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;touch-action:none;transition:border-color .15s}
+.ord.drag{border-color:var(--gold);box-shadow:0 12px 30px rgba(0,0,0,.45);position:relative;z-index:5;opacity:.97}
+.ord.ok{border-color:var(--ok)} .ord.bad{border-color:color-mix(in srgb,var(--red) 55%,var(--line))}
+.ord .grip{color:var(--muted);cursor:grab;font-size:1.1rem;line-height:1}
+.ord .onum{font:700 1rem var(--f-display);color:var(--gold);min-width:1.1em}
+.ord .otxt{font-size:.95rem;line-height:1.35;min-width:0}
+.ord .otxt .why{display:block;margin-top:5px;font-size:.84rem;color:var(--muted)}
+.ord .oarr{display:flex;flex-direction:column;gap:3px}
+.ord .oarr .btn{min-height:26px;padding:1px 9px;font-size:.8rem}
 .mail{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .mline{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;font:400 .95rem/1.45 var(--f-body);color:var(--text);border-left:3px solid transparent}
 .mline:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
@@ -119,6 +129,8 @@ td.num,th.num{text-align:right}
 .mline.mlink{color:#8fc1ff;text-decoration:underline;font-family:var(--f-mono);font-size:.85rem;overflow-wrap:anywhere}
 .mline.matt{font-family:var(--f-mono);font-size:.88rem}
 .mline .why{display:block;margin-top:6px;font:400 .85rem var(--f-body);color:var(--muted);text-decoration:none}
+.sql{font:600 .9rem/1.6 var(--f-mono);background:#060d18;border:1px solid var(--line);border-radius:10px;padding:12px 14px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);margin:0}
+.sql .sv{color:var(--gold)}
 .browser{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
 .browser-bar{display:flex;gap:6px;align-items:center;padding:8px;background:var(--panel2);border-bottom:1px solid var(--line)}
 .browser-bar .lock{font-size:.9rem}
@@ -189,7 +201,8 @@ const SIDE = [
   { id:"p3", name:"Szyfr elfów", max:20, short:"Odszyfrujcie wiadomość przechwyconą od Grincha." },
   { id:"p4", name:"Co zdradza zdjęcie?", max:20, short:"Znajdźcie wszystko, co relacja mówi o autorce." },
   { id:"p5", name:"Darmowe pierniki", max:30, short:"Gdzieś na korytarzu wisi plakat z darmowymi piernikami. Znajdźcie go." },
-  { id:"p6", name:"Zhakuj elfa-bota", max:30, short:"Bot pilnuje tajnego słowa. Namówcie go, żeby je zdradził." }
+  { id:"p6", name:"Zhakuj elfa-bota", max:30, short:"Bot pilnuje tajnego słowa. Namówcie go, żeby je zdradził." },
+  { id:"p7", name:"Dziurawy panel elfów", max:30, short:"Zaloguj się do panelu bez hasła. Zobaczycie, czym jest SQL injection." }
 ];
 const BONUS_MAX = 100;
 const MESSAGES = [
@@ -614,38 +627,66 @@ function renderS3Hub(){
       h("span",{class:"muted small"},"8 adresów logowania. Prawdziwy czy fałszywy?")));
 }
 
-/* etap końcowy: reakcja na incydent (wykrycie to nie wszystko) */
+/* etap końcowy: reakcja na incydent — ułóżcie kroki we właściwej kolejności */
 const RESP = [
-  { t:"Odłączyć zaatakowany komputer od sieci", good:true,  why:"Izolacja jako pierwsza: odcina atakującego, nie dając mu działać dalej." },
-  { t:"Unieważnić przejęte sesje i zmienić hasło administratora", good:true, why:"Sama zmiana hasła nie wystarczy, jeśli ktoś jest wciąż zalogowany. Wylogowanie wszędzie zamyka dostęp." },
-  { t:"Zabezpieczyć kopię logów, zanim znikną", good:true, why:"Logi to dowody: pokazują, co się stało. Najpierw kopia, potem analiza." },
-  { t:"Zgłosić incydent opiekunowi / zespołowi bezpieczeństwa", good:true, why:"Incydentu nie ukrywa się ani nie ogarnia w pojedynkę. Zgłoszenie uruchamia procedurę." },
-  { t:"Od razu skasować podejrzane pliki i wyczyścić logi", good:false, why:"To niszczy dowody. Bez logów nie ustalicie, co zabrał atakujący ani jak wszedł." },
-  { t:"Zapłacić okup, żeby mieć spokój", good:false, why:"Zapłata nie gwarantuje niczego i zachęca do kolejnych ataków." },
-  { t:"Udawać, że nic się nie stało, do jutra", good:false, why:"Zwłoka działa na korzyść atakującego. Liczy się każda minuta." },
-  { t:"Wyłączyć rejestrowanie zdarzeń", good:false, why:"Bez logów tracicie oczy. To ostatnia rzecz, jaką się robi." }
+  { id:"a", t:"Zgłoś incydent i odłącz komputer od sieci", why:"Najpierw powstrzymanie: zgłoszenie uruchamia procedurę, a izolacja odcina atakującego." },
+  { id:"b", t:"Odetnij atakującego: wyloguj przejęte sesje i zmień hasło administratora", why:"Zmiana hasła nie pomoże, jeśli ktoś jest wciąż zalogowany. Trzeba zamknąć otwarte sesje." },
+  { id:"c", t:"Zabezpiecz logi i ustal, co dokładnie zabrano", why:"Dowody najpierw, analiza potem. Bez logów nie wiadomo, jak wszedł i co wziął." },
+  { id:"d", t:"Przywróć system z czystej kopii i wróć do pracy", why:"Odzyskanie na końcu, dopiero gdy zagrożenie jest już usunięte." }
 ];
+const RESP_ORDER = ["a","b","c","d"];
 function renderS3Resp(){
-  const sel = RESP.map(()=>false);
+  let order = RESP.slice();
+  const shuf = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  do { shuf(order); } while (order.map(s=>s.id).join("")===RESP_ORDER.join(""));
   const box = h("div",{class:"stack"});
-  const draw = checked => {
-    const okAll = sel.every((v,i)=>v===RESP[i].good);
-    const res = h("div",{class:"stack"});
-    box.replaceChildren(
-      h("div",{class:"stack",style:"gap:8px"}, RESP.map((r,i)=>{
-        let cls = "opt"; if (checked){ if (r.good) cls += " right"; else if (sel[i]) cls += " wrong"; }
-        return h("button",{class:cls,"aria-pressed":String(sel[i]),disabled:checked && okAll,onclick:()=>{ sel[i]=!sel[i]; draw(false); }},
-          (sel[i] ? "☑ " : "☐ ") + r.t, checked && (r.good || sel[i]) ? h("span",{class:"why"}, r.why) : null);
-      })),
-      !checked ? h("button",{class:"btn",onclick:()=>draw(true)},"Zatwierdź plan reakcji")
-      : okAll ? h("div",{class:"msg good"},"Dobry plan. Zgłoszenie, izolacja, odcięcie dostępu i zabezpieczenie dowodów — w tej kolejności.")
-      : h("div",{class:"stack"}, h("div",{class:"msg err"},"Jeszcze nie. Zielone to właściwe pierwsze kroki, czerwone to pułapki. Poprawcie zaznaczenia."), h("button",{class:"btn",onclick:()=>renderS3Resp()},"Od nowa")),
-      res);
-    if (checked && okAll){ S3.resp = true; saveS3(); res.replaceChildren(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"Zamknij sprawę i wróć do śledztwa")); }
+  let checked = false, done = false;
+  const correct = () => order.map(s=>s.id).join("")===RESP_ORDER.join("");
+  const moveTo = (from, to) => { if (to<0||to>=order.length||from===to) return; const [it]=order.splice(from,1); order.splice(to,0,it); checked=false; draw(); };
+  const list = h("div",{class:"ordlist"});
+  function draw(){
+    list.replaceChildren(...order.map((s,i)=>{
+      const okRow = checked && s.id===RESP_ORDER[i];
+      const row = h("div",{class:"ord" + (okRow?" ok":"") + (checked&&!okRow?" bad":""),"data-i":i},
+        h("span",{class:"grip"},"⠿"),
+        h("span",{class:"onum"}, (i+1)+"."),
+        h("span",{class:"otxt"}, s.t, checked&&okRow&&s.why ? h("span",{class:"why"}, s.why) : null),
+        h("span",{class:"oarr"},
+          h("button",{class:"btn sm ghost","aria-label":"w górę",disabled:i===0||done,onclick:()=>moveTo(i,i-1)},"▲"),
+          h("button",{class:"btn sm ghost","aria-label":"w dół",disabled:i===order.length-1||done,onclick:()=>moveTo(i,i+1)},"▼")));
+      if (!done){
+        let y0=null, centers=null, from=i;
+        const start = e => { if (e.target.closest(".oarr")) return; y0=e.clientY; from=+row.getAttribute("data-i");
+          centers=[...list.children].map(c=>{ const r=c.getBoundingClientRect(); return r.top+r.height/2; });
+          row.classList.add("drag"); row.setPointerCapture(e.pointerId); };
+        const moveEv = e => { if (y0===null) return; row.style.transform="translateY("+(e.clientY-y0)+"px)"; };
+        const end = e => { if (y0===null) return; const y=e.clientY; y0=null; row.classList.remove("drag"); row.style.transform="";
+          let to=0; for (const c of centers) if (y>c) to++; if (to>from) to--; moveTo(from, to); };
+        row.addEventListener("pointerdown", start); row.addEventListener("pointermove", moveEv);
+        row.addEventListener("pointerup", end); row.addEventListener("pointercancel", end);
+      }
+      return row;
+    }));
+  }
+  const foot = h("div",{class:"stack"});
+  const check = () => {
+    checked = true;
+    if (correct()){
+      done = true; S3.resp = true; saveS3(); draw();
+      foot.replaceChildren(h("div",{class:"msg good"},"Dobra kolejność. Powstrzymaj → odetnij dostęp → zabezpiecz dowody → przywróć system."),
+        h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"Zamknij sprawę i wróć do śledztwa"));
+    } else {
+      draw();
+      foot.replaceChildren(h("div",{class:"msg err"},"Jeszcze nie ta kolejność. Zielone kroki są na właściwym miejscu — poprzestawiajcie resztę."),
+        h("button",{class:"btn",onclick:()=>{ checked=false; draw(); foot.replaceChildren(checkBtn()); }},"Przestawiam dalej"));
+    }
   };
-  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Etap końcowy · reakcja na incydent"), h("h1",null,"Co teraz robimy?")),
-    h("p",null,"Wiecie już, jak Grinch wszedł i co zabrał. Wykrycie to połowa roboty — teraz trzeba zareagować. Zaznaczcie właściwe pierwsze kroki, a odrzućcie pułapki."), box);
-  draw(false);
+  const checkBtn = () => h("button",{class:"btn",onclick:check},"Sprawdź kolejność");
+  foot.append(checkBtn());
+  box.replaceChildren(list, foot);
+  draw();
+  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Etap końcowy · reakcja na incydent"), h("h1",null,"Ułóżcie reakcję po kolei")),
+    h("p",null,"Wiecie już, jak Grinch wszedł i co zabrał. Wykrycie to połowa roboty. Ustawcie 4 kroki reakcji we właściwej kolejności — przeciągnijcie je (albo użyjcie strzałek)."), box);
 }
 
 /* zadanie 1: analiza maila */
@@ -812,7 +853,61 @@ async function finishSide(id, container, value){
 }
 function renderSide(id){
   if ((S.team.side||{})[id]) return sideShell(id, doneCard(id));
-  ({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot })[id](id);
+  ({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli })[id](id);
+}
+
+/* zadanie poboczne p7: "Dziurawy panel elfów" — symulacja SQL injection.
+   Lekcja obronna: formularz wkleja wpisany tekst prosto do zapytania do bazy,
+   więc da się obejść logowanie. Obrona: zapytania parametryzowane (prepared
+   statements), które oddzielają dane od kodu zapytania. To symulacja, nie baza. */
+function sideSqli(id){
+  // czy wpis sprawia, że warunek logowania zawsze jest prawdziwy (klasyczny objaw dziury)
+  function bypass(login, pass){
+    const both = (login + " ¦ " + pass).toLowerCase();
+    const quote = /['"]/.test(login) || /['"]/.test(pass);
+    const alwaysTrue = /\bor\b[^a-ząćęłńóśźż]+(('?\s*\d+\s*'?\s*=\s*'?\s*\d+\s*'?)|('[^']*'\s*=\s*'[^']*')|true)/.test(both);
+    const comment = /['"].*(--|#)/.test(login) || /['"].*(--|#)/.test(pass);
+    return quote && (alwaysTrue || comment);
+  }
+  const esc = s => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const login = h("input",{id:"sqli-l",maxlength:"40",placeholder:"login",autocomplete:"off",autocapitalize:"off",spellcheck:"false"});
+  const pass  = h("input",{id:"sqli-p",maxlength:"40",placeholder:"hasło",autocomplete:"off",autocapitalize:"off",spellcheck:"false"});
+  const query = h("pre",{class:"sql"});
+  const fb = h("div"); const res = h("div");
+  let tries = 0;
+  const refreshQuery = () => {
+    query.innerHTML = 'SELECT * FROM elfy\nWHERE login = <span class="sv">\'' + esc(login.value) + '\'</span>\n  AND haslo = <span class="sv">\'' + esc(pass.value) + '\'</span>;';
+  };
+  login.addEventListener("input", refreshQuery); pass.addEventListener("input", refreshQuery);
+  const form = h("form",{class:"card",onsubmit:e=>{
+    e.preventDefault(); tries++;
+    if (bypass(login.value, pass.value)){
+      res.replaceChildren(h("div",{class:"browser-page",style:"border:1px solid var(--ok);border-radius:10px"},
+          h("span",{class:"eyebrow",style:"color:var(--ok)"},"Zalogowano jako: admin_elf"),
+          h("h3",null,"Panel elfów — pełny dostęp 🔓"),
+          h("p",{class:"small"},"Weszliście bez znajomości hasła. Wasz wpis zmienił warunek zapytania tak, że zawsze jest prawdziwy, więc baza wpuściła pierwszego elfa z listy.")),
+        h("section",{class:"card"}, h("h3",null,"Dlaczego to zadziałało i jak się bronić"),
+          h("p",{class:"small"},"Panel skleił wasz tekst wprost z zapytaniem do bazy (to jest ta dziura — SQL injection). Obrona: ",
+            h("b",null,"zapytania parametryzowane"), " (prepared statements). Wtedy wpisany tekst jest tylko danymi, nigdy częścią zapytania, więc apostrof nic nie psuje."),
+          h("div",{id:"sqli-done"})));
+      finishSide(id, res.querySelector("#sqli-done"));
+      fb.replaceChildren();
+    } else {
+      fb.replaceChildren(h("div",{class:"msg err"},"Błędny login lub hasło."));
+      if (tries >= 2) fb.append(h("div",{class:"msg",style:"margin-top:8px"},"Podpowiedź: nie znacie hasła, więc nie zgadujcie. Spójrzcie na zapytanie pod spodem. Co, gdyby w polu login wpisać coś z apostrofem (') tak, żeby warunek stał się zawsze prawdziwy?"));
+    }
+  }},
+    h("span",{class:"eyebrow"},"Panel logowania elfów"),
+    h("label",{for:"sqli-l"},"Login", login),
+    h("label",{for:"sqli-p"},"Hasło", pass),
+    h("button",{class:"btn",type:"submit"},"Zaloguj"), fb);
+  sideShell(id,
+    h("p",null,"To stary, dziurawy panel elfów. Nie znacie hasła — i nie musicie. Spróbujcie wejść, podglądając na żywo, co wasz wpis robi z zapytaniem do bazy."),
+    form,
+    h("div",{class:"card"}, h("span",{class:"eyebrow"},"Zapytanie wysyłane do bazy (na żywo)"), query,
+      h("p",{class:"muted small"},"Panel wkleja wasz tekst prosto do zapytania. Na tym polega błąd.")),
+    res);
+  refreshQuery();
 }
 
 /* zadanie poboczne p6: "Zhakuj elfa-bota" — symulowany bot (dopasowanie wzorców,

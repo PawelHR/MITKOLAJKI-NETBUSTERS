@@ -71,6 +71,7 @@ Jedna strona (`public/index.html`) z sześcioma widokami:
 | Co zdradza zdjęcie? | Co relacja na Instagramie mówi o autorce | 20 |
 | Darmowe pierniki | Plakat-pułapka z kodem QR na korytarzu | 30 |
 | Zhakuj elfa-bota | Prompt injection: symulowany bot pilnuje słowa, trzeba go okrężnie namówić do zdradzenia | 30 |
+| Dziurawy panel elfów | SQL injection: logowanie bez hasła z podglądem zapytania na żywo, puenta o zapytaniach parametryzowanych | 30 |
 
 **Drużyny:** jedna osoba zakłada drużynę (nazwa i szkoła) i dostaje 4-znakowy kod. Reszta dołącza, wpisując kod i pseudonim. Postęp jest wspólny: PIN wpisany na jednym telefonie odblokowuje fragment klucza na wszystkich. Nie zbieramy imion, nazwisk, klas ani e-maili uczniów.
 
@@ -79,9 +80,9 @@ Jedna strona (`public/index.html`) z sześcioma widokami:
 | Za co | Punkty |
 |---|---|
 | Każda stacja (poprawny PIN) | 100 |
-| Zadania poboczne | 30 + 20 + 20 + 20 + 30 + 30 |
+| Zadania poboczne | 30 + 20 + 20 + 20 + 30 + 30 + 30 |
 | Finał (opcjonalnie, wpisuje admin) | 0–100 |
-| **Maksimum** | **650** |
+| **Maksimum** | **680** |
 
 **Ranking szkół** to **średnia punktów drużyn, które zaliczyły co najmniej jedną stację**. Dzięki temu:
 - szkoła z większą liczbą drużyn nie ma przewagi,
