@@ -45,11 +45,12 @@ Polecenie wgrywa naraz stronę i reguły bezpieczeństwa bazy. Po zmianach w pli
 ## 3. Przed eventem
 
 1. Wejdź na `#admin`, zaloguj się i wpisz **nazwy 3 szkół** oraz godzinę końca gry głównej.
-2. Wygeneruj kody QR, np. w dowolnym generatorze offline:
+2. Na laptopie do rzutnika zaloguj się w `#admin`, a potem otwórz `#ekran`. Tylko zalogowany ekran wysyła ranking na telefony uczniów (na dole ekranu widać „Ranking dla telefonów: wysłany o …”).
+3. Wygeneruj kody QR, np. w dowolnym generatorze offline:
    - link główny na plakaty i ulotki,
    - link z `#pulapka` na plakat „Darmowe pierniki” (powieś go przy planie lekcji).
-3. **Próba generalna:** 2 telefony, jedna drużyna. Jedna osoba zakłada drużynę, druga dołącza kodem. Wpiszcie PIN stacji i sprawdźcie, czy fragment klucza pojawia się na obu telefonach i na `#ekran`.
-4. Po próbie usuń testową drużynę w `#admin`.
+4. **Próba generalna:** 2 telefony, jedna drużyna. Jedna osoba zakłada drużynę, druga dołącza kodem. Wpiszcie PIN stacji i sprawdźcie, czy fragment klucza pojawia się na obu telefonach i na `#ekran`.
+5. Po próbie usuń testową drużynę w `#admin`.
 
 ## PIN-y stacji
 

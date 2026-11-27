@@ -94,6 +94,7 @@ Jedna strona (`public/index.html`) z sześcioma widokami:
        └──► Firestore  teams/{KOD}              nazwa, szkoła, unlocked{}, side{}, bonus
                        teams/{KOD}/members/{uid} pseudonim
                        config/main               nazwy szkół, godzina końca
+                       config/ranking            streszczenie rankingu dla telefonów (zapisuje #ekran)
                        admins/{uid}              lista organizatorów (dodawana ręcznie)
        ▲
  Rzutnik / panel ──(onSnapshot, na żywo)
@@ -107,6 +108,7 @@ Jedna strona (`public/index.html`) z sześcioma widokami:
   - Stację da się zaliczyć tylko z prawdziwym PIN-em, nawet przy ręcznym zapisie do bazy z konsoli przeglądarki.
   - Drużynę tworzy się z poprawnymi polami (nazwa 2–28 znaków, szkoła 0–2, pusty postęp, czas serwera).
   - Usuwać drużyny i zmieniać ustawienia może tylko UID z kolekcji `admins`.
+- **Oszczędzanie limitu darmowego planu (50 tys. odczytów dziennie):** na żywo wszystkie drużyny śledzą tylko `#ekran` i `#admin`. Ekran zalogowany jako admin co ok. 15 s zapisuje streszczenie rankingu w jednym dokumencie `config/ranking`. Telefony czytają ten dokument przy wejściu i na przycisk „Odśwież” (co najwyżej raz na 30 s), więc odświeżenie to 1 odczyt zamiast kilkudziesięciu.
 - Postęp zapisuje się **transakcją**, więc zły PIN nie mignie na chwilę jako „odblokowany”.
 
 > 🔑 Repozytorium jest publiczne, więc `firestore.rules` ma **zaślepki zamiast PIN-ów**. Prawdziwe reguły leżą lokalnie w `firestore.local.rules` (to on jest wdrażany), a ściąga dla prowadzących w `SEKRETY.md`. Oba pliki są w `.gitignore`. Odpowiedzi do symulatora i śledztwa są w kodzie strony, więc i tak może je zobaczyć każdy, kto zajrzy w źródło.
@@ -173,7 +175,7 @@ Drukować w skali 100% („Rzeczywisty rozmiar”), bez dopasowania do strony.
 - [ ] Próba generalna: 2 telefony, jedna drużyna, wszystkie 4 PIN-y, podgląd `#ekran`
 - [ ] Drużyny testowe usunięte
 - [ ] Plakaty i ulotki wydrukowane, plakat z piernikami powieszony
-- [ ] Laptop z `#ekran` podłączony do rzutnika w holu
+- [ ] Laptop z `#ekran` podłączony do rzutnika w holu i **zalogowany jako admin** (najpierw `#admin`, potem `#ekran`), bo tylko wtedy telefony dostają ranking
 - [ ] Wi-Fi lub zasięg komórkowy w salach sprawdzony
 
 ---

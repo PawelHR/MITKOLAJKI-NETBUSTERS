@@ -297,20 +297,56 @@ async function boot(){
     }
     if (S.code) watchTeam(S.code);
     render();
+    publishRanking();
   });
-  onSnapshot(collection(S.db,"teams"), snap=>{
-    const first = !S.teamsLoaded;
-    const before = Object.fromEntries(S.teams.map(t=>[t.id, pointsOf(t)]));
-    S.teams = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-    S.teamsLoaded = true;
-    if (!first) for (const t of S.teams){ const d = pointsOf(t) - (before[t.id] ?? 0); if (d > 0) FEED.unshift({ team:t.name, d, at:Date.now() }); }
-    FEED.length = Math.min(FEED.length, 6);
-    refresh();
-  }, ()=>{ S.error = "Nie mogę pobrać rankingu."; refresh(); });
   onSnapshot(doc(S.db,"config","main"), s=>{ S.config = s.exists() ? s.data() : {}; refresh(); }, ()=>{});
   render();
 }
 const FEED = [];
+
+/* Oszczędzanie odczytów (darmowy plan: 50 tys. odczytów dziennie).
+   Na żywo wszystkie drużyny słuchają tylko #ekran i #admin. Ekran zalogowany jako admin
+   co ~15 s zapisuje streszczenie rankingu w jednym dokumencie config/ranking,
+   a telefony czytają ten jeden dokument na żądanie (1 odczyt zamiast ~40). */
+let unsubTeams = null;
+function watchTeams(on){
+  if (!S.db) return;
+  if (on && !unsubTeams){
+    S.teamsLoaded = false;
+    unsubTeams = onSnapshot(collection(S.db,"teams"), snap=>{
+      const first = !S.teamsLoaded;
+      const before = Object.fromEntries(S.teams.map(t=>[t.id, pointsOf(t)]));
+      S.teams = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      S.teamsLoaded = true;
+      if (!first) for (const t of S.teams){ const d = pointsOf(t) - (before[t.id] ?? 0); if (d > 0) FEED.unshift({ team:t.name, d, at:Date.now() }); }
+      FEED.length = Math.min(FEED.length, 6);
+      publishRanking();
+      refresh();
+    }, ()=>{ S.error = "Nie mogę pobrać rankingu."; refresh(); });
+  } else if (!on && unsubTeams){ unsubTeams(); unsubTeams = null; }
+}
+let pubTimer = null, lastPub = "";
+function publishRanking(){
+  if (!S.isAdmin || !S.teamsLoaded || !["ekran","admin"].includes(route()) || pubTimer) return;
+  pubTimer = setTimeout(async ()=>{
+    pubTimer = null;
+    const { teams, sch } = ranking();
+    const data = { schools: sch.map(s=>({ name:s.name, avg:s.avg, count:s.count })), top: teams.slice(0,5).map(t=>({ name:t.name, points:t.points })) };
+    const key = JSON.stringify(data);
+    if (key === lastPub) return;
+    try { await setDoc(doc(S.db,"config","ranking"), { ...data, at:serverTimestamp() }); lastPub = key; S.pubOk = Date.now(); }
+    catch(e){ S.pubOk = 0; }
+    refresh();
+  }, lastPub ? 15000 : 1000);
+}
+const PUB = { data:null, at:0, loading:false };
+async function loadPub(){
+  if (!S.db || PUB.loading) return;
+  PUB.loading = true;
+  try { const s = await getDoc(doc(S.db,"config","ranking")); PUB.data = s.exists() ? s.data() : null; } catch(e){}
+  PUB.at = Date.now(); PUB.loading = false;
+  refresh();
+}
 
 function watchTeam(code){
   unsubTeam?.(); unsubMembers?.();
@@ -462,7 +498,7 @@ function renderHome(){
       SIDE.map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
         h("div",{class:"spread"}, h("h3",null,s.name), sd[s.id] ? h("span",{class:"pill ok"},"✓ +" + s.max) : h("span",{class:"pill gold"},"+" + s.max + " pkt")),
         h("span",{class:"muted small"}, s.short)))),
-    S.teamsLoaded ? rankingCard() : null,
+    rankingCard(),
     h("div",{class:"row",style:"justify-content:center"}, leaveBtn())
   ];
   put(...nodes);
@@ -849,14 +885,23 @@ function renderKey(){
 }
 
 /* ===================== RANKING ===================== */
+// ranking na telefonie: jeden dokument, czytany przy wejściu i na przycisk (z przerwą 30 s)
 function rankingCard(){
-  const { sch } = ranking();
-  const top = Math.max(1, ...sch.map(s=>s.avg));
-  return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Ranking szkół"), h("span",{class:"pill"},"na żywo")),
-    sch.map((s,i)=>h("div",{class:"stack",style:"gap:4px"},
-      h("div",{class:"spread"}, h("span",null,(i+1) + ". " + s.name), h("span",{class:"mono"}, s.avg + " pkt/drużynę")),
-      h("div",{class:"bar"}, h("i",{style:"width:" + Math.round(s.avg/top*100) + "%"})))),
-    h("p",{class:"muted small"},"Liczy się średnia drużyn, które zaliczyły co najmniej jedną stację."));
+  if (!PUB.at && !PUB.loading) loadPub();
+  const wait = Math.max(0, 30 - Math.floor((Date.now() - PUB.at)/1000));
+  const btn = h("button",{class:"btn sm ghost",disabled:PUB.loading || wait > 0,onclick:()=>{ loadPub(); refresh(); }},
+    PUB.loading ? "Wczytuję…" : wait > 0 ? "Odśwież (za " + wait + " s)" : "Odśwież");
+  if (wait > 0 && !PUB.loading) setTimeout(()=>{ if (route()==="" || route()==="gracz") refresh(); }, wait*1000 + 50);
+  const d = PUB.data;
+  const when = d && d.at && d.at.toDate ? d.at.toDate().toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}) : "";
+  if (!d || !Array.isArray(d.schools)) return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Ranking szkół"), btn),
+    h("p",{class:"muted small"}, PUB.at ? "Ranking pojawi się, gdy organizatorzy włączą ekran wyników. Na żywo widać go na dużym ekranie w holu." : "Wczytuję ranking…"));
+  const top = Math.max(1, ...d.schools.map(s=>Number(s.avg)||0));
+  return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Ranking szkół"), btn),
+    d.schools.map((s,i)=>h("div",{class:"stack",style:"gap:4px"},
+      h("div",{class:"spread"}, h("span",null,(i+1) + ". " + String(s.name||"")), h("span",{class:"mono"}, (Number(s.avg)||0) + " pkt/drużynę")),
+      h("div",{class:"bar"}, h("i",{style:"width:" + Math.round((Number(s.avg)||0)/top*100) + "%"})))),
+    h("p",{class:"muted small"},(when ? "Stan z " + when + ". " : "") + "Liczy się średnia drużyn, które zaliczyły co najmniej jedną stację. Na żywo: duży ekran w holu."));
 }
 let clockTimer = null;
 function renderScreen(){
@@ -884,7 +929,10 @@ function renderScreen(){
           : h("p",{class:"muted"},"Drużyny pojawią się tu, gdy się zarejestrują.")),
         h("section",{class:"stack"}, h("h2",null,"Ostatnie punkty"),
           FEED.length ? h("div",{class:"feed"}, FEED.map(f=>h("div",null, h("b",null,"+" + f.d), " · " + f.team)))
-          : h("p",{class:"muted"},"Czekamy na pierwsze punkty.")))));
+          : h("p",{class:"muted"},"Czekamy na pierwsze punkty.")))),
+    S.isAdmin
+      ? h("p",{class:"muted small mono"}, "Ranking dla telefonów: " + (S.pubOk ? "wysłany o " + new Date(S.pubOk).toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) : "czekam na pierwszą zmianę") + " · aktualizacja co ok. 15 s")
+      : h("p",{class:"msg err small"},"Telefony uczniów nie dostają rankingu. Na tym komputerze zaloguj się w #admin, a potem wróć na #ekran."));
 }
 
 /* ===================== PANEL ADMINA (#admin) ===================== */
@@ -1201,6 +1249,7 @@ function renderDoor(){
 const route = () => (location.hash||"").replace("#","");
 function render(){
   const r = route();
+  watchTeams(r === "ekran" || r === "admin");
   if (r !== "ekran") clearInterval(clockTimer);
   if (r !== "skarbiec"){ clearInterval(vaultTimer); vaultRoot = null; }
   if (r !== "drzwi"){ doorAbort?.abort(); doorAbort = null; doorRoot = null; try { doorWake?.release(); } catch(e){} }
