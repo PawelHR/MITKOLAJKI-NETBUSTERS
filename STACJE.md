@@ -184,6 +184,7 @@ Puenta: karta zbliżeniowa to klucz, który da się skopiować z bliska w kilka 
 - **Karta elfa:** 1 karta albo naklejka NFC typu **NTAG215** (kilka złotych) z zapisanym tekstem „Karta elfa nr 77”. Tekst zapisuje się raz, np. darmową aplikacją do NFC na Androidzie. Bez niego czytnik może nie zareagować.
 - **Etui ekranujące RFID** na kartę (~10 zł) i smycz.
 - **Czytnik drzwi:** telefon z **Androidem i Chrome**, z włączonym NFC i otwartym `https://operacja-biegun.web.app/#drzwi`, przyklejony taśmą przy „drzwiach warsztatu” (karton, ściana, drzwi sali). Ładowarka obowiązkowo.
+- **BadUSB (finał stacji):** Flipper z wgranym skryptem [`stacja4-badusb/operacja-biegun.txt`](stacja4-badusb/operacja-biegun.txt) w folderze `badusb/` oraz **laptop koła z Windows** jako „ofiara”. Skrypt jest nieszkodliwy: otwiera Notatnik i wpisuje ostrzeżenie, nic nie kasuje. Warto wetknąć Flippera w obudowę zwykłego pendrive'a albo użyć niewinnie wyglądającego kabla, żeby wyglądał jak ten z biurka.
 - **Biurko „elfa”** z błędami do audytu (lista niżej).
 - Kartka „Błędy w biurze Grincha” dla każdej drużyny.
 
@@ -216,20 +217,27 @@ Puenta: karta zbliżeniowa to klucz, który da się skopiować z bliska w kilka 
    5. Czytnik pokazuje **„DOSTĘP PRZYZNANY”** i PIN. Drużyna wpisuje go w apce.
 
    Drużyny, które czekają na swoją kolej, mogą próbować „oszukać” czytnik własnymi kartami, np. kartą miejską. Czytnik odpowie „ODMOWA”, bo zna tylko kartę elfa. *Uwaga: tylko przykładanie do czytnika, bez kopiowania czyichkolwiek kart.*
-5. **(21–25) Wnioski:**
+5. **(21–24) Finał: „A gdyby ktoś podłączył ten pendrive?”** Prowadzący wraca do pendrive'a z biurka (błąd nr 4), który drużyny słusznie zostawiły.
+   - *„Zostawiliście go. A co, gdyby ktoś go podłączył z ciekawości?”* Prowadzący wpina Flippera (w obudowie pendrive'a) do laptopa koła i uruchamia skrypt BadUSB.
+   - Na oczach sali laptop **sam** otwiera Notatnik i wpisuje ostrzeżenie. Nikt nie dotyka klawiatury.
+   - Puenta: *„To nie był pendrive z plikami. To była klawiatura, która sama pisze. Dlatego nie podłączamy znalezionych pendrive'ów, kabli ani ładowarek”.*
+6. **(24–25) Wnioski:**
    - grafiki, identyfikatory i plany na widoku mówią obcym, kogo i gdzie szukać,
    - część kart zbliżeniowych da się skopiować z bliska w kilka sekund, a nowoczesne karty z szyfrowaniem są dużo trudniejsze,
    - kartę trzymamy w etui i przy sobie,
-   - żadnych haseł na karteczkach, blokujemy ekran (Windows + L), nie podłączamy znalezionych pendrive'ów.
+   - nieznane urządzenie USB może być czymś innym, niż wygląda,
+   - żadnych haseł na karteczkach, blokujemy ekran (Windows + L).
 
 **Bezpieczeństwo:**
-- Flipper kopiuje **wyłącznie kartę elfa koła**.
+- Flipper kopiuje **wyłącznie kartę elfa koła**, a skrypt BadUSB uruchamiamy **tylko na własnym laptopie koła**. Skrypt niczego nie kasuje ani nie wysyła.
 - Nie odczytujemy ani nie kopiujemy kart uczniów, legitymacji, kart do budynku ani kart płatniczych, nawet jeśli ktoś sam zaproponuje.
-- Po stacji operator usuwa z Flippera zapisane kopie.
+- Nie wpinamy Flippera-BadUSB do cudzych komputerów ani do szkolnego sprzętu.
+- Po stacji operator usuwa z Flippera zapisane kopie kart.
 
 **Plan B:**
 - **Kopia z Flippera nie działa przy czytniku** (np. inny typ karty): drużyna pokazuje operatorowi ekran Flippera z odczytaną kartą „elfa nr 77”, a operator przykłada oryginalną kartę Bartka do czytnika.
 - **Telefon-czytnik zawiedzie:** PIN mówi operator po poprawnym odczycie karty Flipperem.
+- **BadUSB nie pisze** (zły układ klawiatury, inny system): otwórzcie skrypt `operacja-biegun.txt` na rzutniku i przeczytajcie go na głos. Komentarze u góry pliku wyjaśniają, co by się stało.
 
 ---
 
@@ -240,5 +248,5 @@ Puenta: karta zbliżeniowa to klucz, który da się skopiować z bliska w kilka 
 | 1 | Flipper Zero + moduł Wi-Fi (WiFi Dev Board z Marauderem), aplikacja Evil Portal, strona `stacja1-portal/index.html` na karcie SD, router testowy (może być stary), kartki z fałszywymi danymi, laptop z pokazem łamania hasła |
 | 2 | 3–4 laptopy z `#skarbiec`, kalendarz, zdjęcie renifera, wydruk „wycieku”, karteczki |
 | 3 | Nic poza telefonami i rzutnikiem |
-| 4 | Flipper Zero, karta lub naklejka NFC NTAG215, etui ekranujące RFID, smycz, czapka elfa, telefon z Androidem jako czytnik (z ładowarką), pusty pendrive na atrapę, rekwizyty na biurko, kartki-listy |
+| 4 | Flipper Zero, karta lub naklejka NFC NTAG215, etui ekranujące RFID, smycz, czapka elfa, telefon z Androidem jako czytnik (z ładowarką), **laptop koła z Windows + skrypt BadUSB** (`stacja4-badusb/operacja-biegun.txt`), pendrive-atrapa (albo obudowa na Flippera), rekwizyty na biurko, kartki-listy |
 | Wszystkie | Przedłużacze, kartka z PIN-em tylko dla prowadzącego, zegar lub minutnik |

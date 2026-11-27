@@ -42,7 +42,7 @@ Stacje są **dla zabawy, bez oceniania**. Prowadzący nikogo nie punktuje, tylko
 | 1 | Przechwycenie | Łączą się z fałszywym hotspotem z Flippera i wpisują dane z kartki. Głosują, które hasło do Wi-Fi jest najmocniejsze, i oglądają, jak słabe pada. | Złamane hasło routera testowego |
 | 2 | Złam skarbiec | Szukają wskazówek w sali i ustawiają w symulatorze typ hasha, słownik i maskę. | Wynik symulatora |
 | 3 | Fałszywy Mikołaj | Śledztwo SOC na telefonach (w stylu Advent of Cyber): szukają sygnałów phishingu w mailu, podglądają cudze listy przez zmianę numeru w adresie (IDOR) i znajdują w logach moment włamania. | Złożony z 3 fragmentów: GR + IN + CH (kod wejścia `SOC`) |
-| 4 | Biuro Grincha | Audytują biurko „elfa” i z grafiku dyżurów ustalają, czyja karta otwiera warsztat. Z pomocą członka koła kopiują ją Flipperem i otwierają kopią czytnik przy drzwiach. | Czytnik `#drzwi` po przyłożeniu kopii karty |
+| 4 | Biuro Grincha | Audytują biurko „elfa” i z grafiku dyżurów ustalają, czyja karta otwiera warsztat. Z pomocą członka koła kopiują ją Flipperem i otwierają kopią czytnik przy drzwiach. W finale prowadzący podłącza „podrzucony pendrive” (Flipper BadUSB), który sam pisze na laptopie. | Czytnik `#drzwi` po przyłożeniu kopii karty |
 
 **Dokładne scenariusze minuta po minucie, sprzęt, plan B i lista zakupów są w [STACJE.md](STACJE.md).**
 
@@ -136,6 +136,8 @@ operacja-biegun/
 ├── STACJE.md             # scenariusze 4 stacji dla prowadzących
 ├── final/
 │   └── kahoot-final.xlsx # 18 pytań na finał do importu w Kahoot + omówienie dla prowadzącego
+├── stacja4-badusb/
+│   └── operacja-biegun.txt # skrypt BadUSB (DuckyScript) do finału stacji 4
 ├── stacja1-portal/
 │   └── index.html        # strona logowania do pokazu Evil Portal (Flipper) na stacji 1
 ├── narzedzia/

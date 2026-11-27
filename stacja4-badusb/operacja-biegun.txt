@@ -1,0 +1,47 @@
+REM ============================================================
+REM  Operacja Biegun - stacja 4 - pokaz BadUSB (NIESZKODLIWY)
+REM ============================================================
+REM  Flipper Zero (BadUSB) udaje klawiature USB. Po podlaczeniu
+REM  sam otwiera Notatnik i wpisuje ostrzezenie. NICZEGO nie kasuje,
+REM  nie pobiera i nie wysyla - to tylko pokaz.
+REM
+REM  URUCHAMIAC WYLACZNIE na wlasnym laptopie kola, z Windows.
+REM  Uklad klawiatury: US (domyslny w Flipper BadUSB) - dlatego
+REM  tekst jest bez polskich znakow. Jesli masz uklad PL, mozesz
+REM  uzyc "DUCKY_LANG PL" w nowszym firmware.
+REM
+REM  Jak wgrac: skopiuj ten plik na karte SD Flippera do folderu
+REM  badusb/ , potem na Flipperze: Apps -> USB -> Bad USB -> wybierz
+REM  plik -> podlacz kabel do laptopa -> Run.
+REM ============================================================
+
+DELAY 1500
+GUI r
+DELAY 700
+STRING notepad
+ENTER
+DELAY 1500
+
+STRING === UWAGA: to nie byl zwykly pendrive ===
+ENTER
+ENTER
+STRING To byla KLAWIATURA, ktora sama pisze. Atak nazywa sie BadUSB.
+ENTER
+STRING Podlaczyles mnie i w 3 sekundy przejalem pisanie na tym komputerze.
+ENTER
+ENTER
+STRING Rownie dobrze moglbym:
+ENTER
+STRING  - otworzyc strone i pobrac plik,
+ENTER
+STRING  - wpisac komendy w terminalu,
+ENTER
+STRING  - zrobic to wszystko bez jednego Twojego klikniecia.
+ENTER
+ENTER
+STRING LEKCJA: nie podlaczaj znalezionych pendrive'ow, kabli ani ladowarek.
+ENTER
+STRING Nieznane urzadzenie USB moze byc czyms calkiem innym, niz wyglada.
+ENTER
+ENTER
+STRING -- Operacja Biegun, kolo cyberbezpieczenstwa
