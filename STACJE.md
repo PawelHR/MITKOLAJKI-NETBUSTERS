@@ -92,7 +92,7 @@ Zamiast Wi-Fi można oprzeć stację 1 na radiu. Nie jest wdrożony, ale zostawi
 |---|---|
 | Kalendarz z zakreślonym **6 grudnia** | maska: litery + 2 cyfry, czyli dzień |
 | Zdjęcie renifera z podpisem „Mój ulubieniec – Rudolf” | słownik: imiona reniferów |
-| Wydruk „wycieku” z ciągiem 32 znaków szesnastkowych | typ hasha: 32 znaki → MD5 |
+| Wydruk „wycieku” z ciągiem 32 znaków szesnastkowych | typ hasha: 32 znaki hex pasują do MD5 (choć też do NTLM — długość zawęża, nie przesądza) |
 | Karteczka „hasło: imię + dzień, WIELKIMI” | układ hasła |
 
 ### Przebieg
@@ -121,7 +121,8 @@ Zamiast Wi-Fi można oprzeć stację 1 na radiu. Nie jest wdrożony, ale zostawi
    - dane osobiste w haśle (imiona, daty) to pierwsze, co sprawdza atakujący,
    - długa fraza z losowych słów wytrzymuje znacznie dłużej,
    - menedżer haseł pozwala mieć różne hasło do każdego konta,
-   - po stronie serwisów: wolne funkcje hashujące (bcrypt) zamiast MD5.
+   - po stronie serwisów: hasła przechowuje się **wolną, pamięciożerną** funkcją — **Argon2id** (dziś zalecana) albo **bcrypt** — nigdy zwykłym MD5. Symulator pokazuje różnicę czasów w tabeli na końcu.
+   - sama długość skrótu (32 znaki hex) nie przesądza, że to MD5 — pasuje też np. NTLM; w realnym śledztwie typ ustala się dokładniej.
 
 **Plan B:** gdy laptopy zawiodą, drużyny otwierają `#skarbiec` na swoich telefonach. Gdy nie ma internetu, zostaje „symulator na kartce”: drużyna wybiera opcje na papierze, a prowadzący sprawdza je z tabelą powyżej.
 
@@ -158,11 +159,13 @@ Formuła jest inspirowana świątecznym kalendarzem zadań [TryHackMe Advent of 
 
    Przy złej odpowiedzi apka mówi, dlaczego to nie to, np. „Ania pomyliła hasło, adres wewnętrzny”. Drużyny uczą się na błędach, a nie tylko zgadują.
    Drużyny, które skończą wcześniej, robią **„Dla szybkich: fałszywe strony”**, czyli 8 adresów na czas.
-3. **(19–22)** Gdy drużyna ma 3 fragmenty, apka podpowiada, żeby złożyć je w kolejności. Drużyna wpisuje złożone słowo jako PIN stacji.
-4. **(22–25) Omówienie na rzutniku.** Na każde zadanie jedno zdanie:
+3. **(19–22) Reakcja na incydent.** Gdy drużyna ma 3 fragmenty, apka **nie daje od razu PIN-u** — najpierw każe zdecydować, jak zareagować na wykryty atak. Drużyna zaznacza właściwe pierwsze kroki (izolacja komputera, wylogowanie przejętych sesji i zmiana hasła admina, zabezpieczenie logów, zgłoszenie incydentu) i odrzuca pułapki (kasowanie dowodów, wyłączenie logów, zapłata okupu, „udajmy, że nic się nie stało”). Dopiero potem składają fragmenty i wpisują PIN stacji.
+   Lekcja: wykrycie to połowa roboty — tak samo ważne jest, co się robi po wykryciu.
+4. **(22–25) Omówienie na rzutniku.** Na każdy etap jedno zdanie:
    - **Mail:** sprawdzaj, kto naprawdę pisze i dokąd prowadzi link. Prośbę o pieniądze potwierdź telefonicznie.
    - **Portal (IDOR):** strona pokazywała cudze dane, bo nie sprawdzała, czyja jest lista. To jeden z najczęstszych błędów stron. **Na prawdziwych stronach nie podglądamy cudzych danych, to przestępstwo. Błąd się zgłasza.**
    - **Logi:** setki nieudanych prób z jednego adresu to atak. Dlatego konta blokują się po kilku próbach, a hasło admina musi być długie.
+   - **Reakcja:** najpierw zgłoś i izoluj, odetnij dostęp, zabezpiecz dowody. Nigdy nie kasuj logów i nie udawaj, że nic się nie stało.
 
 **Plan B:**
 - Słaby internet: zadania działają po wczytaniu strony. Wystarczy otworzyć apkę jeszcze na korytarzu.

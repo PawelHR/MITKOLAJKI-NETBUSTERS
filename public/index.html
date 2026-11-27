@@ -415,6 +415,7 @@ function renderPlayer(){
   if (view.type === "s3mail") return renderS3Mail();
   if (view.type === "s3idor") return renderS3Idor();
   if (view.type === "s3logs") return renderS3Logs();
+  if (view.type === "s3resp") return renderS3Resp();
   if (view.type === "key") return renderKey();
   renderHome();
 }
@@ -604,11 +605,47 @@ function renderS3Hub(){
     S3_PARTS.map((p,i)=>h("button",{class:"card",onclick:()=>{view={type:p.view};render();}},
       h("div",{class:"spread"}, h("h3",null,(i+1) + ". " + p.name), S3[p.id] ? h("span",{class:"pill ok"},"✓ " + S3[p.id]) : h("span",{class:"pill gold"},"do zrobienia")),
       h("span",{class:"muted small"}, p.what))),
-    all ? h("div",{class:"msg good"},"Macie wszystkie fragmenty. Złóżcie je w kolejności 1-2-3 i wpiszcie jako PIN stacji 3.") : null,
-    all ? h("button",{class:"btn",onclick:()=>{view={type:"station",id:"s3"};render();}},"Wpisz PIN stacji 3") : null,
+    all && !S3.resp ? h("div",{class:"msg good"},"Macie wszystkie 3 fragmenty. Zostało jedno: zdecydujcie, jak zareagować na wykryty incydent.") : null,
+    all && !S3.resp ? h("button",{class:"btn",onclick:()=>{view={type:"s3resp"};render();}},"Ostatni krok: reakcja na incydent") : null,
+    all && S3.resp ? h("div",{class:"msg good"},"Incydent opanowany. Złóżcie fragmenty w kolejności 1-2-3 i wpiszcie jako PIN stacji 3.") : null,
+    all && S3.resp ? h("button",{class:"btn",onclick:()=>{view={type:"station",id:"s3"};render();}},"Wpisz PIN stacji 3") : null,
     h("button",{class:"card",onclick:()=>{view={type:"s3task"};render();}},
       h("div",{class:"spread"}, h("h3",null,"Dla szybkich: fałszywe strony"), h("span",{class:"pill"},"na czas")),
       h("span",{class:"muted small"},"8 adresów logowania. Prawdziwy czy fałszywy?")));
+}
+
+/* etap końcowy: reakcja na incydent (wykrycie to nie wszystko) */
+const RESP = [
+  { t:"Odłączyć zaatakowany komputer od sieci", good:true,  why:"Izolacja jako pierwsza: odcina atakującego, nie dając mu działać dalej." },
+  { t:"Unieważnić przejęte sesje i zmienić hasło administratora", good:true, why:"Sama zmiana hasła nie wystarczy, jeśli ktoś jest wciąż zalogowany. Wylogowanie wszędzie zamyka dostęp." },
+  { t:"Zabezpieczyć kopię logów, zanim znikną", good:true, why:"Logi to dowody: pokazują, co się stało. Najpierw kopia, potem analiza." },
+  { t:"Zgłosić incydent opiekunowi / zespołowi bezpieczeństwa", good:true, why:"Incydentu nie ukrywa się ani nie ogarnia w pojedynkę. Zgłoszenie uruchamia procedurę." },
+  { t:"Od razu skasować podejrzane pliki i wyczyścić logi", good:false, why:"To niszczy dowody. Bez logów nie ustalicie, co zabrał atakujący ani jak wszedł." },
+  { t:"Zapłacić okup, żeby mieć spokój", good:false, why:"Zapłata nie gwarantuje niczego i zachęca do kolejnych ataków." },
+  { t:"Udawać, że nic się nie stało, do jutra", good:false, why:"Zwłoka działa na korzyść atakującego. Liczy się każda minuta." },
+  { t:"Wyłączyć rejestrowanie zdarzeń", good:false, why:"Bez logów tracicie oczy. To ostatnia rzecz, jaką się robi." }
+];
+function renderS3Resp(){
+  const sel = RESP.map(()=>false);
+  const box = h("div",{class:"stack"});
+  const draw = checked => {
+    const okAll = sel.every((v,i)=>v===RESP[i].good);
+    const res = h("div",{class:"stack"});
+    box.replaceChildren(
+      h("div",{class:"stack",style:"gap:8px"}, RESP.map((r,i)=>{
+        let cls = "opt"; if (checked){ if (r.good) cls += " right"; else if (sel[i]) cls += " wrong"; }
+        return h("button",{class:cls,"aria-pressed":String(sel[i]),disabled:checked && okAll,onclick:()=>{ sel[i]=!sel[i]; draw(false); }},
+          (sel[i] ? "☑ " : "☐ ") + r.t, checked && (r.good || sel[i]) ? h("span",{class:"why"}, r.why) : null);
+      })),
+      !checked ? h("button",{class:"btn",onclick:()=>draw(true)},"Zatwierdź plan reakcji")
+      : okAll ? h("div",{class:"msg good"},"Dobry plan. Zgłoszenie, izolacja, odcięcie dostępu i zabezpieczenie dowodów — w tej kolejności.")
+      : h("div",{class:"stack"}, h("div",{class:"msg err"},"Jeszcze nie. Zielone to właściwe pierwsze kroki, czerwone to pułapki. Poprawcie zaznaczenia."), h("button",{class:"btn",onclick:()=>renderS3Resp()},"Od nowa")),
+      res);
+    if (checked && okAll){ S3.resp = true; saveS3(); res.replaceChildren(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"Zamknij sprawę i wróć do śledztwa")); }
+  };
+  put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Etap końcowy · reakcja na incydent"), h("h1",null,"Co teraz robimy?")),
+    h("p",null,"Wiecie już, jak Grinch wszedł i co zabrał. Wykrycie to połowa roboty — teraz trzeba zareagować. Zaznaczcie właściwe pierwsze kroki, a odrzućcie pułapki."), box);
+  draw(false);
 }
 
 /* zadanie 1: analiza maila */
@@ -1109,10 +1146,11 @@ const V = {
   hints:{ type:"a2ba48ea2b39aace07f7272240b0d5dd0deb9ecf733f7110b63a6fca8cfa4c89", dict:"ccdf8844f32ebdd9b9555d6eea4b43e183b6bd916a5a99ab01f543b9d9ccb37d",
           mask:"d845288774c7bbb589193914b3453f316e75c5732d22d7576528b770d9c44144", kase:"75ead7cda861dc30670e143fc5bed38ed80ac8a9c203d94a0c8dfeae357cec08" },
   types:[
-    { id:"md5",    name:"MD5",     note:"32 znaki szesnastkowe", len:32, speed:2e9 },
-    { id:"sha1",   name:"SHA-1",   note:"40 znaków szesnastkowych", len:40, speed:7e8 },
-    { id:"sha256", name:"SHA-256", note:"64 znaki szesnastkowe", len:64, speed:3e8 },
-    { id:"bcrypt", name:"bcrypt",  note:"zaczyna się od $2b$, 60 znaków", len:60, speed:5e3 }
+    { id:"md5",    name:"MD5",      note:"32 znaki hex (pasuje też NTLM)", len:32, speed:2e9 },
+    { id:"sha1",   name:"SHA-1",    note:"40 znaków hex", len:40, speed:7e8 },
+    { id:"sha256", name:"SHA-256",  note:"64 znaki hex", len:64, speed:3e8 },
+    { id:"bcrypt", name:"bcrypt",   note:"zaczyna się od $2b$, 60 znaków", len:60, speed:5e3 },
+    { id:"argon2", name:"Argon2id", note:"zaczyna się od $argon2id$", len:96, speed:1e3 }
   ],
   dicts:[
     { id:"top",      name:"Najpopularniejsze hasła", size:10000,   words:["PASSWORD","QWERTY","ZAQ1","MONKEY","DRAGON","SLONECZKO","KOCHAM","MARCIN"] },
@@ -1226,18 +1264,19 @@ function renderVault(){
     VS.done = true; drawAll();
     line("✓ Hasło administratora odzyskane po " + fmtNum(tries) + " próbach.", "good");
     const S2 = 7776**4;   // fraza z 4 losowych słów (lista 7776 słów)
-    const bc = V.types.find(x=>x.id==="bcrypt");
+    const bc = V.types.find(x=>x.id==="bcrypt"), ar = V.types.find(x=>x.id==="argon2");
     result.replaceChildren(h("div",{class:"card",style:"text-align:center"},
         h("span",{class:"eyebrow",style:"color:var(--ok)"},"Skarbiec otwarty"),
         h("div",{class:"codebox"}, pin),
         h("p",null,"To wasz PIN. Wpiszcie go w terminalu: Laboratoria → 2 · Złam skarbiec.")),
       h("section",{class:"card"}, h("h3",null,"Dlaczego poszło tak szybko?"),
         h("div",{class:"tablewrap"}, h("table",null,
-          h("thead",null,h("tr",null,h("th",null,"Hasło"),h("th",{class:"num"},"MD5"),h("th",{class:"num"},"bcrypt"))),
+          h("thead",null,h("tr",null,h("th",null,"Hasło"),h("th",{class:"num"},"MD5"),h("th",{class:"num"},"bcrypt"),h("th",{class:"num"},"Argon2id"))),
           h("tbody",null,
-            h("tr",null,h("td",null, pin + " (imię + dzień)"),h("td",{class:"num mono"},fmtTime(total/t.speed)),h("td",{class:"num mono"},fmtTime(total/bc.speed))),
-            h("tr",null,h("td",null,"4 losowe słowa, np. sanki-zorza-piernik-kominek"),h("td",{class:"num mono"},fmtTime(S2/t.speed)),h("td",{class:"num mono"},fmtTime(S2/bc.speed)))))),
-        h("p",{class:"muted small"},"Słabe hasło pada nawet przy wolnym bcrypt. Długa fraza z losowych słów wytrzymuje tygodnie przy MD5 i tysiące lat przy bcrypt."),
+            h("tr",null,h("td",null, pin + " (imię + dzień)"),h("td",{class:"num mono"},fmtTime(total/t.speed)),h("td",{class:"num mono"},fmtTime(total/bc.speed)),h("td",{class:"num mono"},fmtTime(total/ar.speed))),
+            h("tr",null,h("td",null,"4 losowe słowa, np. sanki-zorza-piernik-kominek"),h("td",{class:"num mono"},fmtTime(S2/t.speed)),h("td",{class:"num mono"},fmtTime(S2/bc.speed)),h("td",{class:"num mono"},fmtTime(S2/ar.speed)))))),
+        h("p",{class:"muted small"},"Słabe hasło pada nawet przy wolnym bcrypt. Długa fraza z losowych słów wytrzymuje bardzo długo. Dzisiaj hasła przechowuje się funkcją wolną i „pamięciożerną”: bcrypt, a najlepiej Argon2id — nie zwykłym MD5."),
+        h("p",{class:"muted small"},"Uwaga: 32 znaki szesnastkowe pasują do MD5, ale też np. do NTLM. Sama długość zawęża typ, ale go nie przesądza — w realnym śledztwie sprawdza się to dokładniej."),
         h("button",{class:"btn ghost",onclick:()=>{ Object.assign(VS,{type:null,dict:null,mask:null,kase:null,running:false,fails:0,t0:Date.now(),done:false}); vaultRoot=null; renderVault(); }},"Nowa drużyna (reset)")));
     result.scrollIntoView({behavior:"smooth",block:"start"});
   }
