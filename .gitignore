@@ -7,3 +7,4 @@ Thumbs.db
 # sekrety – tylko lokalnie
 firestore.local.rules
 SEKRETY.md
+.claude/

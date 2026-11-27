@@ -136,6 +136,8 @@ operacja-biegun/
 ├── STACJE.md             # scenariusze 4 stacji dla prowadzących
 ├── final/
 │   └── kahoot-final.xlsx # 18 pytań na finał do importu w Kahoot + omówienie dla prowadzącego
+├── stacja1-portal/
+│   └── index.html        # strona logowania do pokazu Evil Portal (Flipper) na stacji 1
 ├── narzedzia/
 │   └── szyfruj-odpowiedzi.js # generuje zaszyfrowane odpowiedzi stacji 2 i 3
 ├── INSTRUKCJA.md         # konfiguracja Firebase krok po kroku

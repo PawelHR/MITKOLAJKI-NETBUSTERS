@@ -35,12 +35,16 @@ Na każdą stację potrzebne są **2 osoby z koła**:
 - słabe hasło do Wi-Fi pada w kilka sekund.
 
 ### Sprzęt i przygotowanie
-- Flipper Zero z modułem Wi-Fi i skonfigurowanym portalem logowania. Nazwa sieci np. `Darmowe_WiFi_Mikolaja`, strona stylizowana na „logowanie do fabryki”.
-- **Na portalu duży baner: „POKAZ KOŁA CYBER – NIE WPISUJ PRAWDZIWYCH DANYCH”.**
+- **Flipper Zero + moduł Wi-Fi** (WiFi Dev Board, ESP32-S2/S3). Potrzebny, bo sam Flipper nie stawia Wi-Fi.
+- **Aplikacja „Evil Portal”** na Flipperze (z Flipper Lab / aplikacji z firmware Momentum/Unleashed) i firmware **Marauder** na module Wi-Fi. Aplikacja serwuje stronę logowania i zapisuje wpisane dane do pliku na karcie SD.
+- **Strona logowania: gotowa w `stacja1-portal/index.html`** w tym repo. Skopiuj ją na kartę SD Flippera do folderu aplikacji Evil Portal jako `index.html` (ścieżka zależy od firmware, zwykle `apps_data/evil_portal/index.html`). Ma już baner „POKAZ KOŁA CYBER – NIE WPISUJ PRAWDZIWYCH DANYCH”, pola e-mail i hasło oraz puentę po wysłaniu. Nazwa sieci (SSID), np. `Darmowe_WiFi_Mikolaja`, ustawiana jest w aplikacji Evil Portal, nie na stronie.
 - 10–15 kartek z **fałszywymi danymi do wpisania**, np. `elf.janek@fabryka-mikolaja.pl` / `Pierniki123`.
 - Własny router testowy koła z hasłem = PIN stacji 1 (małymi literami), niepodłączony do internetu.
 - Laptop koła z przygotowanym wcześniej pokazem łamania hasła z listy słów, na danych z tego routera.
 - Rzutnik albo duży monitor, żeby cała grupa widziała ekran.
+
+> **Co z czego jest:** Flipper + moduł Wi-Fi udają otwartą sieć i podsuwają stronę logowania (to część „fałszywego hotspotu”). Łamanie hasła Wi-Fi to osobny, drugi pokaz na laptopie, na danych z własnego routera testowego. Oba na sprzęcie koła, nigdy na szkolnej sieci.
+> **Jeśli nie macie modułu Wi-Fi do Flippera:** tę samą stronę `stacja1-portal/index.html` można pokazać na laptopie koła (otwórz plik w przeglądarce). Uczniowie wpisują dane z kartki, a wy pokazujecie, że „zniknęły” do prowadzącego. Pokaz traci element prawdziwego Wi-Fi, ale lekcja o fałszywej stronie zostaje.
 
 ### Przebieg
 1. **(0–3)** Fabuła: „W nocy elfy łączyły się z darmowym Wi-Fi przy fabryce. Rano ich konta przejął Grinch”.
@@ -233,7 +237,7 @@ Puenta: karta zbliżeniowa to klucz, który da się skopiować z bliska w kilka 
 
 | Stacja | Do kupienia lub zorganizowania |
 |---|---|
-| 1 | Router testowy (może być stary), kartki z fałszywymi danymi, baner na portalu |
+| 1 | Flipper Zero + moduł Wi-Fi (WiFi Dev Board z Marauderem), aplikacja Evil Portal, strona `stacja1-portal/index.html` na karcie SD, router testowy (może być stary), kartki z fałszywymi danymi, laptop z pokazem łamania hasła |
 | 2 | 3–4 laptopy z `#skarbiec`, kalendarz, zdjęcie renifera, wydruk „wycieku”, karteczki |
 | 3 | Nic poza telefonami i rzutnikiem |
 | 4 | Flipper Zero, karta lub naklejka NFC NTAG215, etui ekranujące RFID, smycz, czapka elfa, telefon z Androidem jako czytnik (z ładowarką), pusty pendrive na atrapę, rekwizyty na biurko, kartki-listy |
