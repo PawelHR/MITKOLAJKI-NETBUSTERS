@@ -169,7 +169,7 @@ const STATIONS = [
     intro:"Grinch zmienił hasło administratora do skarbca z listą prezentów, ale zostawił ślady w sali. Dobierzcie w symulatorze typ hasha, słownik i maskę. Złamane hasło to wasz PIN.",
     story:"Skarbiec otwarty. Hasło administratora składało się z imienia renifera i daty. Takie hasła wpadają w kilka sekund. Drugi fragment klucza jest wasz.",
     tips:["Imiona, daty i nazwy drużyn to pierwsze, co sprawdza słownik.","Długa fraza z kilku losowych słów jest dużo mocniejsza niż krótkie „H@sło1!”.","Menedżer haseł pozwala mieć różne hasło do każdego konta."] },
-  { id:"s3", nr:3, name:"Fałszywy Mikołaj", topic:"Śledztwo SOC: phishing, portal, logi", frag:"PIERNIK", hasTask:true,
+  { id:"s3", nr:3, name:"Fałszywy Mikołaj", topic:"Śledztwo SOC: phishing, portal, logi", frag:"KOMINEK", hasTask:true,
     intro:"Księgowa fabryki dostała maila „od Mikołaja” i zatwierdziła przelew. Chwilę później ktoś grzebał w portalu prezentów. Jesteście zespołem SOC: przeanalizujcie maila, portal i logi serwera. Każde zadanie daje fragment PIN-u. Kod wejścia do śledztwa poda prowadzący.",
     story:"Mail przyszedł z podrobionym adresem do odpowiedzi, portal pokazywał cudze listy po zmianie numeru w adresie, a w logach widać, że Grinch zgadywał hasło admina przez 7 minut. Trzeci fragment klucza odzyskany.",
     tips:["Zanim klikniecie, sprawdźcie, kto naprawdę pisze i dokąd prowadzi link.","„Pilne!” i „do 17:00” to presja, która ma wyłączyć myślenie. Prośbę o pieniądze potwierdzajcie telefonicznie.","Jeśli po zmianie numeru w adresie widać cudze dane, to błąd strony. Zgłoście go, nie wykorzystujcie.","Setki nieudanych logowań z jednego adresu to atak. Dlatego konta blokują się po kilku próbach, a hasło admina musi być długie."] },
@@ -542,23 +542,41 @@ function renderStation(s){
   put(...nodes);
 }
 
+/* ---- odpowiedzi zaszyfrowane w kodzie strony ----
+   PIN-y i fragmenty są zaszyfrowane AES-GCM kluczem wyprowadzonym z poprawnego
+   rozwiązania zadania. Bez rozwiązania w źródle strony widać tylko szyfrogram. */
+async function sha(s){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+async function openSeal(material, blob){
+  try {
+    const raw = Uint8Array.from(atob(blob), c=>c.charCodeAt(0));
+    const kb = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("biegun26|" + material));
+    const key = await crypto.subtle.importKey("raw", kb, "AES-GCM", false, ["decrypt"]);
+    const pt = await crypto.subtle.decrypt({ name:"AES-GCM", iv:raw.slice(0,12) }, key, raw.slice(12));
+    return new TextDecoder().decode(pt);
+  } catch(e){ return null; }
+}
+
 /* ---- stacja 3: śledztwo SOC (3 zadania → fragmenty PIN-u) ---- */
-const S3_GATE = "SOC";
+const S3_GATE_H = "2988912bb96686cefd1c0f6a258eaacd4039180a9a89cba34d23c2f87958b90d";
 const S3_PARTS = [
-  { id:"mail", name:"Mail od „Mikołaja”", what:"Analiza phishingu", frag:"GR", view:"s3mail" },
-  { id:"idor", name:"Portal prezentów", what:"Podglądanie cudzych danych", frag:"IN", view:"s3idor" },
-  { id:"logs", name:"Logi serwera", what:"Kto, kiedy i skąd się włamał", frag:"CH", view:"s3logs" }
+  { id:"mail", name:"Mail od „Mikołaja”", what:"Analiza phishingu", view:"s3mail", seal:"7ZMp3/XGVWCihyLbn/KZKxKV7QbJuHb0i0hW5Byj" },
+  { id:"idor", name:"Portal prezentów", what:"Podglądanie cudzych danych", view:"s3idor", seal:"a3Bt5pZ9nhUtjoa2yaNs9I2x4ySGfomnY340bjJr" },
+  { id:"logs", name:"Logi serwera", what:"Kto, kiedy i skąd się włamał", view:"s3logs", seal:"VnxoBdc/p2F2R9+LRPKXGnYjEMi/KoCi8Oi6KByo" }
 ];
+const s3Seal = id => S3_PARTS.find(x=>x.id===id).seal;
 let S3 = {};
 try { S3 = JSON.parse(ls.get("ob_s3") || "{}") || {}; } catch(e){ S3 = {}; }
+for (const p of S3_PARTS) if (S3[p.id] && typeof S3[p.id] !== "string") delete S3[p.id];   // stary format
 const saveS3 = () => ls.set("ob_s3", JSON.stringify(S3));
 const s3Back = () => h("button",{class:"back",onclick:()=>{view={type:"s3hub"};render();}},"← Wróć do śledztwa");
-function s3Done(id, container){
-  S3[id] = true; saveS3();
-  const p = S3_PARTS.find(x=>x.id===id);
+function s3Done(id, container, frag){
+  S3[id] = frag; saveS3();
   container.replaceChildren(h("div",{class:"card",style:"text-align:center"},
     h("span",{class:"eyebrow",style:"color:var(--ok)"},"Dowód zabezpieczony"),
-    h("p",null,"Fragment PIN-u:"), h("div",{class:"codebox"}, p.frag),
+    h("p",null,"Fragment PIN-u:"), h("div",{class:"codebox"}, frag),
     h("button",{class:"btn ghost",onclick:()=>{view={type:"s3hub"};render();}},"Wróć do śledztwa")));
   container.scrollIntoView({behavior:"smooth",block:"center"});
 }
@@ -568,17 +586,17 @@ function renderS3Hub(){
   if (!S3.open){
     const inp = h("input",{id:"s3-gate",class:"code",placeholder:"KOD",autocomplete:"off",autocapitalize:"characters",maxlength:"10"});
     const err = h("div",{class:"msg err",hidden:true});
-    return put(back, head, h("form",{class:"card",onsubmit:e=>{ e.preventDefault();
-        if (norm(inp.value) === S3_GATE){ S3.open = true; saveS3(); inp.blur(); render(); }
+    return put(back, head, h("form",{class:"card",onsubmit:async e=>{ e.preventDefault();
+        if (await sha("gate|" + norm(inp.value)) === S3_GATE_H){ S3.open = true; saveS3(); inp.blur(); render(); }
         else { err.textContent = "To nie ten kod. Poda go prowadzący na stacji 3."; err.hidden = false; } }},
       h("label",{for:"s3-gate"},"Kod wejścia od prowadzącego", inp), err, h("button",{class:"btn",type:"submit"},"Wejdź do centrum SOC")));
   }
   const all = S3_PARTS.every(p=>S3[p.id]);
   put(back, head,
     h("p",null,"Podzielcie się: każdy telefon bierze inne zadanie. Za każde rozwiązane dostaniecie fragment PIN-u. Złóżcie je w kolejności i wpiszcie w stacji 3."),
-    h("div",{class:"key",style:"grid-template-columns:repeat(3,1fr)"}, S3_PARTS.map(p=>h("span",{class:S3[p.id]?"on":""}, S3[p.id] ? p.frag : "· ·"))),
+    h("div",{class:"key",style:"grid-template-columns:repeat(3,1fr)"}, S3_PARTS.map(p=>h("span",{class:S3[p.id]?"on":""}, S3[p.id] || "· ·"))),
     S3_PARTS.map((p,i)=>h("button",{class:"card",onclick:()=>{view={type:p.view};render();}},
-      h("div",{class:"spread"}, h("h3",null,(i+1) + ". " + p.name), S3[p.id] ? h("span",{class:"pill ok"},"✓ " + p.frag) : h("span",{class:"pill gold"},"do zrobienia")),
+      h("div",{class:"spread"}, h("h3",null,(i+1) + ". " + p.name), S3[p.id] ? h("span",{class:"pill ok"},"✓ " + S3[p.id]) : h("span",{class:"pill gold"},"do zrobienia")),
       h("span",{class:"muted small"}, p.what))),
     all ? h("div",{class:"msg good"},"Macie wszystkie fragmenty. Złóżcie je w kolejności 1-2-3 i wpiszcie jako PIN stacji 3.") : null,
     all ? h("button",{class:"btn",onclick:()=>{view={type:"station",id:"s3"};render();}},"Wpisz PIN stacji 3") : null,
@@ -589,35 +607,41 @@ function renderS3Hub(){
 
 /* zadanie 1: analiza maila */
 const MAIL = [
-  { id:"from",   t:"Od: Mikołaj <mikolaj@fabryka-mikolaja.pl>", bad:false, why:"Nazwa i adres nadawcy wyglądają dobrze. Właśnie dlatego trzeba czytać dalej." },
-  { id:"reply",  t:"Odpowiedz do: mikolaj.pilne@poczta-biegun.top", bad:true, why:"Odpowiedź poszłaby na zupełnie inny adres niż nadawca." },
-  { id:"subj",   t:"Temat: PILNE!!! Przelew na prezenty do 17:00", bad:true, why:"Presja czasu i wykrzykniki mają wyłączyć myślenie." },
-  { id:"greet",  t:"Cześć Basiu,", bad:false, why:"Zwykłe powitanie, samo w sobie niczego nie zdradza." },
-  { id:"body",   t:"Jestem na spotkaniu z reniferami i nie mogę rozmawiać. Zatwierdź dziś przelew 48 000 zł dla nowego dostawcy pierników. Nikomu o tym nie mów.", bad:true, why:"Nietypowa prośba o pieniądze, „nie mogę rozmawiać” i „nikomu nie mów”. To klasyczne oszustwo „na prezesa”." },
-  { id:"link",   t:"[ Zatwierdź przelew ] → fabryka-mikolaja.pl.zatwierdz-przelew.top/login", bad:true, why:"Prawdziwa domena to zatwierdz-przelew.top. „fabryka-mikolaja.pl” jest tylko ozdobą na początku." },
-  { id:"att",    t:"📎 Faktura_pierniki.pdf.exe", bad:true, why:"Podwójne rozszerzenie: to program udający PDF." },
-  { id:"sig",    t:"Pozdrawiam, Mikołaj · Biegun Północny", bad:false, why:"Podpis łatwo skopiować, więc nic nie dowodzi, ale też nie jest sygnałem ataku." }
+  { id:"from",   t:"Od: Mikołaj <mikolaj@fabryka-mikolaja.pl>" },
+  { id:"reply",  t:"Odpowiedz do: mikolaj.pilne@poczta-biegun.top", why:"Odpowiedź poszłaby na zupełnie inny adres niż nadawca." },
+  { id:"subj",   t:"Temat: PILNE!!! Przelew na prezenty do 17:00", why:"Presja czasu i wykrzykniki mają wyłączyć myślenie." },
+  { id:"greet",  t:"Cześć Basiu," },
+  { id:"body",   t:"Jestem na spotkaniu z reniferami i nie mogę rozmawiać. Zatwierdź dziś przelew 48 000 zł dla nowego dostawcy pierników. Nikomu o tym nie mów.", why:"Nietypowa prośba o pieniądze, „nie mogę rozmawiać” i „nikomu nie mów”. To klasyczne oszustwo „na prezesa”." },
+  { id:"link",   t:"[ Zatwierdź przelew ] → fabryka-mikolaja.pl.zatwierdz-przelew.top/login", why:"Prawdziwa domena to zatwierdz-przelew.top. „fabryka-mikolaja.pl” jest tylko ozdobą na początku." },
+  { id:"att",    t:"📎 Faktura_pierniki.pdf.exe", why:"Podwójne rozszerzenie: to program udający PDF." },
+  { id:"sig",    t:"Pozdrawiam, Mikołaj · Biegun Północny" }
 ];
+let mailFails = 0;
 function renderS3Mail(){
   const sel = {}; const res = h("div",{class:"stack"});
   const box = h("div",{class:"stack"});
-  const draw = checked => {
-    const nBad = MAIL.filter(m=>m.bad).length;
-    const okAll = MAIL.every(m=>!!sel[m.id] === m.bad);
+  // poprawność sprawdzamy, próbując odszyfrować fragment zaznaczonym zestawem
+  const draw = (checked, ok) => {
+    const n = Object.values(sel).filter(Boolean).length;
     box.replaceChildren(
       h("div",{class:"mail"}, MAIL.map(m=>{
         let cls = "mline" + (m.id==="link" ? " mlink" : "") + (m.id==="att" ? " matt" : "");
         if (sel[m.id]) cls += " sel";
-        if (checked){ if (m.bad) cls += " right"; else if (sel[m.id]) cls += " wrong"; }
-        return h("button",{class:cls,"aria-pressed":String(!!sel[m.id]),disabled:checked,onclick:()=>{ sel[m.id] = !sel[m.id]; draw(false); }}, m.t,
-          checked && (m.bad || sel[m.id]) ? h("span",{class:"why"}, m.why) : null);
+        if (checked && ok && sel[m.id]) cls += " right";
+        return h("button",{class:cls,"aria-pressed":String(!!sel[m.id]),disabled:checked && ok,onclick:()=>{ sel[m.id] = !sel[m.id]; draw(false); }}, m.t,
+          checked && ok && sel[m.id] && m.why ? h("span",{class:"why"}, m.why) : null);
       })),
-      h("p",{class:"muted small"},"Zaznaczonych: " + Object.values(sel).filter(Boolean).length + " · podejrzanych elementów jest " + nBad + "."),
-      !checked ? h("button",{class:"btn",onclick:()=>draw(true)},"Sprawdź")
-      : okAll ? h("div",{class:"msg good"},"Wszystkie sygnały ostrzegawcze znalezione.")
-      : h("div",{class:"stack"}, h("div",{class:"msg err"},"Jeszcze nie. Zielone ramki to sygnały, które trzeba było zaznaczyć. Spróbujcie jeszcze raz."), h("button",{class:"btn",onclick:()=>renderS3Mail()},"Od nowa")),
+      h("p",{class:"muted small"},"Zaznaczonych: " + n + " · podejrzanych elementów jest 5."),
+      checked && ok ? h("div",{class:"msg good"},"Wszystkie sygnały ostrzegawcze znalezione.")
+      : h("div",{class:"stack"},
+          checked ? h("div",{class:"msg err"}, n !== 5 ? "Zaznaczcie dokładnie 5 elementów." : "Jeszcze nie. Co najmniej jeden zaznaczony element jest w porządku, a jakiś podejrzany został pominięty.") : null,
+          checked && mailFails >= 2 ? h("div",{class:"msg"},"Podpowiedź: sprawdźcie, dokąd poszłaby odpowiedź, jak brzmi temat, o co prosi treść, dokąd prowadzi przycisk i czym jest załącznik.") : null,
+          h("button",{class:"btn",onclick:async ()=>{
+            const key = MAIL.filter(m=>sel[m.id]).map(m=>m.id).sort().join(",");
+            const frag = n === 5 ? await openSeal("mail|" + key, s3Seal("mail")) : null;
+            if (frag){ draw(true, true); s3Done("mail", res, frag); } else { mailFails++; draw(true, false); }
+          }},"Sprawdź")),
       res);
-    if (checked && okAll) s3Done("mail", res);
   };
   put(s3Back(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Zadanie 1 · analiza phishingu"), h("h1",null,"Mail od „Mikołaja”")),
     h("p",null,"Ten mail dostała księgowa Basia, zanim zatwierdziła przelew. Dotknijcie każdego elementu, który powinien ją zaniepokoić, i kliknijcie „Sprawdź”."), box);
@@ -630,24 +654,25 @@ const LISTS = {
   1041:{ who:"Tomek, 6 lat · Opole", items:["klocki","dinozaur T-Rex"] },
   1042:{ who:"Wasza drużyna", items:["złoty klucz główny","pierniki dla całej szkoły"], mine:true },
   1043:{ who:"Zuzia, 10 lat · Lublin", items:["łyżwy","gra planszowa"], note:"Notatka admina: wczoraj o 03:14 ktoś założył nowe konto z numerem 1337. Nikt z elfów się nie przyznaje. Sprawdzić!" },
-  1044:{ who:"Antek, 12 lat · Toruń", items:["słuchawki","zestaw do lutowania"] },
-  1337:{ grinch:true }
+  1044:{ who:"Antek, 12 lat · Toruń", items:["słuchawki","zestaw do lutowania"] }
 };
 function renderS3Idor(){
   let id = 1042;
   const url = h("input",{id:"idor-url",class:"urlbar",value:"prezenty.biegun/lista?id=1042",autocomplete:"off",autocapitalize:"off",spellcheck:"false",inputmode:"url"});
   const page = h("div",{class:"browser-page"});
   const res = h("div");
-  const open = ()=>{
+  const open = async ()=>{
     const m = url.value.match(/id=(\d{1,6})/);
     id = m ? +m[1] : NaN;
     const L = LISTS[id];
-    if (!L){ page.replaceChildren(h("h3",null,"404"), h("p",{class:"muted"},"Nie ma listy o tym numerze.")); return; }
-    if (L.grinch){
-      page.replaceChildren(h("span",{class:"eyebrow",style:"color:var(--red)"},"Lista nr 1337 · konto: GR1NCH"),
+    // lista Grincha nie istnieje w kodzie: jej fragment odszyfrowuje dopiero właściwy numer
+    const frag = !L && m ? await openSeal("idor|" + id, s3Seal("idor")) : null;
+    if (!L && !frag){ page.replaceChildren(h("h3",null,"404"), h("p",{class:"muted"},"Nie ma listy o tym numerze.")); return; }
+    if (frag){
+      page.replaceChildren(h("span",{class:"eyebrow",style:"color:var(--red)"},"Lista nr " + id + " · konto: GR1NCH"),
         h("h3",null,"Do zabrania: WSZYSTKIE prezenty"),
-        h("p",{class:"mono small"},"notatka: przelew zatwierdzony ✓ · eksport listy prezentów ✓ · fragment klucza: IN"));
-      if (!S3.idor) s3Done("idor", res);
+        h("p",{class:"mono small"},"notatka: przelew zatwierdzony ✓ · eksport listy prezentów ✓ · fragment klucza: " + frag));
+      if (!S3.idor) s3Done("idor", res, frag);
       else res.replaceChildren();
       res.prepend(h("section",{class:"card"}, h("h3",null,"Co tu się stało?"),
         h("p",{class:"small"},"Portal pokazuje każdą listę, jeśli znacie jej numer. Nie sprawdza, czy lista jest wasza. Taki błąd nazywa się IDOR i należy do najczęstszych błędów stron internetowych."),
@@ -674,18 +699,19 @@ const LOGS = [
   { t:"03:05:13", ip:"185.220.101.7", u:"admin",      r:"LOGIN FAIL", why:"Kolejna nieudana próba, sekundę po poprzedniej. Tak szybko zgaduje program, nie człowiek." },
   { gap:"… 418 podobnych linii z 185.220.101.7 pominięto …" },
   { t:"03:11:58", ip:"185.220.101.7", u:"admin",      r:"LOGIN FAIL", why:"Wciąż nieudana próba." },
-  { t:"03:12:03", ip:"185.220.101.7", u:"admin",      r:"LOGIN OK",   hit:true, why:"Ten sam zewnętrzny adres, po setkach prób, o 03:12. Dokładnie wtedy włączył się alarm." },
+  { t:"03:12:03", ip:"185.220.101.7", u:"admin",      r:"LOGIN OK",   why:"Ten sam zewnętrzny adres, po setkach prób, o 03:12. Dokładnie wtedy włączył się alarm." },
   { t:"03:12:41", ip:"185.220.101.7", u:"admin",      r:"EXPORT lista_prezentow.csv", why:"To już skutek włamania. Szukamy momentu wejścia." },
   { t:"08:02:44", ip:"10.0.4.21",     u:"elf_ania",   r:"LOGIN FAIL", why:"Rano, z adresu wewnętrznego. Ania pomyliła hasło." },
   { t:"08:02:51", ip:"10.0.4.21",     u:"elf_ania",   r:"LOGIN OK",   why:"Ania wpisała hasło poprawnie przy drugiej próbie. Nic podejrzanego." }
 ];
 function renderS3Logs(){
   const fb = h("div"); const res = h("div");
-  let solved = !!S3.logs;
+  let solved = !!S3.logs, hitT = S3.logsAt || "";
   const draw = ()=> list.replaceChildren(...LOGS.map(l=>{
     if (l.gap) return h("div",{class:"logline gap"}, l.gap);
-    return h("button",{class:"logline" + (solved && l.hit ? " hit" : "") + (/FAIL/.test(l.r) ? " fail" : ""),disabled:solved,onclick:()=>{
-      if (l.hit){ solved = true; draw(); fb.replaceChildren(h("div",{class:"msg good"}, l.why)); s3Done("logs", res); }
+    return h("button",{class:"logline" + (solved && l.t === hitT ? " hit" : "") + (/FAIL/.test(l.r) ? " fail" : ""),disabled:solved,onclick:async ()=>{
+      const frag = await openSeal("logs|" + l.t, s3Seal("logs"));
+      if (frag){ solved = true; hitT = l.t; S3.logsAt = l.t; draw(); fb.replaceChildren(h("div",{class:"msg good"}, l.why)); s3Done("logs", res, frag); }
       else fb.replaceChildren(h("div",{class:"msg err"},"Nie ta linia. " + l.why));
     }}, h("span",{class:"lt"},l.t), h("span",{class:"lip"},l.ip), h("span",{class:"lu"},l.u), h("span",{class:"lr"},l.r));
   }));
@@ -1016,8 +1042,10 @@ function delBtn(t){
    Hasło pada wyłącznie przy ustawieniach zgodnych ze wskazówkami z sali. */
 const V = {
   user:"admin_grinch",
-  hash:"e55de48c923e50a2a9b6d8c4de77d4a9",          // MD5("RUDOLF06")
-  answer:{ type:"md5", dict:"reindeer", mask:"d2", kase:"upper" },
+  hash:"e55de48c923e50a2a9b6d8c4de77d4a9",          // MD5 hasła administratora (prawdziwy, do sprawdzenia w domu)
+  seal:"R+TJZjbyq5Uvh7O850UFQk91tlUfllykQho+bfQHhvQjOxxh", // hasło zaszyfrowane kluczem z poprawnych ustawień
+  hints:{ type:"a2ba48ea2b39aace07f7272240b0d5dd0deb9ecf733f7110b63a6fca8cfa4c89", dict:"ccdf8844f32ebdd9b9555d6eea4b43e183b6bd916a5a99ab01f543b9d9ccb37d",
+          mask:"d845288774c7bbb589193914b3453f316e75c5732d22d7576528b770d9c44144", kase:"75ead7cda861dc30670e143fc5bed38ed80ac8a9c203d94a0c8dfeae357cec08" },
   types:[
     { id:"md5",    name:"MD5",     note:"32 znaki szesnastkowe", len:32, speed:2e9 },
     { id:"sha1",   name:"SHA-1",   note:"40 znaków szesnastkowych", len:40, speed:7e8 },
@@ -1083,7 +1111,7 @@ function renderVault(){
     } else est.textContent = "Wybierzcie wszystkie 4 ustawienia.";
   };
   runBtn.addEventListener("click", ()=>runAttack());
-  function runAttack(){
+  async function runAttack(){
     const t = V.types.find(x=>x.id===VS.type), d = V.dicts.find(x=>x.id===VS.dict), m = V.masks.find(x=>x.id===VS.mask), k = V.kases.find(x=>x.id===VS.kase);
     log.replaceChildren();
     line("> atak na konto " + V.user + " · " + t.name + " · " + d.name + " · " + m.name + " · " + k.name, "dim");
@@ -1098,21 +1126,22 @@ function renderVault(){
       line("✗ Atak przerwany: nie zdążymy przed świętami. Zawęźcie słownik albo maskę.", "bad");
       return fail();
     }
-    const correct = VS.type===V.answer.type && VS.dict===V.answer.dict && VS.mask===V.answer.mask && VS.kase===V.answer.kase;
-    const hitAt = correct ? 8*100 + 6 : -1;                    // RUDOLF + "06"
-    const steps = correct ? hitAt + 1 : Math.min(total, 1500);
     VS.running = true; drawAll();
+    const pin = await openSeal("vault|" + VS.type + "|" + VS.dict + "|" + VS.mask + "|" + VS.kase, V.seal);
+    const cand = i => k.f(d.words[Math.floor(i / m.n) % d.words.length]) + m.suf(i % m.n);
+    let hitAt = -1;
+    if (pin) for (let i = 0; i < total && i < 100000; i++) if (cand(i) === pin){ hitAt = i; break; }
+    const correct = hitAt >= 0;
+    const steps = correct ? hitAt + 1 : Math.min(total, 1500);
     let i = 0;
     const per = Math.max(1, Math.ceil(steps / 90));            // ok. 3 sekundy animacji
     const anim = setInterval(()=>{
       for (let j=0; j<per && i<steps; j++, i++){
-        const w = d.words[Math.floor(i / m.n) % d.words.length];
-        const cand = k.f(w) + m.suf(i % m.n);
-        if (j === per-1 || i === steps-1) line((i === hitAt ? "✓ " : "  ") + cand.padEnd(14," ") + (i === hitAt ? "PASUJE" : "✗"), i === hitAt ? "good" : "dim");
+        if (j === per-1 || i === steps-1) line((i === hitAt ? "✓ " : "  ") + cand(i).padEnd(14," ") + (i === hitAt ? "PASUJE" : "✗"), i === hitAt ? "good" : "dim");
       }
       if (i >= steps){
         clearInterval(anim); VS.running = false;
-        if (correct) success(total, t);
+        if (correct) success(total, t, pin, hitAt + 1);
         else {
           line("Przeszukano " + fmtNum(total) + " kandydatów w " + fmtTime(secs) + ". Brak trafienia.", "bad");
           fail();
@@ -1120,29 +1149,31 @@ function renderVault(){
       }
     }, 33);
   }
-  function fail(){
+  async function fail(){
     VS.fails++; drawAll();
     if (VS.fails >= 2) line("Podpowiedź: rozejrzyjcie się po sali. Kalendarz, zdjęcie i karteczki przy biurku administratora mówią, jakie hasło wybrał Grinch.", "hint");
     if (VS.fails >= 4){
-      const a = V.answer;
-      const tip = VS.type!==a.type ? "typ hasha (policzcie znaki)" : VS.dict!==a.dict ? "słownik (zobaczcie zdjęcie na ścianie)" : VS.mask!==a.mask ? "maskę (zobaczcie kalendarz)" : "wielkość liter (zobaczcie karteczkę)";
+      const hk = V.hints;
+      const tip = await sha("type|" + VS.type) !== hk.type ? "typ hasha (policzcie znaki)"
+        : await sha("dict|" + VS.dict) !== hk.dict ? "słownik (zobaczcie zdjęcie na ścianie)"
+        : await sha("mask|" + VS.mask) !== hk.mask ? "maskę (zobaczcie kalendarz)" : "wielkość liter (zobaczcie karteczkę)";
       line("Druga podpowiedź: coś jest nie tak z ustawieniem: " + tip + ".", "hint");
     }
   }
-  function success(total, t){
+  function success(total, t, pin, tries){
     VS.done = true; drawAll();
-    line("✓ Hasło administratora odzyskane po " + fmtNum(total > 806 ? 807 : total) + " próbach.", "good");
+    line("✓ Hasło administratora odzyskane po " + fmtNum(tries) + " próbach.", "good");
     const S2 = 7776**4;   // fraza z 4 losowych słów (lista 7776 słów)
     const bc = V.types.find(x=>x.id==="bcrypt");
     result.replaceChildren(h("div",{class:"card",style:"text-align:center"},
         h("span",{class:"eyebrow",style:"color:var(--ok)"},"Skarbiec otwarty"),
-        h("div",{class:"codebox"},"RUDOLF06"),
+        h("div",{class:"codebox"}, pin),
         h("p",null,"To wasz PIN. Wpiszcie go w terminalu: Laboratoria → 2 · Złam skarbiec.")),
       h("section",{class:"card"}, h("h3",null,"Dlaczego poszło tak szybko?"),
         h("div",{class:"tablewrap"}, h("table",null,
           h("thead",null,h("tr",null,h("th",null,"Hasło"),h("th",{class:"num"},"MD5"),h("th",{class:"num"},"bcrypt"))),
           h("tbody",null,
-            h("tr",null,h("td",null,"RUDOLF06 (imię + dzień)"),h("td",{class:"num mono"},fmtTime(900/t.speed)),h("td",{class:"num mono"},fmtTime(900/bc.speed))),
+            h("tr",null,h("td",null, pin + " (imię + dzień)"),h("td",{class:"num mono"},fmtTime(total/t.speed)),h("td",{class:"num mono"},fmtTime(total/bc.speed))),
             h("tr",null,h("td",null,"4 losowe słowa, np. sanki-zorza-piernik-kominek"),h("td",{class:"num mono"},fmtTime(S2/t.speed)),h("td",{class:"num mono"},fmtTime(S2/bc.speed)))))),
         h("p",{class:"muted small"},"Słabe hasło pada nawet przy wolnym bcrypt. Długa fraza z losowych słów wytrzymuje tygodnie przy MD5 i tysiące lat przy bcrypt."),
         h("button",{class:"btn ghost",onclick:()=>{ Object.assign(VS,{type:null,dict:null,mask:null,kase:null,running:false,fails:0,t0:Date.now(),done:false}); vaultRoot=null; renderVault(); }},"Nowa drużyna (reset)")));

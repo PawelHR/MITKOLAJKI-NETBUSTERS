@@ -71,7 +71,7 @@ Skąd się biorą PIN-y:
 | 4 · Biuro Grincha | taki sam w regułach i w ustawieniach czytnika `#drzwi` na telefonie przy drzwiach |
 | Szyfr elfów (zadanie poboczne) | słowo ukryte w szyfrze |
 
-Żeby zmienić PIN: popraw go w `firestore.local.rules` (wielkimi literami, bez spacji) i uruchom `firebase deploy` jeszcze raz. PIN-y stacji 2 i 3 są też w `public/index.html` (symulator i śledztwo), a PIN stacji 4 w ustawieniach czytnika `#drzwi`.
+Żeby zmienić PIN: popraw go w `firestore.local.rules` (wielkimi literami, bez spacji) i uruchom `firebase deploy` jeszcze raz. PIN stacji 2 oraz kod wejścia i fragmenty stacji 3 są dodatkowo zaszyfrowane w `public/index.html`: przy zmianie wygeneruj nowe szyfrogramy poleceniem `node narzedzia/szyfruj-odpowiedzi.js` i wklej je do pliku, a PIN stacji 4 w ustawieniach czytnika `#drzwi`.
 
 ## Punkty
 

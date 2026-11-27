@@ -111,10 +111,11 @@ Jedna strona (`public/index.html`) z sześcioma widokami:
 - **Oszczędzanie limitu darmowego planu (50 tys. odczytów dziennie):** na żywo wszystkie drużyny śledzą tylko `#ekran` i `#admin`. Ekran zalogowany jako admin co ok. 15 s zapisuje streszczenie rankingu w jednym dokumencie `config/ranking`. Telefony czytają ten dokument przy wejściu i na przycisk „Odśwież” (co najwyżej raz na 30 s), więc odświeżenie to 1 odczyt zamiast kilkudziesięciu.
 - Postęp zapisuje się **transakcją**, więc zły PIN nie mignie na chwilę jako „odblokowany”.
 
-> 🔑 Repozytorium jest publiczne, więc `firestore.rules` ma **zaślepki zamiast PIN-ów**. Prawdziwe reguły leżą lokalnie w `firestore.local.rules` (to on jest wdrażany), a ściąga dla prowadzących w `SEKRETY.md`. Oba pliki są w `.gitignore`. Odpowiedzi do symulatora i śledztwa są w kodzie strony, więc i tak może je zobaczyć każdy, kto zajrzy w źródło.
+> 🔑 Repozytorium jest publiczne, więc `firestore.rules` ma **zaślepki zamiast PIN-ów**. Prawdziwe reguły leżą lokalnie w `firestore.local.rules` (to on jest wdrażany), a ściąga dla prowadzących w `SEKRETY.md`. Oba pliki są w `.gitignore`. PIN stacji 2, kod wejścia i fragmenty stacji 3 są w kodzie strony **zaszyfrowane** (AES-GCM, klucz z poprawnego rozwiązania zadania), więc w źródle widać tylko szyfrogram. Nowe szyfrogramy generuje `narzedzia/szyfruj-odpowiedzi.js`.
 
 **Celowe uproszczenia (dobry temat na stoisko koła):**
 - Zadania poboczne 1, 2, 4 i 5 sprawdza telefon, nie serwer. Uparta osoba z DevTools może je zaliczyć bez grania. Za to stacji nie zaliczy.
+- Szyfrowanie w przeglądarce chroni przed podejrzeniem odpowiedzi, ale nie przed uporem: kombinacji w symulatorze jest tylko 192, więc da się je sprawdzić skryptem. Kto to zrobi, zasłużył na nagrodę „Łowca bugów”.
 - Kod drużyny jest jak zaproszenie, nie jak hasło: kto go zna, ten może dołączyć.
 
 ## Struktura repozytorium
@@ -135,6 +136,8 @@ operacja-biegun/
 ├── STACJE.md             # scenariusze 4 stacji dla prowadzących
 ├── final/
 │   └── kahoot-final.xlsx # 18 pytań na finał do importu w Kahoot + omówienie dla prowadzącego
+├── narzedzia/
+│   └── szyfruj-odpowiedzi.js # generuje zaszyfrowane odpowiedzi stacji 2 i 3
 ├── INSTRUKCJA.md         # konfiguracja Firebase krok po kroku
 └── README.md
 ```
