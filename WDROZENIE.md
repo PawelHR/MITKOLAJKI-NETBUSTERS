@@ -1,5 +1,7 @@
 # Wdrożenie Operacji Biegun — 28 listopada 2026 (czas polski)
 
+**Aktualny tryb po uproszczeniu:** gracze sami tworzą drużyny i dołączają 6-znakowym kodem, bez akceptacji prowadzącego. Poniższy pierwszy etap wdrożenia jest zapisem historycznym; późniejszą aktualizację opisano na końcu dokumentu.
+
 Wykonane na wyraźne polecenie właściciela projektu.
 
 - **Produkcja:** https://operacja-biegun.web.app
@@ -38,3 +40,15 @@ Kopia zawiera dane prywatne i dawne kody. **Nie jest i nie powinna być publikow
 - Wykonać fizyczną próbę NFC/Flippera, telefonów, zasięgu i trybu offline zgodnie z [CHECKLISTA.md](CHECKLISTA.md).
 
 Nie cofaj reguł do poprzedniej wersji przy ewentualnym rollbacku strony. Kopia pozwala na świadome odzyskanie danych przez operatora, ale nie jest zgodą na automatyczne nadpisywanie nowych postępów. Instrukcje narzędzi: [INSTRUKCJA.md](INSTRUKCJA.md).
+
+## Aktualizacja — proste kody dołączania
+
+Na kolejne polecenie właściciela usunięto z interfejsu długie zaproszenia i oczekiwanie na prowadzącego. Gracz sam zakłada drużynę; koledzy wpisują jej 6-znakowy kod i od razu uzyskują członkostwo. Kod jest prywatnym polem drużyny oraz niewylistowywalnym indeksem `joinCodes`; publiczny ID i ranking go nie ujawniają.
+
+Przed zmianami powstała **druga prywatna kopia**: 23 dokumenty bazy, 11 kont Auth, 6 plików ówczesnego Hostingu, reguły i repozytorium. Manifest zweryfikowano; katalog poza repozytorium ma ACL ograniczony do operatora i SYSTEM. Obie kopie zachowano, żadna nie jest na GitHubie.
+
+Po testach reguł wykonano atomowe 14 zapisów: 7 kodów i 7 uzupełnień istniejących drużyn. Świadomie otwarto dołączanie do tych drużyn. **Wyniki, dotychczasowe członkostwa i blokady cofniętych UID pozostały bez zmian**, co sprawdzono po zapisie. Etap nadal jest Rejestracją. Twórca lub organizator może zamknąć konkretną drużynę albo zmienić kod. Dołączanie nie daje prawa do nadawania oficjalnych punktów.
+
+Weryfikacja: 18/18 testów aplikacji/modelu oraz 24/24 reguł, w tym współbieżne dołączanie, błędny/stary kod, zamknięcie drużyny i etapu oraz blokady. Próba dwóch anonimowych sesji w przeglądarce potwierdziła samodzielne utworzenie/dołączenie i zachowanie kodu po odświeżeniu. Nie utworzono testowej drużyny na produkcji.
+
+Kto pozna kod, może dołączyć w czasie otwartej rejestracji — to oczekiwany, prosty model uczestnictwa, nie silne uwierzytelnienie hasłem. Nie pokazuj kodów na rzutniku. Główne punkty i zatwierdzanie stacji nadal należą do prowadzących.

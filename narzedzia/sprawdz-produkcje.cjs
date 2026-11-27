@@ -20,7 +20,7 @@ async function main(){
     for(const value of Object.values(d.fields.unlocked.mapValue.fields||{}))if(value.booleanValue!==true||Object.keys(value).length!==1)throw new Error('PUBLIC_SECRET_OR_STATUS_FAILED');
   }
   const id=documents[0]?.name.split('/').pop()||'ABCD';
-  for(const resource of [base+'/teams',base+'/teams/'+id,base+'/teams/'+id+'/members',base+'/invites',base+'/invites/'+'0'.repeat(32),base+'/config/ranking']){
+  for(const resource of [base+'/teams',base+'/teams/'+id,base+'/teams/'+id+'/members',base+'/joinCodes',base+'/joinCodes/AAAAAA',base+'/invites',base+'/invites/'+'0'.repeat(32),base+'/config/ranking']){
     if((await get(resource)).status!==403)throw new Error('PRIVATE_ACCESS_NOT_DENIED');
   }
   const configResponse=await get(base+'/config/main');if(configResponse.status!==200)throw new Error('PUBLIC_CONFIG_UNAVAILABLE');

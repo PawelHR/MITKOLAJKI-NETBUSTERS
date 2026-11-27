@@ -33,7 +33,8 @@ function migrateTeam(document){
   if(typeof old.createdBy!=='string'||!old.createdBy)throw new Error('MISSING_TEAM_CREATOR');
   const bonus=old.bonus??0;if(!Number.isInteger(bonus)||bonus<0||bonus>100)throw new Error('BONUS_REQUIRES_MANUAL_REVIEW');
   const next={name:old.name,school:old.school,createdBy:old.createdBy,createdAt:old.createdAt||new Date(document.createTime),
-    unlocked:normalize(old.unlocked,STATIONS,true),side:normalize(old.side,SIDE,true),soc:normalize(old.soc,SOC),registrationOpen:false,bonus};
+    unlocked:normalize(old.unlocked,STATIONS,true),side:normalize(old.side,SIDE,true),soc:normalize(old.soc,SOC),registrationOpen:false,bonus,...(old.joinCode?{joinCode:old.joinCode}:{})};
+  if(old.joinCode&&!/^[A-Z2-9]{6}$/.test(old.joinCode))throw new Error('INVALID_JOIN_CODE');
   const fields=encodeFields(next);
   if(document.fields?.createdAt?.timestampValue)fields.createdAt=document.fields.createdAt;
   return {id,next,fields,publicFields:encodeFields({name:next.name,school:next.school,unlocked:next.unlocked,bonus:next.bonus})};

@@ -4,17 +4,18 @@
 - [ ] Kopia danych przechowywana prywatnie; migracja schematu przećwiczona na kopii.
 - [ ] Dawne PIN-y unieważnione; nie są potrzebne do gry. Wydruki i historia repozytorium traktowane jako publiczne.
 - [ ] Wdrożony `firestore.rules`, lokalna kopia identyczna. Publiczny ranking ma tylko dozwolone pola.
-- [ ] Próba odczytu cudzej drużyny i listy zaproszeń kończy się odmową.
+- [ ] Próba odczytu cudzej drużyny oraz listy kodów i starych zaproszeń kończy się odmową.
 - [ ] Konta 8 prowadzących i koordynatora; UID w `admins`, oddzielne profile/urządzenia, brak kont demonstracyjnych w produkcji.
 - [ ] Zwykłe konto e-mail nie dostaje praw organizatora. Rejestracja anonimowa działa.
 
 ## Rejestracja i etapy
 - [ ] Nazwy szkół, sale, harmonogram i wiadomość centrali ustawione w panelu.
 - [ ] Właściwa **data**, strefa i deadline `mainEndsAt`; sam zegar nie wystarczy.
-- [ ] Założyciel tworzy drużynę, drugi telefon składa prośbę sekretnym zaproszeniem, prowadzący zatwierdza.
-- [ ] Sam publiczny ID nie pozwala dołączyć; sekret nie jest na rzutniku ani w URL.
-- [ ] Zamknięta drużyna i zamknięta Rejestracja blokują nowe prośby/akceptacje.
-- [ ] Cofnięty członek nie wraca automatycznie, także po odświeżeniu i z dawnym zaproszeniem.
+- [ ] Gracz sam tworzy drużynę, drugi telefon wpisuje 6-znakowy kod i od razu dołącza, bez akceptacji prowadzącego.
+- [ ] Sam publiczny ID nie pozwala dołączyć; kod nie jest w rankingu, na rzutniku ani w URL.
+- [ ] Kod jest widoczny członkom po odświeżeniu; po zmianie stary kod przestaje działać.
+- [ ] Zamknięta drużyna i zamknięta Rejestracja blokują samodzielne dołączanie, także przy zapamiętanym kodzie.
+- [ ] Cofnięty członek nie wraca automatycznie ani samym poprawnym kodem; blokada UID działa.
 - [ ] Każdy etap przetestowany; Przerwa, Finał, Zakończenie i przekroczony deadline blokują zapisy uczestników.
 - [ ] Tryb awaryjny wymaga organizatora i przyczyny, zwykłe zaliczenie poza grą jest odrzucane.
 

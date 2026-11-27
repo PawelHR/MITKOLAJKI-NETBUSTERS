@@ -8,6 +8,16 @@ service cloud.firestore {
     function member(t) { return signed() && exists(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid)); }
     function config() { return get(/databases/$(database)/documents/config/main).data; }
     function registration() { return config().phase == 'registration'; }
+    function linkedCode(t,d) {
+      return d.joinCode.matches('^[A-Z2-9]{6}$')
+        && getAfter(/databases/$(database)/documents/joinCodes/$(d.joinCode)).data.teamId == t;
+    }
+    function joinByCode(t,uid,d) {
+      return request.auth.uid == uid && registration() && d.get('joinCode','').matches('^[A-Z2-9]{6}$') && team(t).registrationOpen
+        && !exists(/databases/$(database)/documents/teams/$(t)/revoked/$(uid))
+        && team(t).get('joinCode','') == d.joinCode
+        && get(/databases/$(database)/documents/joinCodes/$(d.joinCode)).data.teamId == t;
+    }
     function playing() { return config().phase == 'main' && request.time < config().mainEndsAt; }
     function monotone(old, next, keys) {
       return next is map && next.keys().hasOnly(keys) && next.keys().hasAll(old.keys())
@@ -15,7 +25,8 @@ service cloud.firestore {
     }
     function validTeam(d) {
       return d.keys().hasAll(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus'])
-        && d.keys().hasOnly(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus'])
+        && d.keys().hasOnly(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus','joinCode'])
+        && (!('joinCode' in d) || (d.joinCode is string && d.joinCode.matches('^[A-Z2-9]{6}$')))
         && d.name is string && d.name.size() >= 2 && d.name.size() <= 28
         && d.school in [0,1,2] && d.registrationOpen is bool
         && d.bonus is int && d.bonus >= 0 && d.bonus <= 100
@@ -53,6 +64,19 @@ service cloud.firestore {
       allow delete: if admin();
       allow update: if false;
     }
+    // Krótki kod jest biletem wstępu, nie publicznym ID. Brak listowania.
+    match /joinCodes/{code} {
+      allow get: if admin() || (signed() && team(resource.data.teamId).get('joinCode','') == code
+        && (member(resource.data.teamId) || (registration() && team(resource.data.teamId).registrationOpen)));
+      allow list: if false;
+      allow create: if signed() && registration() && code.matches('^[A-Z2-9]{6}$')
+        && request.resource.data.keys().hasOnly(['teamId','createdAt'])
+        && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.joinCode == code
+        && (admin() || (getAfter(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.createdBy == request.auth.uid
+          && (member(request.resource.data.teamId) || !exists(/databases/$(database)/documents/teams/$(request.resource.data.teamId)))));
+      allow update, delete: if false;
+    }
     match /leaderboard/{t} {
       allow read: if true;
       allow create, update: if signed()
@@ -76,10 +100,12 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time && request.resource.data.registrationOpen == true
         && request.resource.data.unlocked == {} && request.resource.data.side == {}
         && request.resource.data.soc == {} && request.resource.data.bonus == 0
+        && linkedCode(t,request.resource.data)
         && existsAfter(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid))
         && mirrored(t,request.resource.data);
       allow update: if validTeam(request.resource.data) && (
         (admin() && mirrored(t,request.resource.data)
+          && (request.resource.data.get('joinCode','') == resource.data.get('joinCode','') || linkedCode(t,request.resource.data))
           && monotone(resource.data.unlocked,request.resource.data.unlocked,['s1','s2','s3','s4'])
           && award(t,'s1',resource.data.unlocked,request.resource.data.unlocked)
           && award(t,'s2',resource.data.unlocked,request.resource.data.unlocked)
@@ -97,15 +123,17 @@ service cloud.firestore {
           && (!request.resource.data.soc.get('resp',false) || resource.data.soc.get('resp',false)
             || (resource.data.soc.get('mail',false) && resource.data.soc.get('idor',false) && resource.data.soc.get('logs',false) && resource.data.soc.get('triage',false))))
         || (signed() && resource.data.createdBy == request.auth.uid && registration()
-          && member(t) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registrationOpen']))
+          && member(t) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registrationOpen','joinCode'])
+          && (request.resource.data.get('joinCode','') == resource.data.get('joinCode','') || linkedCode(t,request.resource.data)))
       );
       allow delete: if admin() && existsAfter(/databases/$(database)/documents/retiredTeams/$(t));
       match /members/{uid} {
         allow read: if admin() || member(t);
-        allow create: if signed() && request.resource.data.keys().hasOnly(['nick','joinedAt'])
+        allow create: if signed() && request.resource.data.keys().hasOnly(['nick','joinedAt','joinCode'])
           && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
           && request.resource.data.joinedAt == request.time
-          && ((admin() && registration() && team(t).registrationOpen
+          && (joinByCode(t,uid,request.resource.data)
+          || (admin() && registration() && team(t).registrationOpen
             && !exists(/databases/$(database)/documents/teams/$(t)/revoked/$(uid))
             && exists(/databases/$(database)/documents/teams/$(t)/requests/$(uid)))
           || (request.auth.uid == uid && !exists(/databases/$(database)/documents/teams/$(t))

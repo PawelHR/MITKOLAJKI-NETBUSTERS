@@ -65,17 +65,22 @@ config/main                         publiczne etapy, deadline, sale, finał
 leaderboard/{publicznyID}            publiczna projekcja: nazwa, szkoła, statusy true, bonus, aktualizacja
 teams/{publicznyID}                  prywatny stan drużyny i wspólne dowody SOC
 teams/{ID}/members/{uid}             członkowie: czytają drużyna i organizatorzy
-teams/{ID}/requests/{uid}            prośba z zaproszeniem: tylko autor i organizatorzy
+teams/{ID}/requests/{uid}            starsze prośby: kompatybilność z poprzednią wersją
 teams/{ID}/revoked/{uid}             cofnięte członkostwo: tylko organizatorzy
 teams/{ID}/awards/{stacja}           jednokrotny audyt zaliczenia
-invites/{losowy128bitToken}          niewylistowywalne zaproszenia z terminem ważności
+joinCodes/{kod6znakowy}              odczyt konkretnego kodu po logowaniu; bez listowania
+invites/{losowy128bitToken}          starsze zaproszenia (nieużywane przez nowy interfejs)
 retiredTeams/{ID}                    wycofane ID: zakaz ponownego użycia
 admins/{uid}                        lista organizatorów, dodawana w konsoli
 ```
 
-Założyciel tworzy drużynę i pierwsze członkostwo w jednym batchu. Publiczny czteroznakowy ID **nie jest zaproszeniem**. Pełne `ID.token` przekazuje się prywatnie. Sekret nie trafia do rankingu, adresu URL ani localStorage. Na telefonie założyciela jest widoczny tylko do przeładowania. Nowe zaproszenie wydaje organizator. Użytkownik z zaproszeniem może złożyć prośbę, ale **nie może sam utworzyć członkostwa**. Prowadzący zatwierdza konkretny telefon podczas rejestracji.
+**Proste dołączanie:** gracz sam zakłada drużynę i dostaje **6-znakowy kod**. Koledzy wpisują kod i pseudonim — od razu dołączają, **bez prowadzącego, długiego tokenu i oczekiwania na akceptację**. Kod pozostaje widoczny członkom drużyny także po odświeżeniu. Drużynę, pierwszego członka i indeks kodu tworzy jeden atomowy batch.
 
-Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga świadomego usunięcia blokady, nowej prośby i zatwierdzenia.
+Publiczny czteroznakowy ID służy prowadzącemu i rankingowi, **nie pozwala dołączyć**. Kod do dołączania jest osobny i nie trafia do rankingu ani URL. Nie można pobrać listy kodów; reguły sprawdzają podany kod, etap i stan drużyny przed dodaniem konkretnego UID. Twórca lub organizator może zmienić kod; stary przestaje działać bez wyrzucania obecnych członków.
+
+Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga jej świadomego usunięcia przez organizatora, a następnie ponownego wpisania aktualnego kodu.
+
+**Kompromis prostoty:** kto pozna kod, może dołączyć do otwartej drużyny w czasie rejestracji. Kod nie jest silnym hasłem (ok. 30 bitów losowości) i nie ma serwerowego limitera zgadywania na Spark. Udostępniajcie go tylko kolegom; w razie wycieku zmieńcie kod lub zamknijcie dołączanie. Oficjalne punkty nadal zatwierdza prowadzący — znajomość kodu nie daje praw administratora ani możliwości wpisania wyniku.
 
 Zaliczenie stacji zapisuje organizator atomowo ze statusem `true`, publiczną projekcją i niezmienialnym audytem. Powtórka nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
 

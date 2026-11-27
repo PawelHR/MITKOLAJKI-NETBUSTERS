@@ -72,3 +72,9 @@ test('odpowiedź skarbca jest spójnym publicznym rekwizytem, nie sekretem',asyn
   assert.equal(demo,'RENIFER06');assert.equal(require('node:crypto').createHash('md5').update(demo).digest('hex'),h.run('V.hash'));
   assert.ok(h.run('V.dicts.find(x=>x.id==="reindeer").words.includes("RENIFER")'));
 });
+test('interfejs dołączania: jeden krótki kod, brak zaproszenia i ekranu akceptacji',()=>{
+  const h=harness();h.run('S.config={phase:"registration"};renderJoin()');
+  assert.ok(h.app.textContent.includes('Kod drużyny (6 znaków)'));assert.ok(h.app.textContent.includes('od razu dołączasz'));
+  assert.ok(!h.app.textContent.includes('Oczekiwanie na prowadzącego'));assert.ok(!h.app.textContent.includes('Sekretne zaproszenie'));
+  assert.equal(h.elements().find(e=>e.attrs?.id==='j-code').attrs.maxlength,'12');
+});

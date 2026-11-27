@@ -5,7 +5,7 @@ const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/
 const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,runTransaction,serverTimestamp,Timestamp}=require('firebase/firestore');
 let env;
 const token='a'.repeat(32), id='ABCD';
-const team=(uid='alice')=>({name:'Elfy',school:0,createdBy:uid,createdAt:Timestamp.now(),unlocked:{},side:{},soc:{open:true},registrationOpen:true,bonus:0});
+const team=(uid='alice')=>({name:'Elfy',school:0,createdBy:uid,createdAt:Timestamp.now(),unlocked:{},side:{},soc:{open:true},registrationOpen:true,bonus:0,joinCode:'K7MX4P'});
 const pub=t=>({name:t.name,school:t.school,unlocked:t.unlocked,bonus:t.bonus,updatedAt:serverTimestamp()});
 const db=uid=>uid?env.authenticatedContext(uid).firestore():env.unauthenticatedContext().firestore();
 async function phase(value,expired=false){await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'config/main'),{phase:value,mainEndsAt:Timestamp.fromMillis(Date.now()+(expired?-60000:3600000))}));}
@@ -18,6 +18,7 @@ beforeEach(async()=>{
     await Promise.all([setDoc(doc(d,'admins/org'),{role:'organizer'}),setDoc(doc(d,'teams',id),t),setDoc(doc(d,'leaderboard',id),pub(t)),
       setDoc(doc(d,'teams',id,'members','alice'),{nick:'A',joinedAt:Timestamp.now()}),
       setDoc(doc(d,'teams',id,'members','bob'),{nick:'B',joinedAt:Timestamp.now()}),
+      setDoc(doc(d,'joinCodes/K7MX4P'),{teamId:id,createdAt:Timestamp.now()}),
       setDoc(doc(d,'invites',token),{teamId:id,expiresAt:Timestamp.fromMillis(Date.now()+3600000)})]);
   });
   await phase('main');
@@ -39,7 +40,7 @@ test('zaproszeń nie da się odczytać ani wylistować; brak PIN-ów w publiczny
   await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{'unlocked.s1':'OLD-DEMO'}));
   await assertFails(setDoc(doc(db('org'),'leaderboard',id),pub({...team(),unlocked:{s1:'OLD-DEMO'}})));
 });
-test('publiczny ID i poprawny sekret nie nadają członkostwa; wymagana akceptacja',async()=>{
+test('starsze zaproszenie nie omija akceptacji; nowy krótki kod ma osobną ścieżkę',async()=>{
   await phase('registration');
   const d=db('eve');
   await assertFails(setDoc(doc(d,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp()}));
@@ -50,11 +51,11 @@ test('publiczny ID i poprawny sekret nie nadają członkostwa; wymagana akceptac
   await assertSucceeds(b.commit());
   await assertSucceeds(getDoc(doc(d,'teams',id)));
 });
-test('tworzenie drużyny atomowo z twórcą, zaproszeniem i publiczną projekcją',async()=>{
-  await phase('registration'); const d=db('new'),t={...team('new'),createdAt:serverTimestamp(),soc:{}};
+test('tworzenie drużyny atomowo z twórcą, krótkim kodem i publiczną projekcją',async()=>{
+  await phase('registration'); const d=db('new'),t={...team('new'),createdAt:serverTimestamp(),soc:{},joinCode:'NEWK23'};
   await assertFails(setDoc(doc(d,'teams','NEW2'),t));
   const b=writeBatch(d); b.set(doc(d,'teams','NEW2'),t); b.set(doc(d,'teams','NEW2','members','new'),{nick:'N',joinedAt:serverTimestamp()});
-  b.set(doc(d,'leaderboard','NEW2'),pub(t));b.set(doc(d,'invites','c'.repeat(32)),{teamId:'NEW2',expiresAt:Timestamp.fromMillis(Date.now()+3600000)});
+  b.set(doc(d,'leaderboard','NEW2'),pub(t));b.set(doc(d,'joinCodes/NEWK23'),{teamId:'NEW2',createdAt:serverTimestamp()});
   await assertSucceeds(b.commit());
 });
 test('zamknięta rejestracja i cofnięte członkostwo',async()=>{
@@ -145,4 +146,52 @@ test('wycofany ID nie może odziedziczyć starych członków po usunięciu',asyn
   const n=db('new'),t={...team('new'),createdAt:serverTimestamp(),soc:{}},c=writeBatch(n);
   c.set(doc(n,'teams',id),t);c.set(doc(n,'teams',id,'members','new'),{nick:'N',joinedAt:serverTimestamp()});c.set(doc(n,'leaderboard',id),pub(t));
   await assertFails(c.commit());
+});
+test('krótki kod: natychmiastowe samodzielne dołączenie bez prowadzącego',async()=>{
+  await phase('registration');const d=db('eve');
+  const lookup=await assertSucceeds(getDoc(doc(d,'joinCodes/K7MX4P')));assert.equal(lookup.data().teamId,id);
+  await assertFails(getDoc(doc(d,'teams',id)));
+  await assertSucceeds(setDoc(doc(d,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp(),joinCode:'K7MX4P'}));
+  await assertSucceeds(getDoc(doc(d,'teams',id)));
+  assert.deepEqual((await getDoc(doc(d,'leaderboard',id))).data().unlocked,{});
+});
+test('kodów nie da się listować, pobrać bez logowania ani dopisać do publicznego rankingu',async()=>{
+  await phase('registration');
+  for(const who of [null,'eve','org'])await assertFails(getDocs(collection(db(who),'joinCodes')));
+  await assertFails(getDoc(doc(db(null),'joinCodes/K7MX4P')));
+  await assertFails(setDoc(doc(db('org'),'leaderboard',id),{...pub(team()),joinCode:'K7MX4P'}));
+});
+test('publiczny ID i nieprawidłowy kod nie nadają członkostwa ani nie pozwalają podłączyć kogoś innego',async()=>{
+  await phase('registration');const d=db('eve');
+  for(const code of [id,'WRNG23'])await assertFails(setDoc(doc(d,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp(),joinCode:code}));
+  await assertFails(setDoc(doc(d,'teams',id,'members','somebody'),{nick:'E',joinedAt:serverTimestamp(),joinCode:'K7MX4P'}));
+});
+test('zamknięta drużyna, etap i blokada UID obowiązują także przy krótkim kodzie',async()=>{
+  const d=db('eve'),join=()=>setDoc(doc(d,'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp(),joinCode:'K7MX4P'});
+  for(const p of ['main','break','final','ended']){await phase(p);await assertFails(join());}
+  await phase('registration');await updateDoc(doc(db('alice'),'teams',id),{registrationOpen:false});
+  await assertFails(getDoc(doc(d,'joinCodes/K7MX4P')));await assertFails(join());
+  await updateDoc(doc(db('alice'),'teams',id),{registrationOpen:true});
+  await env.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),'teams',id,'revoked','eve'),{at:Timestamp.now()}));
+  await assertFails(join());
+});
+test('twórca może zmienić kod; stary kod przestaje działać bez usuwania członkostw',async()=>{
+  await phase('registration');const d=db('alice'),b=writeBatch(d);
+  b.update(doc(d,'teams',id),{joinCode:'NEXT23'});b.set(doc(d,'joinCodes/NEXT23'),{teamId:id,createdAt:serverTimestamp()});await assertSucceeds(b.commit());
+  await assertFails(getDoc(doc(db('eve'),'joinCodes/K7MX4P')));
+  await assertFails(setDoc(doc(db('eve'),'teams',id,'members','eve'),{nick:'E',joinedAt:serverTimestamp(),joinCode:'K7MX4P'}));
+  await assertSucceeds(getDoc(doc(db('eve'),'joinCodes/NEXT23')));await assertSucceeds(getDoc(doc(d,'teams',id)));
+  await assertFails(updateDoc(doc(db('bob'),'teams',id),{joinCode:'BADD23'}));
+});
+test('dwa telefony mogą dołączyć równocześnie, nie nadpisując drużyny ani innych członków',async()=>{
+  await phase('registration');
+  await Promise.all(['eve','zoe'].map(uid=>{const d=db(uid);return setDoc(doc(d,'teams',id,'members',uid),{nick:uid,joinedAt:serverTimestamp(),joinCode:'K7MX4P'});}));
+  const d=db('alice');assert.equal((await getDocs(collection(d,'teams',id,'members'))).size,4);
+  const t=(await getDoc(doc(d,'teams',id))).data();assert.deepEqual(t.unlocked,{});assert.deepEqual(t.soc,{open:true});
+});
+test('pełny stan misji nadal pozwala zapisać ostatnie zadanie i bonus',async()=>{
+  const full={...team(),unlocked:{s1:true,s2:true,s3:true,s4:true},side:Object.fromEntries(Array.from({length:8},(_,i)=>['p'+(i+1),true])),soc:{open:true,mail:true,idor:true,logs:true,triage:true,resp:true}};
+  await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();await setDoc(doc(d,'teams',id),full);await setDoc(doc(d,'leaderboard',id),pub(full));});
+  await assertSucceeds(updateDoc(doc(db('alice'),'teams',id),{'side.p9':true}));
+  await phase('final');const d=db('org'),b=writeBatch(d);b.update(doc(d,'teams',id),{bonus:100});b.set(doc(d,'leaderboard',id),pub({...full,bonus:100}));await assertSucceeds(b.commit());
 });
