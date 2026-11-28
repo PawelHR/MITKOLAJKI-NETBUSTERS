@@ -56,6 +56,6 @@
 - [ ] Cztery główne stacje wystarczają bez zadań opcjonalnych. Bonus tylko w etapie Finał.
 - [ ] Brak sieci nie pokazuje fałszywego zaliczenia; ponowienie działa po odzyskaniu połączenia.
 - [ ] Mały telefon, klawiatura, widoczny fokus, ograniczony ruch i przyciski zamiast przeciągania sprawdzone.
-- [ ] Plakaty/ulotki wydrukowane, QR przetestowane; teleturniej opcjonalnie zaimportowany.
+- [ ] Plakaty/ulotki wydrukowane, QR przetestowane; dyplomy uczestnictwa (`plakaty/dyplom.pdf`) wydrukowane z zapasem i podpisane; teleturniej opcjonalnie zaimportowany.
 - [ ] `npm test` i `npm run test:rules` zakończone powodzeniem na finalnej wersji.
 - [ ] Na koniec zamknięte wydarzenie, pobrany CSV, ustalona retencja danych i dostępów.

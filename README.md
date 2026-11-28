@@ -140,6 +140,6 @@ Konto testowe jest wyłącznie w `tests/seed.cjs`; nigdy nie używaj go na produ
 
 Szczegóły konfiguracji, kontrolowanej migracji bez kasowania drużyn i kolejności wdrażania: **[INSTRUKCJA.md](INSTRUKCJA.md)**. Jedynym źródłem wdrażanych reguł jest `firestore.rules`; `firestore.local.rules` zawiera ten sam bezsekretowy zestaw dla zgodności lokalnej, nie inne PIN-y. Narzędzia nie wdrażają nic samoczynnie. Wdrożenie na wyraźne polecenie właściciela opisuje **[WDROZENIE.md](WDROZENIE.md)**.
 
-Materiały drukowane pozostają w `plakaty/`, teleturniej w `final/kahoot-final.xlsx`, skrypt demonstracyjny w `stacja4-badusb/`. Stary wariant portalu w `stacja1-portal/` jest archiwalny, nie należy do obecnej stacji 1.
+Materiały drukowane pozostają w `plakaty/` (plakaty, ulotki i dyplom uczestnictwa `dyplom.pdf`: A4 poziomo, imię i szkołę wpisuje się ręcznie), teleturniej w `final/kahoot-final.xlsx`, skrypt demonstracyjny w `stacja4-badusb/`. Stary wariant portalu w `stacja1-portal/` jest archiwalny, nie należy do obecnej stacji 1.
 
 **Przed wydarzeniem:** [CHECKLISTA.md](CHECKLISTA.md). Wyniki weryfikacji i ograniczenia: [TESTY.md](TESTY.md).
