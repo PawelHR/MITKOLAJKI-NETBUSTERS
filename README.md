@@ -24,20 +24,32 @@ Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami
 
 ## Jak wygląda wydarzenie
 
-Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Odwiedzają cztery stacje bez wyznaczonych tur zmian sal. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać także w trakcie gry, w przerwie i w finale. Blokuje to dopiero etap „Wydarzenie zakończone”.
-**8 prowadzących (po 2 na stację) oraz koordynator wydarzenia.** Na stacji 4 pomocnik jest jednocześnie elfem z kartą i operatorem Flippera.
+**Dwie sale po ok. 15 komputerów, szkoły przychodzą po kolei.** Każda szkoła ma swoją turę i przechodzi wszystkie cztery stacje:
 
-| Godzina | Miejsce | Co się dzieje |
+| Sala | Stacje | Na czym |
 |---|---|---|
-| 09:00–09:25 | Aula | Wprowadzenie fabularne. Drużyny skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. |
-| 09:25–11:25 | 4 sale + korytarze | Gra główna: cztery stacje bez ustalonych godzin zmiany sal. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne. |
-| 11:25–12:00 | Hol | Przerwa i stoisko koła ze sprzętem: opcjonalnie przejmowanie pilota Flipperem i otwieranie kłódek treningowych ([STACJE.md](STACJE.md#dodatkowe-pokazy-opcjonalne)). Ranking szkół i tabela hakerów na dużym ekranie (`#ekran`). |
-| 12:00–12:40 | Aula | Finał fabularny w `#final`: alarm, odliczanie i przywracanie czterech systemów. Opcjonalny teleturniej (Kahoot) daje 0–100 pkt. |
-| 12:40–13:00 | Aula | Podium szkół i drużyn, nagrody, eksport wyników do CSV. |
+| **Sala 1** | 1 · Zhakuj grę, 2 · Złam skarbiec | komputery z `/#gra` i `/#skarbiec` |
+| **Sala 2** | 3 · Fałszywy Mikołaj (SOC i SIEM), 4 · Biuro Grincha | telefony uczniów + komputery z `/#siem`; kącik z biurkiem, Flipperem i czytnikiem |
+| **Telewizor / projektor** | — | `/#ekran`: ranking szkół, najlepsze drużyny i tabela hakerów na żywo |
 
-Stacje są **dla zabawy, bez oceniania**: pomoc i podpowiedzi nie odbierają punktów, a flaga to rekwizyt ćwiczenia, nie egzamin.
+Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Terminalem drużyny jest telefon ucznia; komputery w salach służą do stron stacji. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać w każdej chwili, aż do etapu „Wydarzenie zakończone”.
+**Prowadzący:** w Sali 1 dwie osoby, w Sali 2 dwie lub trzy (SOC + kącik stacji 4, gdzie pomocnik jest elfem z kartą i operatorem Flippera) oraz koordynator.
 
-Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę**, nie sam zegar — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
+**Przykładowa tura jednej szkoły (ok. 2 godziny; godziny ustalcie z prowadzącymi):**
+
+| Czas od początku tury | Gdzie | Co się dzieje |
+|---|---|---|
+| 0:00–0:10 | Sala 1 | Wprowadzenie fabularne. Uczniowie skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. Podział drużyn na dwie grupy. |
+| 0:10–0:55 | obie sale | Grupa A: stacje 1 i 2 w Sali 1. Grupa B: stacje 3 i 4 w Sali 2 (drużyny kolejno podchodzą do kącika stacji 4, w tym czasie reszta prowadzi śledztwo SOC). |
+| 0:55–1:00 | — | Grupy zamieniają się salami. |
+| 1:00–1:45 | obie sale | Grupa A w Sali 2, grupa B w Sali 1. Między stacjami zadania poboczne na telefonach. |
+| 1:45–2:00 | przy `#ekran` | Wyniki szkoły na ekranie, dyplomy uczestnictwa, reset komputerów przed kolejną szkołą. |
+
+**Po ostatniej szkole** koordynator może uruchomić finał fabularny `#final`, wpisać opcjonalne punkty z teleturnieju (0–100, tylko w etapie Finał) i ogłosić podium szkół. Wcześniej etapu nie zmieniamy: Przerwa, Finał i Zakończenie blokują wpisywanie flag kolejnym szkołom.
+
+Stacje są **dla zabawy, bez oceniania**: pomoc i podpowiedzi nie odbierają punktów, a flaga to rekwizyt ćwiczenia, nie egzamin. Ranking szkół to średnia na drużynę, więc jest porównywalny także wtedy, gdy szkoły grają w różnych turach.
+
+Sale i komunikat centrali ustaw organizacyjnie w panelu (sale stacji 1–4: `Sala 1 | Sala 1 | Sala 2 | Sala 2`); zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę** i musi obejmować turę ostatniej szkoły — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
 
 ## Stacje
 
@@ -45,7 +57,7 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła 
 |---|---|---|---|
 | 1 | Zhakuj grę | Grają w Skok Mikołaja w izolowanej piaskownicy `#gra`. Przepaść jest za szeroka, kluczy za mało, a meta jest tylko dla admina. Siłę skoku i klucze zmieniają w F12 → Console, ramka `about:srcdoc`. Poziom 3 robią bez konsoli: Application → Local Storage → adres strony gry → `rola`: `elf` → `admin`, bez odświeżania. Uczą się, że przeglądarce nie wolno ufać: wynik i uprawnienia musi sprawdzać serwer. | Na mecie trzeciego poziomu |
 | 2 | Złam skarbiec | W symulatorze `#skarbiec` dobierają typ hasha (32 znaki hex), słownik (imiona reniferów) i maskę (słowo + dzień). Wskazówek szukają w sali: kalendarz, zdjęcie, karteczka. Po otwarciu skarbca porównują MD5, bcrypt i Argon2id i widzą, jak sól różnicuje hashe tego samego hasła. Na koniec projektują logowanie do nowego skarbca: samo hasło, SMS, aplikacja albo passkey, sprawdzone na pięciu typach ataków. | Odzyskane hasło jest flagą |
-| 3 | Fałszywy Mikołaj | Śledztwo SOC całej drużyny, ze wspólnym postępem na serwerze. Na telefonach: czerwone flagi w mailu „Mikołaja”, podgląd cudzych list przez zmianę numeru w adresie (IDOR) i moment włamania w logach. Na komputerze stacji: **North Pole SIEM** (`#siem`), czyli uproszczony prawdziwy SIEM. Przeszukują w nim ok. 480 zdarzeń zapytaniami `pole:wartość`, czytają histogram i alerty reguł korelacyjnych i oddzielają szum od ataku. Zgłoszenie incydentu (alerty, adres, konto, moment wejścia, sesja, priorytet) daje PIN, który wpisują w telefonie. Na koniec osobno układają reakcję na incydent. | W hubie śledztwa po reakcji |
+| 3 | Fałszywy Mikołaj | Śledztwo SOC całej drużyny, ze wspólnym postępem na serwerze. Na telefonach: czerwone flagi w mailu „Mikołaja”, podgląd cudzych list przez zmianę numeru w adresie (IDOR) i moment włamania w logach. Na komputerach w Sali 2: **North Pole SIEM** (`#siem`), czyli uproszczony prawdziwy SIEM. Przeszukują w nim ok. 480 zdarzeń zapytaniami `pole:wartość`, czytają histogram i alerty reguł korelacyjnych i oddzielają szum od ataku. Zgłoszenie incydentu (alerty, adres, konto, moment wejścia, sesja, priorytet) daje PIN, który wpisują w telefonie. Na koniec osobno układają reakcję na incydent. | W hubie śledztwa po reakcji |
 | 4 | Biuro Grincha | Audytują biurko elfa: hasło na karteczce, odblokowany laptop, grafik dyżurów, znaleziony pendrive. Z grafiku ustalają, czyja karta otwiera warsztat. Pod nadzorem kopiują demonstracyjną kartę koła Flipperem i otwierają kopią czytnik UID `#drzwi`. Na koniec prowadzący podłącza do własnego laptopa „podrzucony pendrive” (BadUSB), który sam pisze ostrzeżenie w Notatniku. | Czytnik po zgodnym UID |
 
 **Drużyna sama wpisuje flagę ze strony stacji w odpowiednim labie, bez akceptacji prowadzącego.** To inny kod niż 6-znakowy kod dołączenia do drużyny. Prowadzący zachowuje tryb awaryjny z uzasadnieniem. Scenariusze minuta po minucie, sprzęt i plan B: **[STACJE.md](STACJE.md)**.
@@ -61,8 +73,8 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła 
 | `/#ekran` | Publiczny ranking na żywo i tabela hakerów (punkty za zadania poboczne); logowanie nie jest potrzebne |
 | `/#final` | Centrum dowodzenia: odliczanie, cztery systemy, gotowe drużyny, podium |
 | `/#gra` | Izolowana piaskownica Skoku Mikołaja |
-| `/#skarbiec` | Laptopy stacji 2: symulator haseł, sól, projekt zabezpieczeń logowania; odpowiedź to jawny rekwizyt |
-| `/#siem` | Komputer stacji 3: North Pole SIEM — zapytania, histogram, alerty, zgłoszenie incydentu i PIN zadania 4 |
+| `/#skarbiec` | Komputery w Sali 1 (stacja 2): symulator haseł, sól, projekt zabezpieczeń logowania; odpowiedź to jawny rekwizyt |
+| `/#siem` | Komputery w Sali 2 (stacja 3): North Pole SIEM — zapytania, histogram, alerty, zgłoszenie incydentu i PIN zadania 4 |
 | `/#drzwi` | Demonstracyjny czytnik NFC i pełny ekran; konfiguracja tylko po logowaniu |
 | `/#pulapka` | Edukacyjny plakat o quishingu |
 

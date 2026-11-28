@@ -1,7 +1,8 @@
 # Scenariusze czterech stacji — dla prowadzących
 
-**Orientacyjnie 25 minut na zadanie, bez ustalonych tur zmiany sal. 2 prowadzących na stację, razem 8 i koordynator.**
-Grupa to kilka drużyn 3–4-osobowych, zwykle 10–16 osób. Zabawa bez oceniania: pomagamy dojść do końca.
+**Dwie sale po ok. 15 komputerów, szkoły po kolei.** Sala 1: stacje 1 i 2. Sala 2: stacje 3 i 4. Na telewizorze lub projektorze `/#ekran`.
+**Prowadzący:** Sala 1 — dwie osoby; Sala 2 — dwie lub trzy (SOC + kącik stacji 4); do tego koordynator. Plan tury jednej szkoły: [README](README.md#jak-wygląda-wydarzenie).
+W każdej sali jest naraz połowa drużyn szkoły, zwykle 4–5 drużyn 3–4-osobowych (ok. 15 osób). Po ok. 45 minutach grupy zamieniają się salami. Zabawa bez oceniania: pomagamy dojść do końca.
 Drużyna dostaje flagę na stronie stacji i sama wpisuje ją w odpowiednim labie. Nie czeka na akceptację prowadzącego. `#admin → Prowadź` pozostaje opcją pomocy i awaryjnego zaliczenia.
 Każda stacja daje **100 punktów oficjalnych**, maks. 400 + opcjonalny finał 0–100. Zadania poboczne to oddzielne punkty edukacyjne.
 
@@ -13,16 +14,20 @@ Każda stacja daje **100 punktów oficjalnych**, maks. 400 + opcjonalny finał 0
 4. Po zadaniu drużyna przepisuje flagę do swojego terminala: Laboratoria → numer stacji. Nie pokazuj na rzutniku kodów dołączania do drużyn ani panelu z prywatnymi danymi.
 5. Zwykłe zapisy wymagają etapu Gra główna i niewygasłego deadline. Przy awarii prowadzący używa jawnego trybu awaryjnego z uzasadnieniem. Flagi są jawnymi rekwizytami, nie sekretami kont.
 
-| Minuty | Przebieg |
-|---|---|
-| 0–3 | Fabuła, zgoda i zasady |
-| 3–18 | Zadanie, stopniowane podpowiedzi |
-| 18–22 | Dokończenie i samodzielne wpisanie flag przez drużyny |
-| 22–25 | Trzy wnioski obronne, pytania, reset stanowiska |
+Blok w jednej sali trwa ok. 45 minut i obejmuje dwie stacje:
+
+| Minuty bloku | Sala 1 (stacje 1 i 2) | Sala 2 (stacje 3 i 4) |
+|---|---|---|
+| 0–3 | Fabuła, zgoda i zasady | Fabuła, zgoda i zasady |
+| 3–22 | Stacja 1: Skok Mikołaja na komputerach | Śledztwo SOC (telefony + `/#siem` na komputerach); drużyny po kolei w kąciku stacji 4 |
+| 22–40 | Stacja 2: skarbiec na tych samych komputerach | Kolejne drużyny w kąciku stacji 4, reszta kończy SOC i reakcję |
+| 40–45 | Wpisanie flag, wnioski obronne, reset komputerów | Wpisanie flag, wnioski obronne, reset SIEM i pokazu |
+
+**Reset przed kolejną grupą i kolejną szkołą:** na komputerach w Sali 1 przyciski „Nowa drużyna (reset gry)” w `/#gra` (przywraca też `rola=elf`) i „Nowa drużyna (reset)” w `/#skarbiec`; w Sali 2 „Nowa drużyna (reset)” w `/#siem`. Komputery nie są terminalami drużyn — jeśli ktoś dołączył do drużyny na komputerze, kliknij „Opuść drużynę na tym telefonie”.
 
 ## 1 · Zhakuj grę — nie ufaj przeglądarce
 
-**Sprzęt:** 3–4 laptopy Chrome/Edge/Firefox, opcjonalny rzutnik. Bez sprzętu sieciowego.
+**Sprzęt:** komputery w Sali 1 (Chrome/Edge/Firefox), jeden lub dwa na drużynę. Bez sprzętu sieciowego.
 Otwórz `/#gra`. Trzy poziomy pozostają takie same:
 
 1. **Siła skoku:** przepaść za szeroka. F12 → Console → wybierz kontekst ramki `about:srcdoc` → `gra.silaSkoku = 25`.
@@ -41,7 +46,7 @@ Trzy poziomy podpowiedzi na każdym etapie: **trop → narzędzie → dokładna 
 
 ## 2 · Złam skarbiec — symulator haseł
 
-**Sprzęt:** 3–4 laptopy/tablety z `/#skarbiec`, kalendarz z 6 grudnia, zdjęcie renifera z podpisem „RENIFER”, wydruk skrótu z symulatora, karteczka „imię + dzień, WIELKIMI”.
+**Sprzęt:** te same komputery w Sali 1 z `/#skarbiec`, kalendarz z 6 grudnia, zdjęcie renifera z podpisem „RENIFER”, wydruk skrótu z symulatora, karteczka „imię + dzień, WIELKIMI”.
 
 **Przebieg:** 0–3 fabuła skarbca; 3–8 wyjaśnienie hasha; 8–17 poszukiwanie śladów i dobór opcji; 17–19 wynik i wpisanie flagi w labie 2; 19–23 sól i projekt zabezpieczeń skarbca; 23–25 obrona.
 
@@ -64,18 +69,18 @@ AES-GCM w kodzie nie ukrywa odpowiedzi skutecznie, bo materiał klucza pochodzi 
 
 ## 3 · Fałszywy Mikołaj — wspólny SOC
 
-**Sprzęt:** telefony uczniów (najlepiej trzy na drużynę), **komputer stacji z otwartym `/#siem`** (najlepiej z dużym ekranem lub rzutnikiem, mysz i klawiatura), telefon/laptop prowadzącego z panelem.
-**Przygotowanie:** prowadzący otwiera na komputerze stacji `https://operacja-biegun.web.app/#siem` (działa bez logowania i bez sieci po wczytaniu) i przed każdą drużyną klika **Nowa drużyna (reset)**. Drużyna wchodzi w lab 3 → **Otwórz śledztwo** → **Rozpocznij śledztwo**. Uruchamia je samodzielnie w czasie gry głównej; panel prowadzącego nie jest wymagany.
+**Sprzęt:** telefony uczniów (najlepiej trzy na drużynę), **komputery w Sali 2 z otwartym `/#siem`** — każda drużyna przy swoim komputerze, telefon/laptop prowadzącego z panelem.
+**Przygotowanie:** prowadzący otwiera na komputerach w Sali 2 `https://operacja-biegun.web.app/#siem` (działa bez logowania i bez sieci po wczytaniu) i przed każdą grupą klika **Nowa drużyna (reset)**. Drużyna wchodzi w lab 3 → **Otwórz śledztwo** → **Rozpocznij śledztwo**. Uruchamia je samodzielnie w czasie gry głównej; panel prowadzącego nie jest wymagany.
 
 0–3: „Księgowa zatwierdziła przelew 48 000 zł. Chwilę potem ktoś eksportował listę prezentów. Zbierzcie dowody i opanujcie incydent”.
-3–14: każdy telefon bierze inne z trzech pierwszych zadań. Następnie drużyna przechodzi do czwartego — North Pole SIEM na komputerze stacji. Postęp zapisuje się na serwerze pod drużyną; drugi telefon zobaczy zabezpieczony dowód w hubie. Nie ma importu starego `ob_s3` z telefonu.
+3–14: każdy telefon bierze inne z trzech pierwszych zadań. Następnie drużyna przechodzi do czwartego — North Pole SIEM na swoim komputerze w Sali 2. Postęp zapisuje się na serwerze pod drużyną; drugi telefon zobaczy zabezpieczony dowód w hubie. Nie ma importu starego `ob_s3` z telefonu.
 
 | Zadanie | Co uczniowie robią | Odpowiedź dydaktyczna |
 |---|---|---|
 | Mail | Wskazują pięć czerwonych flag | Reply-To, presja w temacie, prośba o przelew i tajemnicę, obca domena, `.pdf.exe` |
 | Portal (IDOR) | Zmieniają numer w atrapie adresu | Lista 1043 daje trop do konta 1337; portal nie sprawdza właściciela |
 | Logi | Wskazują pierwsze skuteczne wejście po zgadywaniu | 03:12:03, zewnętrzny adres, admin LOGIN OK po setkach FAIL |
-| 4 · North Pole SIEM (komputer stacji) | Przeszukują zdarzenia, oddzielają szum od ataku i zgłaszają incydent; PIN z ekranu wpisują w telefonie | Alerty 03:10, 03:12 i 03:14; adres 185.220.101.7; konto admin; wejście 03:12:03; sesja S-7731; priorytet wysoki. Skan kont test/root, zaplanowana kopia, pomyłka Ani i VPN z MFA to szum. PIN: **481927** |
+| 4 · North Pole SIEM (komputer w Sali 2) | Przeszukują zdarzenia, oddzielają szum od ataku i zgłaszają incydent; PIN z ekranu wpisują w telefonie | Alerty 03:10, 03:12 i 03:14; adres 185.220.101.7; konto admin; wejście 03:12:03; sesja S-7731; priorytet wysoki. Skan kont test/root, zaplanowana kopia, pomyłka Ani i VPN z MFA to szum. PIN: **481927** |
 
 **14–19: North Pole SIEM (zadanie 4).** Jeden lub dwóch uczniów przy komputerze, reszta podpowiada. Pierwsze zapytania: `result:FAIL`, `user:admin -result:FAIL`. Kliknięcie wartości w tabeli zawęża wyniki, a kliknięcie słupka histogramu zawęża czas. Przy alertach: „Zdarzenia” pokazuje dowody, „Do incydentu” dołącza alert. Przy alertach i w zgłoszeniu SIEM przypomina, że do raportu trzeba zaznaczyć wszystkie alerty tego ataku. Przy błędnym zgłoszeniu SIEM od razu wymienia elementy do poprawy, a przy alertach mówi, ilu brakuje albo które zaznaczone są szumem. To analiza alertów, **nie zastępuje reakcji**. Puenta: pojedyncze alerty to szum, dopiero korelacja (konto + adres + sesja + czas) pokazuje incydent.
 
@@ -90,12 +95,12 @@ To kolejność **konkretnego uproszczonego scenariusza**, nie uniwersalna proced
 Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcji przez serwer hub pokaże **flagę labu 3**. Drużyna wraca do formularza labu i wpisuje ją bez prowadzącego. Jak inne flagi, pozostaje ona publicznym rekwizytem ćwiczenia.
 
 22–25: wnioski: potwierdzaj przelewy innym kanałem; serwer sprawdza własność danych; logi są dowodami, nie śmieciami do skasowania. Opcjonalne „Fałszywe strony” mierzy czas tylko dla zabawy i nie blokuje misji.
-**Plan B:** komputer stacji nie działa → prowadzący otwiera `/#siem` na swoim laptopie lub telefonie i prowadzi drużynę przez zapytania. SIEM po wczytaniu działa bez sieci (dane są w stronie). **Offline:** wcześniej wczytane treści lub wydruki. Zaliczenie flagą dopiero online; po upływie terminu prowadzący może użyć uzasadnionego trybu awaryjnego.
+**Plan B:** komputer drużyny nie działa → drużyna siada przy innym komputerze w Sali 2 albo prowadzący otwiera `/#siem` na swoim laptopie lub telefonie i prowadzi drużynę przez zapytania. SIEM po wczytaniu działa bez sieci (dane są w stronie). **Offline:** wcześniej wczytane treści lub wydruki. Zaliczenie flagą dopiero online; po upływie terminu prowadzący może użyć uzasadnionego trybu awaryjnego.
 **Reset:** postęp pozostaje przy drużynie. Opuść ją przed udostępnieniem telefonu kolejnej grupie; nowa drużyna nie dziedziczy SOC. Wyczyszczenie danych przeglądarki zmienia anonimowe konto — unikaj tego na telefonie ucznia.
 
 ## 4 · Biuro Grincha — karta UID i fizyczny dostęp
 
-**2 osoby:** prowadzący prowadzi audyt; pomocnik pełni rolę elfa Bartka z kartą i nadzoruje Flippera. Nie potrzeba trzeciego operatora.
+**Kącik w Sali 2, 2 osoby:** prowadzący prowadzi audyt; pomocnik pełni rolę elfa Bartka z kartą i nadzoruje Flippera. Drużyny podchodzą po kolei (ok. 8–10 minut na drużynę), w tym czasie pozostałe prowadzą śledztwo SOC. Polecany jest **wariant uproszczony** z czytnikiem na telefonie prowadzącego.
 
 **Sprzęt:** Flipper Zero, własny tag/karta NDEF NTAG215 z tekstem „Karta elfa nr 77”, etui ekranujące i smycz, telefon Android Chrome NFC z ładowarką (może to być telefon prowadzącego — zob. wariant uproszczony niżej), taśma/karton na drzwi, rekwizyty biurka. Do finału: własny laptop Windows i `stacja4-badusb/operacja-biegun.txt` w Flipperze.
 
@@ -143,7 +148,7 @@ Ten sam przebieg i te same wnioski, mniej sprzętu i mniej rzeczy, które mogą 
 
 ## Dodatkowe pokazy (opcjonalne)
 
-Fajne uzupełnienie na stoisku koła w przerwie albo dla drużyn, które skończą stację przed czasem. Bez punktów i bez aplikacji — liczy się zabawa i rozmowa o obronie. Prowadzi je członek koła ze swoim sprzętem.
+Fajne uzupełnienie w Sali 2 dla drużyn czekających na kącik stacji 4, przy `#ekran` na koniec tury albo dla drużyn, które skończą przed czasem. Bez punktów i bez aplikacji — liczy się zabawa i rozmowa o obronie. Prowadzi je członek koła ze swoim sprzętem.
 
 ### Pilot Grincha — przejmowanie pilota (Sub-GHz)
 
@@ -163,17 +168,17 @@ Fajne uzupełnienie na stoisku koła w przerwie albo dla drużyn, które skończ
 
 Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta), **Przepełnienie sań** (buffer overflow: za długie imię kierowcy nadpisuje bajt uprawnień i cel lotu) Łącznie 8 zadań i 210 pkt edukacyjnych. Misja Grand Scam Auto VI jest tymczasowo ukryta i nie pojawia się w terminalu. Punkty edukacyjne pokazuje osobna tabela „Hakerzy” na rzutniku `#ekran`. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
 
-Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Koordynator uruchamia `#final`: alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
+Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Na koniec tury każdej szkoły pokazujemy jej wyniki na `#ekran` i wręczamy dyplomy uczestnictwa. **Dopiero po ostatniej szkole** koordynator uruchamia `#final` (wcześniej etap Finał zablokowałby flagi kolejnym szkołom): alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
 
 ## Zbiorcza lista wyposażenia
 
 | Stacja | Wyposażenie |
 |---|---|
-| 1 | 3–4 laptopy z przeglądarką, opcjonalny rzutnik |
-| 2 | 3–4 laptopy/tablety, kalendarz, zdjęcie, wydruk hasha, wskazówki |
-| 3 | Telefony, komputer stacji z `/#siem` (duży ekran lub rzutnik, mysz), wydruki awaryjne |
+| 1 | Komputery w Sali 1 (ok. 15) z przeglądarką |
+| 2 | Te same komputery w Sali 1, kalendarz, zdjęcie, wydruk hasha, wskazówki |
+| 3 | Telefony uczniów, komputery w Sali 2 (ok. 15) z `/#siem`, wydruki awaryjne |
 | 4 | Flipper, własny NTAG215 NDEF, etui/smycz, czapka elfa, Android NFC + ładowarka, laptop Windows, bezpieczny skrypt BadUSB, rekwizyty biurka |
 | Pokazy dodatkowe | Flipper + własny pilot 433 MHz z odbiornikiem (opcjonalnie pilot rolling code), przezroczyste kłódki treningowe, tanie kłódki koła, napinacze i wytrychy |
-| Wspólne | 8 prowadzących + koordynator, przedłużacze, dostęp do internetu, plakaty, plan sal, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
+| Wspólne | 4–5 prowadzących (Sala 1: 2, Sala 2: 2–3) + koordynator, telewizor lub projektor z `/#ekran`, dyplomy uczestnictwa, przedłużacze, dostęp do internetu, plakaty, plan sal, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
 
 Przed wydarzeniem wykonaj [CHECKLISTA.md](CHECKLISTA.md). Konfiguracja i migracja: [INSTRUKCJA.md](INSTRUKCJA.md).
