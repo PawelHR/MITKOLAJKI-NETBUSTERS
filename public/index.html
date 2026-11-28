@@ -2138,23 +2138,55 @@ function renderDoor(){
    Uczniowie otwierają DevTools (F12) i zmieniają stan gry trzymany w przeglądarce:
    1) zmienna gra.silaSkoku, 2) gra.klucze, 3) rola w localStorage.
    Lekcja: wszystkiego, co jest w przeglądarce, nie wolno traktować jako zaufanego. */
-let gameRoot = null, gameRaf = null, gameKeyDown = null, gameKeyUp = null;
+let gameRoot = null, gameRaf = null, gameKeyDown = null, gameKeyUp = null, gameBridgeCleanup = null;
+function readGameRole(){ return ls.get('rola')==='admin'?'admin':'elf'; }
+function bridgeGameRole(frame){
+  // Jedyny odczyt dla gry: jawny rekwizyt „rola”. Nigdy dowolny klucz, Auth lub Firebase.
+  ls.set('rola',readGameRole());
+  let lastRole=null;
+  const sync=force=>{
+    const role=readGameRole();if(!force&&role===lastRole)return;
+    lastRole=role;frame.contentWindow?.postMessage({type:'biegun-game-role',role},'*'); // ramka ma opaque origin
+  };
+  const reset=e=>{
+    if(e.source!==frame.contentWindow||!e.data||e.data.type!=='biegun-game-reset-role'||Object.keys(e.data).length!==1)return;
+    ls.set('rola','elf');sync(true); // ramka może tylko zresetować demonstracyjną rolę
+  };
+  const load=()=>sync(true),storage=e=>{if(e.key==='rola'||e.key===null)sync(false);};
+  frame.addEventListener('load',load);window.addEventListener('message',reset);window.addEventListener('storage',storage);
+  const timer=setInterval(()=>sync(false),200); // DevTools może zmienić wpis bez eventu storage w tej karcie
+  const cleanup=()=>{
+    clearInterval(timer);frame.removeEventListener('load',load);window.removeEventListener('message',reset);
+    window.removeEventListener('storage',storage);window.removeEventListener('pagehide',cleanup);
+  };
+  window.addEventListener('pagehide',cleanup);sync(true);return cleanup;
+}
+function gameRoleClient(initialRole){
+  let value=initialRole==='admin'?'admin':'elf';
+  window.addEventListener('message',e=>{
+    if(e.source===parent&&e.data?.type==='biegun-game-role'&&Object.keys(e.data).length===2&&['elf','admin'].includes(e.data.role))value=e.data.role;
+  });
+  return {read:()=>value,reset:()=>{value='elf';parent.postMessage({type:'biegun-game-reset-role'},'*');}};
+}
 function renderGame(){
   app.className='wrap wide';
   if (app.querySelector('iframe')) return;
+  stopGame();
   // Opaque origin: bez allow-same-origin. Brak dostępu do sesji/Auth/storage rodzica.
-  // Brak postMessage: wynik piaskownicy nigdy nie zapisuje punktów produkcyjnych.
+  // Kanał przekazuje wyłącznie rolę ćwiczenia i jej reset; nigdy wyniki lub uprawnienia.
   const frame=h('iframe',{title:'Odizolowany Skok Mikołaja',sandbox:'allow-scripts',style:'width:100%;height:1100px;border:0;border-radius:12px'});
   const style=document.querySelector('style').textContent;
-  const script=`const STATION_FLAGS=${JSON.stringify({s1:STATION_FLAGS.s1})}; const memory=new Map(); const localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v))};
+  const script=`const STATION_FLAGS=${JSON.stringify({s1:STATION_FLAGS.s1})}; const roleClient=(${gameRoleClient.toString()})(${JSON.stringify(readGameRole())});
     const app=document.getElementById('app'); const put=(...n)=>app.replaceChildren(...n.flat(Infinity).filter(Boolean));
-    let gameRoot=null,gameRaf=null,gameKeyDown=null,gameKeyUp=null;
+    let gameRoot=null,gameRaf=null,gameKeyDown=null,gameKeyUp=null,gameBridgeCleanup=null;
     ${h.toString()} ${flagCard.toString()} ${stopGame.toString()} ${renderVulnerableGame.toString()} renderVulnerableGame();`;
   frame.srcdoc='<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; connect-src \'none\'; form-action \'none\'"><style>'+style+'</style><div id="app" class="wrap wide"></div><script>'+script+'<'+ '/script></html>';
   put(h('a',{href:'#',class:'back'},'← Terminal'),frame);
+  gameRoot=frame;gameBridgeCleanup=bridgeGameRole(frame);
 }
 function stopGame(){
+  gameBridgeCleanup?.();gameBridgeCleanup=null;
   cancelAnimationFrame(gameRaf); gameRaf = null;
   if (gameKeyDown) window.removeEventListener("keydown", gameKeyDown);
   if (gameKeyUp) window.removeEventListener("keyup", gameKeyUp);
@@ -2164,7 +2196,6 @@ function renderVulnerableGame(){
   app.className = "wrap wide";
   if (gameRoot && app.contains(gameRoot)) return;
   stopGame();
-  try { if (!localStorage.getItem("rola")) localStorage.setItem("rola", "elf"); } catch(e){}
   const W = 960, H = 400, GROUND = 330, PW = 34, PH = 34, FLAG = 905;
   const LV = [
     { name:"Poziom 1 · Za szeroka przepaść", gaps:[[400,660]],
@@ -2177,13 +2208,13 @@ function renderVulnerableGame(){
              "W konsoli wpiszcie: gra.klucze = 3 i Enter. Brama się otworzy."] },
     { name:"Poziom 3 · Meta tylko dla admina", gaps:[[420,500]], admin:true,
       goal:"Flaga wpuszcza tylko admina. Gra sprawdza waszą rolę… w waszej własnej przeglądarce.",
-      hints:['Trop: kto nadał tej przeglądarce rolę elfa?',"Narzędzie: F12 → Console, kontekst ramki. W piaskownicy localStorage to edukacyjna atrapa w pamięci, nie dane przeglądarki organizatora.",
-             "Zmieńcie wartość klucza „rola” z elf na admin. Albo w konsoli: localStorage.setItem('rola','admin') i Enter. Potem dojdźcie do flagi."] }
+      hints:['Trop: kto nadał tej przeglądarce rolę elfa?',"Narzędzie: F12 → Application (Aplikacja) → Local Storage → wybierz adres strony gry, nie ramkę about:srcdoc.",
+             "Znajdźcie klucz rola. Dwukrotnie kliknijcie jego wartość elf, wpiszcie admin i zatwierdźcie Enterem. Wróćcie do gry i dojdźcie do flagi — bez konsoli i bez odświeżania strony."] }
   ];
   const gra = window.gra = { silaSkoku:9, predkosc:4, grawitacja:0.5, klucze:0, poziom:1 };
    let cur = 0, p, keys = {}, gotKey = false, msg = "", msgUntil = 0, won = false, deaths = 0, hintLvl = 0;
    const stars=new Set();
-  const role = () => { try { return localStorage.getItem("rola") || "elf"; } catch(e){ return "elf"; } };
+  const role = () => roleClient.read();
   const say = (t, ms=2200) => { msg = t; msgUntil = performance.now() + ms; };
   const startLevel = n => { cur = n; gra.poziom = n + 1; gotKey = false; gra.klucze = 0; p = { x:30, y:GROUND-PH, vx:0, vy:0, on:true }; hintLvl = 0; drawInfo(); };
   const respawn = () => { p = { x:30, y:GROUND-PH, vx:0, vy:0, on:true }; };
@@ -2281,7 +2312,7 @@ function renderVulnerableGame(){
 
    function reset(){
      cancelAnimationFrame(gameRaf); gameRaf=null;
-     localStorage.setItem('rola','elf');
+     roleClient.reset();
      Object.assign(gra,{silaSkoku:9,predkosc:4,grawitacja:0.5,klucze:0,poziom:1});
      keys={}; gotKey=false; msg=''; msgUntil=0; won=false; deaths=0; hintLvl=0; stars.clear();
      result.replaceChildren(); startLevel(0); cv.focus(); gameRaf=requestAnimationFrame(step);
@@ -2321,7 +2352,7 @@ function renderVulnerableGame(){
 
   gameRoot = h("div",{class:"stack",style:"gap:16px"},
     h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 1 · zhakuj grę"), h("h1",null,"Skok Mikołaja")),
-     h("p",null,'Zmieńcie grę w przeglądarce. W DevTools wybierzcie kontekst ramki about:srcdoc. Na końcu trzeciego poziomu pojawi się flaga labu 1. Piaskownica nie ma dostępu do sesji ani danych Firebase.'),
+     h("p",null,'Poziomy 1–2: F12 → Console, kontekst ramki about:srcdoc. Poziom 3: Application → Local Storage → adres strony gry. Na końcu pojawi się flaga labu 1.'),
     h("div",{class:"gamewrap"}, cv),
     h("div",{class:"row",style:"justify-content:center"}, pad("◀","left"), pad("⤒ skok","jump"), pad("▶","right")),
      info, h('button',{class:'btn ghost',onclick:reset},'Nowa drużyna (reset gry)'), result);

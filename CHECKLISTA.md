@@ -25,8 +25,9 @@
 ## Cztery stacje i reset
 - [ ] Po 2 osoby na salę (w stacji 4 pomocnik łączy role elfa i operatora). Łącznie 8 + koordynator.
 - [ ] Sprzęt z STACJE.md przygotowany, wszystkie dane i karty należą do koła.
-- [ ] Gra: trzy poziomy, trzy podpowiedzi, klawiatura/dotyk, kontekst ramki w DevTools, pełny reset parametrów i roli, zatrzymanie w tle/po wyjściu.
+- [ ] Gra: poziomy 1–2 w Console ramki; poziom 3 przez Application → Local Storage → adres gry → `rola`: `elf` → `admin`, bez konsoli i odświeżania. Trzy podpowiedzi, klawiatura/dotyk, reset parametrów i prawdziwego wpisu `rola=elf`, zatrzymanie w tle/po wyjściu.
 - [ ] Gra nie ma dostępu do sesji rodzica ani sieci; lokalna meta nie przyznaje punktów.
+- [ ] Kanał ramki przekazuje wyłącznie rolę ćwiczenia i jej reset; nie przekazuje innych danych storage, nie zmienia uprawnień Firebase ani wyników. Reset nie czyści innych wpisów przeglądarki.
 - [ ] Flaga na mecie poziomu 3, wynik skarbca i flaga po poprawnym NFC są czytelne; wpisanie w labie daje 100 pkt bez panelu prowadzącego.
 - [ ] Błędna flaga, flaga innej stacji i zapis po deadline są odrzucane; dwa telefony nie dodają podwójnych punktów.
 - [ ] Skarbiec: poprawny wydruk nowego demonstracyjnego hasha, podpowiedzi, reset rundy.

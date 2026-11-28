@@ -22,10 +22,12 @@ test('piaskownica bez pochodzenia rodzica i połączeń sieciowych; tylko flaga 
   assert.ok(!js.includes('sideClickFix'));
   assert.ok(!js.includes('Piaskownica bez Firebase i sesji organizatora.'));
   assert.ok(!js.includes('Terminal (poza piaskownicą)'));
+  assert.ok(!js.includes('const memory=new Map()'));
+  assert.ok(js.includes('const roleClient=(${gameRoleClient.toString()})'));
 });
 test('reset obejmuje parametry, rolę, klawisze, poziom i gwiazdki',()=>{
   const reset=js.slice(js.indexOf('   function reset(){'),js.indexOf('   function finish(){'));
-  for(const term of ['predkosc:4','grawitacja:0.5','klucze:0','poziom:1','keys={}','stars.clear()',"setItem('rola','elf')",'hintLvl=0'])assert.ok(reset.includes(term),term);
+  for(const term of ['predkosc:4','grawitacja:0.5','klucze:0','poziom:1','keys={}','stars.clear()','roleClient.reset()','hintLvl=0'])assert.ok(reset.includes(term),term);
 });
 test('jedna wersja Firebase SDK: aplikacja, service worker i testy',()=>{
   const versions=new Set([...html.matchAll(/gstatic\.com\/firebasejs\/([\d.]+)\//g)].map(m=>m[1]));

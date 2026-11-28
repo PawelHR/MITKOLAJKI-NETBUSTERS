@@ -96,7 +96,7 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 
 ## 6. Urządzenia i ograniczenia
 
-- Gra: piaskownica bez sieci. F12 → Console → wybierz ramkę `about:srcdoc`. `localStorage` w niej jest atrapą w pamięci. Trzy poziomy pomocy: trop, narzędzie, instrukcja. Pełny reset jest dostępny zawsze.
+- Gra: piaskownica bez sieci. Poziomy 1–2: F12 → Console → ramka `about:srcdoc`. Poziom 3 bez konsoli: **Application → Local Storage → adres strony gry**, dwuklik wartości wpisu **`rola`**, **`elf` → `admin`**, Enter i powrót do gry. Bez odświeżania strony. Strona przekazuje ramce tylko rolę ćwiczenia, nie inne dane ani sesję Firebase. Pełny reset przywraca także rzeczywisty wpis `rola=elf`, bez czyszczenia reszty storage. Przed kolejną grupą użyj resetu. Trzy poziomy pomocy: trop, narzędzie, instrukcja.
 - Czytnik: Android Chrome, HTTPS, NFC i własny tag NDEF koła. Zalogowany organizator zapisuje UID. **Nie ma pola PIN ani przycisku udającego kartę.** Użyj pełnego ekranu oraz systemowego przypięcia aplikacji Android (pełny ekran strony nie jest blokadą urządzenia).
 - Pokaz obejmuje proste UID, nie zabezpieczenia wszystkich kart NFC. Nie skanuj kart uczniów. Emulację Flipper → Web NFC trzeba sprawdzić fizycznie; zależy od sprzętu i typu karty.
 - Podczas awarii sieci ćwiczenie można dokończyć z wcześniej wczytanej strony. Potwierdzanie wymaga sieci; nie ma fałszywego lokalnego „zaliczono”. Nie czyść danych przeglądarki ucznia — utraci anonimowy UID i będzie potrzebował nowego zaproszenia.

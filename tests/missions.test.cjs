@@ -14,6 +14,7 @@ class Element {
   prepend(...nodes){const old=this.children;this.children=[];this.append(...nodes,...old);}
   replaceChildren(...nodes){this.children=[];this.append(...nodes);}
   addEventListener(type,fn){this.events[type]=fn;}
+  removeEventListener(type,fn){if(this.events[type]===fn)delete this.events[type];}
   async click(){if(!this.disabled)return this.events.click?.({target:this,currentTarget:this});}
   scrollIntoView(){}
   toString(){return '[object HTMLElement]';}
@@ -227,4 +228,34 @@ test('rzutnik: remis drużyn 1,1,3 i wspólne wyróżnienie szkół na pierwszym
   h.run('S.teamsLoaded=true;S.teams=[{name:"Alfa",school:0,unlocked:{s1:true,s2:true}},{name:"Beta",school:1,unlocked:{s1:true,s2:true}},{name:"Gamma",school:2,unlocked:{s1:true}}];renderScreen()');
   assert.deepEqual(h.elements().filter(e=>e.tagName==='TR').map(e=>e.children[0].textContent),['1','1','3']);
   assert.equal(h.elements().filter(e=>e.className==='school first').length,2);h.clean();
+});
+test('gra: prawdziwy wpis rola synchronizuje się z ramką; kanał nie ujawnia innych danych i przyjmuje tylko reset z tej ramki',()=>{
+  const h=harness(),listeners=new Map(),messages=[];let tick,cleared=false;
+  h.context.window.addEventListener=(type,fn)=>listeners.set(type,fn);
+  h.context.window.removeEventListener=(type,fn)=>{if(listeners.get(type)===fn)listeners.delete(type);};
+  h.context.setInterval=fn=>{tick=fn;return 123;};h.context.clearInterval=id=>{cleared=id===123;};h.context.cancelAnimationFrame=()=>{};
+  const frame=new Element('iframe');frame.contentWindow={postMessage:(data,target)=>messages.push({data,target})};h.context.frame=frame;
+  h.run('ls.set("private-test","NIE_WYSYLAJ");gameBridgeCleanup=bridgeGameRole(frame)');
+  assert.equal(h.storage.get('rola'),'elf');assert.equal(messages.at(-1).data.role,'elf');
+  const count=messages.length;tick();assert.equal(messages.length,count,'bez zmian nie wysyłamy wiadomości');
+  h.storage.set('rola','admin');tick();assert.equal(messages.at(-1).data.role,'admin');
+  assert.deepEqual(Object.keys(messages.at(-1).data).sort(),['role','type']);assert.ok(!JSON.stringify(messages).includes('NIE_WYSYLAJ'));
+  const send=data=>listeners.get('message')({source:frame.contentWindow,data});
+  listeners.get('message')({source:{},data:{type:'biegun-game-reset-role'}});assert.equal(h.storage.get('rola'),'admin');
+  send({type:'biegun-game-reset-role',key:'private-test'});assert.equal(h.storage.get('rola'),'admin');
+  send({type:'biegun-game-role',role:'admin'});assert.equal(h.storage.get('rola'),'admin');
+  send({type:'biegun-game-reset-role'});assert.equal(h.storage.get('rola'),'elf');assert.equal(h.storage.get('private-test'),'NIE_WYSYLAJ');
+  h.storage.set('rola','NIEZNANA');tick();assert.equal(messages.at(-1).data.role,'elf');
+  h.run('stopGame()');assert.equal(cleared,true);assert.equal(listeners.size,0);assert.equal(frame.events.load,undefined);
+});
+test('gra: ramka ufa tylko roli od rodzica; reset żąda wyłącznie rola=elf',()=>{
+  const h=harness(),messages=[];let receive;
+  h.context.parent={postMessage:(data,target)=>messages.push({data,target})};h.context.window.addEventListener=(type,fn)=>{if(type==='message')receive=fn;};
+  h.run('globalThis.client=gameRoleClient("elf")');assert.equal(h.run('client.read()'),'elf');
+  receive({source:{},data:{type:'biegun-game-role',role:'admin'}});assert.equal(h.run('client.read()'),'elf');
+  const fromParent=data=>receive({source:h.context.parent,data});
+  fromParent({type:'biegun-game-role',role:'root'});fromParent({type:'biegun-game-role',role:'admin',extra:true});assert.equal(h.run('client.read()'),'elf');
+  fromParent({type:'biegun-game-role',role:'admin'});assert.equal(h.run('client.read()'),'admin');
+  h.run('client.reset()');assert.equal(h.run('client.read()'),'elf');
+  assert.deepEqual(JSON.parse(JSON.stringify(messages)),[{data:{type:'biegun-game-reset-role'},target:'*'}]);
 });

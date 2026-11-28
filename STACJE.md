@@ -27,7 +27,7 @@ Otwórz `/#gra`. Trzy poziomy pozostają takie same:
 
 1. **Siła skoku:** przepaść za szeroka. F12 → Console → wybierz kontekst ramki `about:srcdoc` → `gra.silaSkoku = 25`.
 2. **Klucze:** brama wymaga trzech, na mapie jest jeden. W tej samej konsoli `gra.klucze = 3`.
-3. **Rola:** meta tylko dla admina. `localStorage.setItem('rola','admin')` w kontekście ramki. W tej bezpiecznej piaskownicy localStorage to **atrapa w pamięci**, nie magazyn sesji organizatora. Nie szukamy już roli w Application → Local Storage głównej strony.
+3. **Rola — bez konsoli:** meta tylko dla admina. F12 → **Application (Aplikacja) → Local Storage → adres strony gry** (na produkcji `https://operacja-biegun.web.app`, nie `about:srcdoc`). Znajdź klucz **`rola`**, dwukrotnie kliknij wartość **`elf`**, zmień na **`admin`** i zatwierdź Enterem. Wróć do gry i dojdź do flagi. Zmiana działa na żywo, bez odświeżania i utraty poziomu. Jeśli tabelka nie odświeżyła się po otwarciu gry, odśwież sam widok Local Storage w DevTools, nie stronę gry.
 
 Trzy poziomy podpowiedzi na każdym etapie: **trop → narzędzie → dokładna instrukcja**. Zdobyte poziomy dają gwiazdki „WANTED KNOWLEDGE”, nie punkty w Firebase. Strzałki/A/D, spacja/W/↑ oraz przyciski dotykowe. Bez limitu czasu.
 
@@ -35,8 +35,8 @@ Trzy poziomy podpowiedzi na każdym etapie: **trop → narzędzie → dokładna 
 
 **Wnioski:** klient może zmienić stan, rolę i wynik. Zabezpieczona gra weryfikuje zdarzenia/uprawnienia na zaufanym serwerze. W Operacji Biegun lokalna meta pokazuje flagę; dopiero serwer zatwierdza jej wpisanie. Publiczną flagę można podejrzeć lub przekazać — nie dowodzi samodzielnego wykonania ćwiczenia.
 
-**Izolacja:** sandbox bez `allow-same-origin`, brak sieci i dostępu do sesji rodzica. Nie zdejmuj sandboxa, żeby ułatwić DevTools — wybierz właściwą ramkę.
-**Reset:** zawsze dostępny przycisk „Nowa drużyna” przywraca siłę, prędkość, grawitację, klucze, rolę, poziom, podpowiedzi, gwiazdki i klawisze. Po opuszczeniu widoku ramka znika; animacja zatrzymuje się także w tle i po mecie.
+**Izolacja:** sandbox bez `allow-same-origin`, brak sieci i bezpośredniego dostępu do sesji lub storage rodzica. Strona przekazuje ramce wyłącznie demonstracyjną rolę `elf`/`admin`; ramka może poprosić tylko o jej reset do `elf`. Kanał nie przekazuje wyników, flag zaliczenia ani uprawnień Firebase. Nie zdejmuj sandboxa: Console w ramce służy poziomom 1–2, a Application → Local Storage głównej strony poziomowi 3. Wpis `rola=admin` nie nadaje uprawnień organizatora.
+**Reset:** zawsze dostępny przycisk „Nowa drużyna” przywraca siłę, prędkość, grawitację, klucze, rzeczywisty wpis `rola=elf`, poziom, podpowiedzi, gwiazdki i klawisze. Nie czyści innych danych przeglądarki. Sama rola pozostaje w Local Storage po odświeżeniu strony — przed kolejną grupą użyj pełnego resetu. Po opuszczeniu widoku ramka znika; animacja zatrzymuje się także w tle i po mecie.
 **Plan B:** prowadzący pokazuje F12 na rzutniku. Za korzystanie z instrukcji nie odejmujemy punktów.
 
 ## 2 · Złam skarbiec — symulator haseł
