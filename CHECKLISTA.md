@@ -11,7 +11,7 @@
 
 ## Drużyny i etapy
 - [ ] Nazwy szkół, sale i wiadomość centrali ustawione w panelu; bez harmonogramu zmian sal.
-- [ ] Etap zmieniany tylko kartą „Etap wydarzenia” z potwierdzeniem; przy Grze głównej brak ostrzeżenia o minionym terminie.
+- [ ] Ręczna zmiana etapu oraz start/zakończenie finału wymagają potwierdzenia; przy Grze głównej brak ostrzeżenia o minionym terminie.
 - [ ] Właściwa **data**, strefa i deadline `mainEndsAt`; sam zegar nie wystarczy.
 - [ ] Gracz sam tworzy drużynę, drugi telefon wpisuje 6-znakowy kod i od razu dołącza, bez akceptacji prowadzącego.
 - [ ] Limit 4 osób: piąty telefon dostaje odmowę, odejście zwalnia miejsce. Istniejące drużyny mają ustawiony licznik (`#admin → Prowadź → Ustaw licznik`, jeśli panel go pokazuje).
@@ -42,10 +42,12 @@
 
 ## Misje, ranking, finał
 - [ ] Grand Scam Auto VI i oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.
+- [ ] Laby mają etykietę „Do zrobienia”; odkrycie Grand Scam pozostaje po odświeżeniu na tym telefonie, ale nie przechodzi na inną drużynę i samo nie daje punktów.
 - [ ] Oficjalne maksimum 500, edukacyjne 210 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
-- [ ] Remis szkół oznacza wspólne miejsce, niezależnie od liczby drużyn; CSV otwiera polskie znaki i nie wykonuje formuł.
+- [ ] Remis szkół i drużyn oznacza wspólne miejsce także na rzutniku (np. 1, 1, 3); CSV otwiera polskie znaki i nie wykonuje formuł.
 - [ ] Ranking działa po zamknięciu rzutnika, ma czas aktualizacji; limit odczytów Spark monitorowany.
-- [ ] Finał: odliczanie, gotowe drużyny, cztery systemy, zielony status i podium; odświeżenie/ponowne otwarcie odtwarza etap.
+- [ ] Finał: przed potwierdzeniem liczba gotowych drużyn i ostrzeżenie o zamknięciu flag; anulowanie bez zapisu. Inny organizator nie może zostać nieświadomie nadpisany.
+- [ ] Finał: odliczanie, cztery systemy, dopiero potem pełny klucz, zielony status i podium; odświeżenie/ponowne otwarcie odtwarza etap. Zakończenie wymaga osobnego potwierdzenia po zapisaniu bonusów.
 - [ ] Cztery główne stacje wystarczają bez zadań opcjonalnych. Bonus tylko w etapie Finał.
 - [ ] Brak sieci nie pokazuje fałszywego zaliczenia; ponowienie działa po odzyskaniu połączenia.
 - [ ] Mały telefon, klawiatura, widoczny fokus, ograniczony ruch i przyciski zamiast przeciągania sprawdzone.

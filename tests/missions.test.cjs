@@ -4,7 +4,8 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 class Element {
-  constructor(tag){this.tagName=tag.toUpperCase();this.nodeType=1;this.children=[];this.attrs={};this.events={};this.style={};}
+  constructor(tag){this.tagName=tag.toUpperCase();this.nodeType=1;this.children=[];this.attrs={};this.events={};this.style={};this.className='';
+    this.classList={toggle:(name,on)=>{const classes=new Set(this.className.split(/\s+/).filter(Boolean));if(on)classes.add(name);else classes.delete(name);this.className=[...classes].join(' ');}};}
   setAttribute(k,v){this.attrs[k]=v;if(k==='value')this.value=v;}
   get disabled(){return 'disabled' in this.attrs;}
   get textContent(){return this.children.map(c=>c.textContent).join('');}
@@ -17,14 +18,15 @@ class Element {
   scrollIntoView(){}
   toString(){return '[object HTMLElement]';}
 }
-function harness(){
-  const app=new Element('div'),network=new Element('div'),storage=new Map();
+function harness(storage=new Map()){
+  const app=new Element('div'),network=new Element('div');
   const flags=vm.runInNewContext(fs.readFileSync('public/station-flags.js','utf8').replace(/^export /gm,'')+'\nSTATION_FLAGS;');
+  const core=vm.runInNewContext(fs.readFileSync('public/core.js','utf8').replace(/^export /gm,'')+'\n({PHASES,officialPoints,stationCount,buildRanking});');
   const context=vm.createContext({
     document:{createElement:tag=>new Element(tag),createTextNode:text=>({nodeType:3,textContent:text}),getElementById:id=>id==='app'?app:network},
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     window:{addEventListener(){}},location:{hash:''},navigator:{onLine:true},console,crypto:require('node:crypto').webcrypto,atob,TextEncoder,TextDecoder,
-    STATION_FLAGS:flags,PHASES:{},officialPoints:()=>0,stationCount:()=>0,setTimeout,clearTimeout,setInterval,clearInterval,
+    STATION_FLAGS:flags,...core,setTimeout,clearTimeout,setInterval,clearInterval,
   });
   const html=fs.readFileSync('public/index.html','utf8');
   const js=html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm,'').replace(/\nboot\(\);\s*$/,'');
@@ -33,7 +35,7 @@ function harness(){
   const all=el=>[el,...(el.children||[]).flatMap(all)];
   const click=async text=>{const b=all(app).find(x=>x.tagName==='BUTTON'&&x.textContent.includes(text));assert.ok(b,'Przycisk: '+text);assert.equal(b.disabled,false,'Aktywny: '+text);await b.click();};
   const clean=()=>{assert.ok(!app.textContent.includes('[object'));assert.ok(!app.textContent.includes('null'));};
-  return {app,context,click,clean,elements:()=>all(app),run:code=>vm.runInContext(code,context)};
+  return {app,context,storage,click,clean,elements:()=>all(app),run:code=>vm.runInContext(code,context)};
 }
 test('Grand Scam Auto VI: flagi → infostealer → wszystkie zabezpieczenia → odznaka',async()=>{
   const h=harness();h.run('sideVice("p8")');h.clean();
@@ -156,4 +158,73 @@ test('SIEM: informacja o zaznaczeniu wszystkich alertów ataku; podpowiedź mów
   h.run('["a4","a6","a7"].forEach(id=>SV.picked.add(id))');await submit(h,'Zgłoszenie incydentu');
   assert.ok(h.app.textContent.includes('03:20 to szum'));assert.ok(!h.app.textContent.includes('Brakuje jeszcze'));
   h.run('SV.picked.delete("a7")');await submit(h,'Zgłoszenie incydentu');assert.equal(h.run('SV.pin'),'481927');h.clean();
+});
+test('laby mają etykietę Do zrobienia, a odkrycie Grand Scam przetrwa odświeżenie tylko dla właściwej drużyny',async()=>{
+  const h=harness();h.run('S.code="ABCD";ls.set("ob_team",S.code);S.user={uid:"a",isAnonymous:true};S.teamLoaded=true;S.team={id:S.code,name:"Elfy",unlocked:{s1:true},side:{}};rankingCard=()=>null;renderHome()');
+  assert.ok(h.app.textContent.includes('Do zrobienia'));assert.ok(!h.app.textContent.includes('zablokowana'));
+  assert.ok(!h.app.textContent.includes('Grand Scam Auto VI'));
+  await h.click('sygnał 06');assert.equal(h.run('viceDiscovered()'),true);assert.equal(h.context.saved.length,0);
+  const reloaded=harness(h.storage);reloaded.run('S.user={uid:"a"};S.team={id:S.code,name:"Elfy",unlocked:{},side:{}};rankingCard=()=>null;renderHome()');
+  assert.equal(reloaded.run('S.code'),'ABCD');assert.ok(reloaded.app.textContent.includes('Grand Scam Auto VI'));
+  reloaded.run('S.code="EFGH";S.team={id:S.code,name:"Inne elfy",unlocked:{},side:{}};renderHome()');
+  assert.ok(!reloaded.app.textContent.includes('Grand Scam Auto VI'));assert.equal(reloaded.context.saved.length,0);
+  reloaded.run('S.team.side.p8=true;renderHome()');assert.ok(reloaded.app.textContent.includes('Grand Scam Auto VI'));
+});
+function finalControlsHarness(){
+  const h=harness(),writes=[];let server;
+  h.context.doc=()=>({});h.context.Timestamp={fromMillis:ms=>({toMillis:()=>ms})};
+  h.context.runTransaction=async(db,fn)=>fn({get:async()=>({exists:()=>true,data:()=>server}),set:(ref,data,options)=>{writes.push({data,options});server={...server,...data};}});
+  h.run('S.config={phase:"main",mainEndsAt:{toMillis:()=>Date.now()+60000}};S.teamsLoaded=true;S.teams=[{name:"Gotowi",school:0,unlocked:{s1:true,s2:true,s3:true,s4:true}},{name:"W drodze",school:0,unlocked:{s1:true}}];render=()=>app.replaceChildren(finaleControls());flash=(text,kind)=>{globalThis.feedback={text,kind};render()};render()');
+  server=h.run('S.config');
+  return {...h,writes,setServer:value=>{server=value;}};
+}
+test('finał: start i zakończenie wymagają potwierdzenia; anulowanie niczego nie zapisuje',async()=>{
+  const h=finalControlsHarness();assert.ok(h.app.textContent.includes('Gotowych jest 1 z 2 drużyn.'));
+  const seconds=h.elements().find(e=>e.attrs?.type==='number');seconds.value='45';seconds.events.input({target:seconds});
+  await h.click('Uruchom odliczanie');assert.equal(h.writes.length,0);assert.ok(h.app.textContent.includes('wyłączy wpisywanie flag'));
+  h.run('render()');assert.ok(h.app.textContent.includes('Odliczanie: 45 s.'));
+  await h.click('Anuluj');assert.equal(h.writes.length,0);assert.equal(h.elements().find(e=>e.attrs?.type==='number').value,'45');
+  await h.click('Uruchom odliczanie');await h.click('Tak, uruchom finał');
+  assert.equal(h.writes.length,1);assert.equal(h.writes[0].data.phase,'final');assert.equal(h.writes[0].data.finalStatus,'running');assert.equal(h.writes[0].options.merge,true);
+  h.run('S.config={phase:"final",finalStatus:"running"};render()');h.setServer(h.run('S.config'));
+  await h.click('Zakończ wydarzenie');assert.equal(h.writes.length,1);assert.ok(h.app.textContent.includes('Najpierw zapisz bonusy'));
+  await h.click('Anuluj');assert.equal(h.writes.length,1);
+  await h.click('Zakończ wydarzenie');await h.click('Tak, zakończ wydarzenie');
+  assert.equal(h.writes.length,2);assert.equal(h.writes[1].data.phase,'ended');assert.equal(h.writes[1].data.finalStatus,'complete');
+});
+test('finał: błędny czas i zmiana etapu przez drugiego organizatora nie powodują zapisu',async()=>{
+  const h=finalControlsHarness();const input=h.elements().find(e=>e.attrs?.type==='number');input.value='4';input.events.input({target:input});
+  await h.click('Uruchom odliczanie');assert.equal(h.writes.length,0);assert.equal(h.run('finaleAsk'),null);assert.equal(h.context.feedback.kind,'err');
+  h.elements().find(e=>e.attrs?.type==='number').value='30';
+  await h.click('Uruchom odliczanie');h.setServer({phase:'break'});await h.click('Tak, uruchom finał');
+  assert.equal(h.writes.length,0);assert.ok(h.context.feedback.text.includes('inny organizator'));
+  await h.click('Uruchom odliczanie');h.run('S.config.phase="break";render()');
+  assert.equal(h.elements().find(e=>e.textContent==='Tak, uruchom finał').disabled,true);
+  assert.ok(h.app.textContent.includes('Anuluj i sprawdź bieżący etap'));
+});
+test('finał: wstrzymanie ma potwierdzenie i nie zmienia etapu; błąd zapisu nie udaje sukcesu',async()=>{
+  const h=finalControlsHarness();h.run('S.config.phase="final";render()');
+  await h.click('Wstrzymaj finał');assert.equal(h.writes.length,0);await h.click('Tak, wstrzymaj finał');
+  assert.equal(h.writes.length,1);assert.deepEqual(Object.keys(h.writes[0].data),['finalStatus']);
+  h.context.runTransaction=async()=>{throw {code:'unavailable'};};
+  await h.click('Zakończ wydarzenie');await h.click('Tak, zakończ wydarzenie');assert.equal(h.writes.length,1);
+  assert.equal(h.context.feedback.kind,'err');assert.equal(h.run('finaleSaving'),false);assert.ok(h.context.feedback.text.includes('Nie zapisano'));
+});
+test('finał: klucz ukryty podczas oczekiwania i sekwencji, widoczny po przywróceniu, także po odświeżeniu',()=>{
+  const h=harness();let tick;h.context.setInterval=fn=>{tick=fn;return 0;};
+  h.run('Date.now=()=>100000;S.config={phase:"final",finalStatus:"waiting",finalRestoreAt:{toMillis:()=>101000}};renderFinal()');
+  const fragments=h.run('STATIONS.map(s=>s.frag)');
+  const hidden=()=>fragments.forEach(f=>assert.ok(!h.app.textContent.includes(f),f));
+  hidden();h.run('S.config.finalStatus="running"');tick();hidden();
+  h.run('Date.now=()=>110000');tick();hidden(); // cztery systemy, ale animacja jeszcze trwa
+  h.run('Date.now=()=>113000');tick();fragments.forEach(f=>assert.ok(h.app.textContent.includes(f),f));
+  h.run('renderFinal()');fragments.forEach(f=>assert.ok(h.app.textContent.includes(f),f));
+  h.run('S.config={phase:"main",finalStatus:"complete"};renderFinal()');hidden();
+  h.run('S.config={phase:"ended",finalStatus:"complete"};renderFinal()');fragments.forEach(f=>assert.ok(h.app.textContent.includes(f),f));
+});
+test('rzutnik: remis drużyn 1,1,3 i wspólne wyróżnienie szkół na pierwszym miejscu',()=>{
+  const h=harness();h.context.setInterval=()=>0;
+  h.run('S.teamsLoaded=true;S.teams=[{name:"Alfa",school:0,unlocked:{s1:true,s2:true}},{name:"Beta",school:1,unlocked:{s1:true,s2:true}},{name:"Gamma",school:2,unlocked:{s1:true}}];renderScreen()');
+  assert.deepEqual(h.elements().filter(e=>e.tagName==='TR').map(e=>e.children[0].textContent),['1','1','3']);
+  assert.equal(h.elements().filter(e=>e.className==='school first').length,2);h.clean();
 });

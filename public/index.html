@@ -348,6 +348,7 @@ async function boot(){
   if (local) { connectAuthEmulator(S.auth,'http://127.0.0.1:9099',{disableWarnings:true}); connectFirestoreEmulator(S.db,'127.0.0.1',8080); }
   onAuthStateChanged(S.auth, async user => {
     S.user=user; S.isAdmin=false; adminDetail=null;
+    finaleAsk=null;
     unsubTeam?.();unsubMembers?.();unsubTeam=unsubMembers=null;
     if (!user){
       unsubTeam?.();unsubMembers?.();unsubTeam=unsubMembers=null;
@@ -605,6 +606,14 @@ function keyStrip(){
   const u = S.team.unlocked||{};
   return h("div",{class:"key"}, STATIONS.map(s=>h("span",{class:u[s.id]?"on":""}, u[s.id] ? s.frag : "· · ·")));
 }
+function viceDiscovered(){
+  return !!(S.team?.side?.p8 || S.viceFound || (S.code && ls.get('ob_vice_'+S.code)==='1'));
+}
+function discoverVice(){
+  S.viceFound=true;
+  if(S.code)ls.set('ob_vice_'+S.code,'1'); // tylko odkrycie, bez punktów; osobno dla każdej drużyny
+  view={type:'side',id:'p8'};render();
+}
 function renderHome(){
   const t = S.team, u = t.unlocked||{}, sd = t.side||{};
   const got = stationsOf(t), sideDone = SIDE.filter(s=>sd[s.id]).length;
@@ -614,7 +623,7 @@ function renderHome(){
       h('progress',{max:4,value:got,'aria-label':'Postęp głównej misji',style:'width:100%'}),
       h('p',{class:'small'},S.config.central||'Centrala: odzyskajcie cztery fragmenty. Współpraca ma znaczenie.'),
       h('p',{class:'muted small'},STATIONS.map(s=>s.nr+': '+(S.config.rooms?.[s.nr-1]||'sala do ustalenia')).join(' · ')),
-      h('button',{class:'back',onclick:()=>{S.viceFound=true;view={type:'side',id:'p8'};render();},'aria-label':'Zbadaj ukryty sygnał 06'},'… sygnał 06 z miasta palm')),
+      h('button',{class:'back',onclick:discoverVice,'aria-label':'Zbadaj ukryty sygnał 06'},'… sygnał 06 z miasta palm')),
     S.notice ? h("div",{class:"msg good"},S.notice) : null,
     h("section",{class:"card"},
       h("div",{class:"spread"}, h("h2",null,"Wasza drużyna"), h("span",{class:"pill gold"}, pointsOf(t) + " pkt oficjalnych")),
@@ -636,12 +645,12 @@ function renderHome(){
     h("section",{class:"stack"},
       h("h2",null,"Laboratoria"),
       h("div",{class:"grid2"}, STATIONS.map(s=>h("button",{class:"card",onclick:()=>{view={type:"station",id:s.id};render();}},
-        h("div",{class:"spread"}, h("span",{class:"st-num"}, s.nr), u[s.id] ? h("span",{class:"pill ok"},"✓ zaliczona") : h("span",{class:"pill lock"},"zablokowana")),
+        h("div",{class:"spread"}, h("span",{class:"st-num"}, s.nr), u[s.id] ? h("span",{class:"pill ok"},"✓ zaliczona") : h("span",{class:"pill"},"Do zrobienia")),
         h("h3",null,s.name), h("span",{class:"muted small"}, s.topic))))),
     h("section",{class:"stack"},
       h("div",{class:"spread"}, h("h2",null,"Zadania poboczne"), h("span",{class:"pill"}, sideDone + "/" + SIDE.length)),
       h("p",{class:"muted small"},"Punkty edukacyjne nie wpływają na oficjalny ranking. Ćwiczcie w drodze między salami."),
-      SIDE.filter(s=>s.id!=='p8'||sd.p8||S.viceFound).map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
+      SIDE.filter(s=>s.id!=='p8'||viceDiscovered()).map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
         h("div",{class:"spread"}, h("h3",null,s.name), sd[s.id] ? h("span",{class:"pill ok"},"✓ +" + s.max) : h("span",{class:"pill gold"},"+" + s.max + " pkt")),
         h("span",{class:"muted small"}, s.short)))),
     rankingCard(),
@@ -1337,14 +1346,54 @@ function renderKey(){
     h("p",{class:"muted"},'Centrala uruchomi wspólny finał. Zadania opcjonalne nie są wymagane.'),h('p',{class:'msg'},'Centrum dowodzenia pojawi się na dużym ekranie w auli.'));
 }
 
+let finaleAsk=null,finaleSeconds=30,finaleSaving=false;
+const finaleState=c=>JSON.stringify([c.phase,c.finalStatus||'waiting',c.finalRestoreAt?.toMillis()??null]);
 function finaleControls(){
-  const seconds=h('input',{type:'number',min:5,max:600,value:30});
-  const save=async fields=>{try{await setDoc(doc(S.db,'config/main'),fields,{merge:true});flash('Zapisano sterowanie finałem.','good');}catch(e){flash('Nie zapisano finału. Najpierw zapisz ustawienia wydarzenia.','err');}};
+  // Pytanie i wybrany czas przetrwają aktualizację rankingu lub panelu.
+  const seconds=h('input',{type:'number',min:5,max:600,value:finaleSeconds,disabled:finaleSaving,oninput:e=>{finaleSeconds=e.target.value;}});
+  const {teams}=ranking(),ready=teams.filter(t=>t.st===4).length;
+  const save=async action=>{
+    if(finaleSaving)return;
+    const pending=finaleAsk;
+    if(!pending||pending.action!==action)return;
+    finaleSaving=true;render();
+    try{
+      await runTransaction(S.db,async tx=>{
+        const ref=doc(S.db,'config/main'),snapshot=await tx.get(ref);
+        if(!snapshot.exists()||finaleState(snapshot.data())!==pending.state)throw new Error('FINAL_STATE_CHANGED');
+        const fields=action==='start'?{phase:'final',finalStatus:'running',finalRestoreAt:Timestamp.fromMillis(Date.now()+pending.seconds*1000)}
+          :action==='end'?{phase:'ended',finalStatus:'complete'}:{finalStatus:'waiting'};
+        tx.set(ref,fields,{merge:true});
+      });
+      finaleAsk=null;finaleSaving=false;flash('Zapisano sterowanie finałem.','good');
+    }catch(e){
+      finaleAsk=null;finaleSaving=false;
+      flash(e.message==='FINAL_STATE_CHANGED'?'Stan finału zmienił inny organizator. Sprawdź bieżący etap i potwierdź ponownie.':'Nie zapisano finału. Sprawdź połączenie i ustawienia wydarzenia.','err');
+    }
+  };
+  const ask=action=>{
+    const n=Number(seconds.value);
+    if(action==='start'&&(!Number.isInteger(n)||n<5||n>600))return flash('Odliczanie musi mieć od 5 do 600 pełnych sekund.','err');
+    finaleSeconds=seconds.value;phaseAsk=null;
+    finaleAsk={action,seconds:n,state:finaleState(S.config)};render();
+  };
+  const question=finaleAsk;
+  const stale=question&&question.state!==finaleState(S.config);
   return h('section',{class:'card'},h('h2',null,'Centrum dowodzenia · finał'),h('a',{href:'#final',class:'tab'},'Otwórz duży ekran #final'),
-    h('label',null,'Odliczanie w sekundach',seconds),
-    h('button',{class:'btn',onclick:()=>{const n=Number(seconds.value);if(Number.isInteger(n)&&n>=5&&n<=600)save({phase:'final',finalStatus:'running',finalRestoreAt:Timestamp.fromMillis(Date.now()+n*1000)});}},'Uruchom odliczanie i sekwencję przywracania'),
-    h('button',{class:'btn ghost',onclick:()=>save({finalStatus:'waiting'})},'Wstrzymaj finał'),
-    h('button',{class:'btn ok',onclick:()=>save({phase:'ended',finalStatus:'complete'})},'Zakończ wydarzenie i pokaż podium'));
+    h('p',{class:'muted small'},S.teamsLoaded?'Gotowych jest '+ready+' z '+teams.length+' drużyn.':'Wczytuję gotowość drużyn…'),
+    question?h('div',{class:'stack',role:'group','aria-label':'Potwierdzenie sterowania finałem'},
+      h('h3',null,question.action==='start'?'Uruchomić finał?':question.action==='end'?'Zakończyć wydarzenie?':'Wstrzymać finał?'),
+      h('p',null,question.action==='start'?'Odliczanie: '+question.seconds+' s. Uruchomienie finału zmieni etap na Finał i wyłączy wpisywanie flag oraz zapisywanie zadań. Kontynuować?'
+        :question.action==='end'?'Zakończenie zamknie zakładanie drużyn, dołączanie i zwykłe zapisy wyników oraz pokaże podium. Najpierw zapisz bonusy finału. Kontynuować?'
+        :'Ekran wróci do oczekiwania. Ponowne uruchomienie zacznie nowe odliczanie. Etap pozostanie bez zmian.'),
+      stale?h('p',{class:'msg err'},'Stan finału zmienił się od wyświetlenia pytania. Anuluj i sprawdź bieżący etap.'):null,
+      h('div',{class:'row'},h('button',{class:'btn',disabled:finaleSaving||stale||!S.teamsLoaded,onclick:()=>save(question.action)},
+        finaleSaving?'Zapisuję…':question.action==='start'?'Tak, uruchom finał':question.action==='end'?'Tak, zakończ wydarzenie':'Tak, wstrzymaj finał'),
+        h('button',{class:'btn ghost',disabled:finaleSaving,onclick:()=>{finaleAsk=null;render();}},'Anuluj')))
+    :h('div',{class:'stack'},h('label',null,'Odliczanie w sekundach',seconds),
+      h('button',{class:'btn',disabled:!S.teamsLoaded||finaleSaving,onclick:()=>ask('start')},'Uruchom odliczanie i sekwencję przywracania'),
+      h('button',{class:'btn ghost',disabled:!S.teamsLoaded||finaleSaving,onclick:()=>ask('wait')},'Wstrzymaj finał'),
+      h('button',{class:'btn ok',disabled:!S.teamsLoaded||finaleSaving,onclick:()=>ask('end')},'Zakończ wydarzenie i pokaż podium')));
 }
 function renderFinal(){
   app.className='wrap wide';clearInterval(clockTimer);
@@ -1352,22 +1401,24 @@ function renderFinal(){
   const box=h('section',{class:'card final-alarm'}),title=h('h1',{class:'final-title'}),counter=h('div',{class:'final-count',role:'timer'});
   const systems=['Nawigacja sań','Skarbiec prezentów','Centrum SOC','Warsztat elfów'];
   const rows=systems.map(s=>h('div',{class:'system'},s));
+  const key=h('div',{class:'key',role:'group','aria-label':'Klucz fabularny'});let keyRevealed=null;
   const podium=h('section',{class:'card',hidden:true},h('h2',null,'Podium szkół'),
     sch.filter(s=>s.count>0&&s.place<=3).map(s=>h('p',null,s.place+'. '+s.name+' · '+s.avg.toLocaleString('pl-PL',{maximumFractionDigits:2})+' pkt / drużynę')),
     h('h2',null,'Najlepsze drużyny'),teams.filter(t=>t.st>0&&t.place<=3).map(t=>h('p',null,t.place+'. '+t.name+' · '+schools()[t.school]+' · '+t.points+' pkt')));
   const tick=()=>{
     const running=S.config.phase==='final'&&S.config.finalStatus==='running';
     const end=S.config.finalRestoreAt?.toMillis()||Infinity,elapsed=Date.now()-end;
-    const done=S.config.finalStatus==='complete'||(running&&elapsed>=12000);
+    const done=['final','ended'].includes(S.config.phase)&&(S.config.finalStatus==='complete'||(running&&elapsed>=12000));
     const restored=done?4:running&&elapsed>=0?Math.min(4,Math.floor(elapsed/3000)+1):0;
     title.textContent=done?'OPERACJA BIEGUN – MISJA ZAKOŃCZONA':running?'CENTRUM DOWODZENIA · PRZYWRACANIE':'CENTRUM DOWODZENIA · OCZEKIWANIE';
     counter.textContent=running&&elapsed<0?String(Math.ceil(-elapsed/1000)):done?'✓':restored?restored+'/4':'ALARM';
     counter.style.color=done?'var(--ok)':'var(--red)';box.classList.toggle('restored',done);podium.hidden=!done;
+    if(keyRevealed!==done){key.replaceChildren(...STATIONS.map(s=>h('span',{class:done?'on':''},done?s.frag:'· · ·')));keyRevealed=done;}
     rows.forEach((row,i)=>{row.classList.toggle('up',i<restored);row.textContent=(i<restored?'✓ ONLINE · ':'⛔ OFFLINE · ')+systems[i];});
   };
   box.append(h('span',{class:'eyebrow'},'Centrum Logistyki Mikołaja · finał fabularny'),title,counter,
     h('p',{class:'mono'},'Drużyny gotowe do finału: '+ready+' / '+teams.length),
-    h('div',{class:'key'},STATIONS.map(s=>h('span',{class:'on'},s.frag))),h('div',{class:'grid2'},rows));
+    key,h('div',{class:'grid2'},rows));
   put(h('a',{href:'#',class:'back'},'← Terminal'),box,podium,h('p',{class:'muted small'},'Cztery stacje wystarczą. Opcjonalne misje nie blokują finału. Odliczanie jest prezentacją; zapisy punktów kontrolują reguły i czas serwera.'));
   tick();clockTimer=setInterval(tick,250);
 }
@@ -1409,13 +1460,13 @@ function renderScreen(){
       h("div",{class:"stack",style:"gap:2px;align-items:flex-end"}, clock, left)),
     h("div",{class:"screen"},
       h("div",{class:"stack",style:"gap:14px"}, h("h2",null,"Szkoły · średnia punktów na drużynę"),
-        sch.map((s,i)=>h("div",{class:"school" + (i===0 && s.avg>0 ? " first" : "")},
+        sch.map(s=>h("div",{class:"school" + (s.place===1 && s.avg>0 ? " first" : "")},
           h("div",{class:"place"}, s.place),
           h("div",{style:"min-width:0"}, h("div",{class:"nm"}, s.name), h("div",{class:"muted mono"}, "grających drużyn: " + s.count + " · razem " + s.sum + " pkt"), h("div",{class:"bar"}, h("i",{style:"width:" + Math.round(s.avg/top*100) + "%"}))),
           h("div",{class:"avg"}, s.avg.toLocaleString('pl-PL',{maximumFractionDigits:2}), h("small",null,"pkt / drużynę"))))),
       h("div",{class:"stack",style:"gap:14px"},
         h("section",{class:"card"}, h("h2",null,"Najlepsze drużyny"),
-          teams.length ? h("table",null, h("tbody",null, teams.slice(0,8).map((t,i)=>h("tr",null, h("td",{class:"mono muted"}, i+1), h("td",null, t.name, " ", h("span",{class:"muted small"}, schools()[t.school]||"")), h("td",{class:"num mono"}, t.points)))))
+          teams.length ? h("table",null, h("tbody",null, teams.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.place), h("td",null, t.name, " ", h("span",{class:"muted small"}, schools()[t.school]||"")), h("td",{class:"num mono"}, t.points)))))
           : h("p",{class:"muted"},"Drużyny pojawią się tu, gdy się zarejestrują.")),
         h("section",{class:"stack"}, h("h2",null,"Ostatnie punkty"),
           FEED.length ? h("div",{class:"feed"}, FEED.map(f=>h("div",null, h("b",null,"+" + f.d), " · " + f.team)))
@@ -1497,7 +1548,7 @@ function renderAdmin(){
     adminMsg.text ? h("div",{class:"msg " + adminMsg.kind}, adminMsg.text) : null,
     phaseCard(), settings, finaleControls(), h('button',{class:'btn ghost',onclick:exportCsv},'Eksport wyników CSV'), table, adminDetailCard());
 }
-// Etap zmienia się wyłącznie tutaj, z potwierdzeniem. Stan pytania przetrwa odświeżenie panelu.
+// Ręczna zmiana etapu z potwierdzeniem; sterowanie finałem ma własne pytanie.
 let phaseAsk=null;
 function phaseCard(){
   const current=PHASES[S.config.phase] ? S.config.phase : 'main'; // dawny etap „registration” traktujemy jak grę

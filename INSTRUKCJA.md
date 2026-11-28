@@ -89,8 +89,10 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 - Stacja: drużyna otwiera stronę ćwiczenia, kończy zadanie i wpisuje pokazaną flagę w **Laboratoria → właściwy lab → Zalicz lab**. Nie czeka na prowadzącego. SOC rozpoczyna sama; flaga pojawia się po czterech zadaniach (konsola SOC = 4) i osobnej reakcji (5). Serwer porównuje flagę, sprawdza członkostwo, etap i deadline; zapisuje audyt, status i ranking atomowo, bez powtórnych punktów.
 - Awaria sprzętu / późny zapis: zaznacz **Tryb awaryjny**, wpisz uzasadnienie min. 5 znaków i zatwierdź. Zapisuje się organizator, czas serwera i przyczyna. To świadomy wyjątek, nie furtka dla ucznia.
 - Bonus 0–100 można zapisać tylko w etapie **Finał**. Zadania edukacyjne nie zmieniają oficjalnych punktów.
-- `#ekran` działa bez logowania i nie musi być otwarty. `#final` też jest publiczny. Finał uruchamia organizator: odliczanie 5–600 s → cztery systemy co 3 s → zielony status i podium. Ponowne wejście odtwarza sekwencję z czasu konfiguracji, nie lokalnego licznika.
-- Po teleturnieju kliknij **Zakończ wydarzenie i pokaż podium**. Pobierz CSV. Usuń uprawnienia organizatorów, którzy nie powinni ich zachować; ustal termin retencji danych.
+- `#ekran` działa bez logowania i nie musi być otwarty. `#final` też jest publiczny. W panelu ustaw odliczanie 5–600 s i kliknij **Uruchom odliczanie i sekwencję przywracania**. Zobaczysz liczbę gotowych drużyn i ostrzeżenie, że zmiana na Finał wyłączy wpisywanie flag i zapisywanie zadań. Dopiero **Tak, uruchom finał** zapisuje zmianę; **Anuluj** niczego nie zapisuje. Nie trzeba czekać na gotowość wszystkich drużyn — decyzję podejmuje organizator.
+- Duży ekran: odliczanie → cztery systemy co 3 s → zielony status, klucz fabularny i podium. Przed zakończeniem sekwencji zamiast fragmentów są kropki. Ponowne wejście odtwarza stan z czasu konfiguracji, nie lokalnego licznika. Klucz to rekwizyt, nie sekret konta.
+- **Wstrzymaj finał** wymaga potwierdzenia i wraca do oczekiwania, bez zmiany etapu. Kolejny start rozpoczyna nowe odliczanie, nie wznawia starego. Pytanie i wybrany czas nie znikają przy aktualizacji rankingu; jeśli inny organizator zmieni sterowanie finałem lub etap, trzeba sprawdzić nowy stan i potwierdzić ponownie.
+- Po teleturnieju zapisz bonusy, następnie kliknij **Zakończ wydarzenie i pokaż podium** → **Tak, zakończ wydarzenie**. Zamknie to również zakładanie drużyn i dołączanie. Pobierz CSV. Usuń uprawnienia organizatorów, którzy nie powinni ich zachować; ustal termin retencji danych.
 
 ## 6. Urządzenia i ograniczenia
 
