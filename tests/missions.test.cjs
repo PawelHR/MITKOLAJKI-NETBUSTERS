@@ -149,8 +149,8 @@ test('telefon nie linkuje do stron stacji ani dużego ekranu',()=>{
   for(const i of [0,1,2,3]){h.run('renderStation(STATIONS['+i+'])');assert.ok(!h.elements().some(e=>e.tagName==='A'),'lab '+(i+1));}
   h.run('S.team={unlocked:{s1:true,s2:true,s3:true,s4:true},name:"X",id:"ABCD"};renderKey()');assert.ok(!h.elements().some(e=>e.tagName==='A'&&/#(final|gra|skarbiec|siem|drzwi)/.test(e.attrs.href||'')));
 });
-test('SIEM: podpowiedź mówi, ilu alertów brakuje i które są szumem; jest instrukcja krok po kroku',async()=>{
-  const h=harness();h.run('siemReset()');assert.ok(h.app.textContent.includes('Instrukcja dla drużyny'));
+test('SIEM: informacja o zaznaczeniu wszystkich alertów ataku; podpowiedź mówi, ilu brakuje i które są szumem',async()=>{
+  const h=harness();h.run('siemReset()');assert.ok(h.app.textContent.includes('wszystkich alertach, które należą do tego ataku'));assert.ok(!h.app.textContent.includes('krok po kroku'));
   h.run('SV.picked.add("a5");Object.assign(SV.form,{ip:"185.220.101.7",user:"admin",time:"03:12:03",session:"S-7731",priority:"high"})');
   await submit(h,'Zgłoszenie incydentu');assert.ok(h.app.textContent.includes('Do poprawy: alerty'));assert.ok(h.app.textContent.includes('Brakuje jeszcze 2 alerty'));
   h.run('["a4","a6","a7"].forEach(id=>SV.picked.add(id))');await submit(h,'Zgłoszenie incydentu');
