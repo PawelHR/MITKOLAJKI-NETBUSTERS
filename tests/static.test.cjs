@@ -20,6 +20,8 @@ test('piaskownica bez pochodzenia rodzica i połączeń sieciowych; tylko flaga 
   assert.ok(!js.includes('doorCfg.pin ||'));
   assert.ok(js.includes("flagCard('s1')"));
   assert.ok(!js.includes('sideClickFix'));
+  assert.ok(!js.includes('Piaskownica bez Firebase i sesji organizatora.'));
+  assert.ok(!js.includes('Terminal (poza piaskownicą)'));
 });
 test('reset obejmuje parametry, rolę, klawisze, poziom i gwiazdki',()=>{
   const reset=js.slice(js.indexOf('   function reset(){'),js.indexOf('   function finish(){'));

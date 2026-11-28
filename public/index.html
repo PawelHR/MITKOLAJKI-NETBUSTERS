@@ -1780,7 +1780,7 @@ function renderGame(){
     ${h.toString()} ${flagCard.toString()} ${stopGame.toString()} ${renderVulnerableGame.toString()} renderVulnerableGame();`;
   frame.srcdoc='<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; connect-src \'none\'; form-action \'none\'"><style>'+style+'</style><div id="app" class="wrap wide"></div><script>'+script+'<'+ '/script></html>';
-  put(h('a',{href:'#',class:'back'},'← Terminal (poza piaskownicą)'),h('div',{class:'msg'},'Piaskownica bez Firebase i sesji organizatora. Rola Local Storage jest tu symulowana w pamięci. Odświeżenie/reset usuwa stan.'),frame);
+  put(h('a',{href:'#',class:'back'},'← Terminal'),frame);
 }
 function stopGame(){
   cancelAnimationFrame(gameRaf); gameRaf = null;
