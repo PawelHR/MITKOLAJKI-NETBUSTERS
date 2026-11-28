@@ -7,8 +7,8 @@
     "emulators": "firebase emulators:start --project demo-operacja-biegun"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "firebase": "^11.10.0",
+    "@firebase/rules-unit-testing": "3.0.4",
+    "firebase": "10.12.2",
     "firebase-tools": "^14.0.0"
   }
 }

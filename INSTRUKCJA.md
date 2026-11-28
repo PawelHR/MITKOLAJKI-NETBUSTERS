@@ -10,7 +10,7 @@
 
 ## 2. Najpierw lokalnie
 
-Node 20+, npm i Java 21 w PATH/JAVA_HOME:
+Node 20+, npm i Java 21+ (np. JDK 22) w PATH/JAVA_HOME:
 
 ```powershell
 npm ci
@@ -40,7 +40,7 @@ Nowe reguły **nie są zgodne ze starym schematem**. Nie ma samoczynnego usuwani
    - `name`, `school` 0–2, `createdAt` Timestamp, `createdBy` UID;
    - `unlocked`: tylko `s1`–`s4` ze statusem **true**, nigdy tekstem PIN-u;
     - `side`: `p1`–`p8` ze statusem true (szyfr też true), bez oficjalnych punktów; wcześniejsze `p9` zachowaj wyłącznie jako historię, nowe zapisy są zabronione;
-   - `soc: {}` (nie importuj postępu z localStorage), `registrationOpen: false`, `bonus` liczba całkowita 0–100; krótki `joinCode` i indeks kodów uzupełnia się osobnym krokiem opisanym niżej;
+   - `soc: {}` (nie importuj postępu z localStorage), `registrationOpen: false`, `bonus` liczba całkowita 0–100; krótki `joinCode` i indeks kodów uzupełnia się osobnym krokiem opisanym niżej; `memberCount` (liczba członków, maks. 4) ustaw w panelu: `#admin → Prowadź → Ustaw licznik` — bez niego nikt nie dołączy kodem;
    - usuń nieznane pola ze schematu po zabezpieczeniu kopii. Nie usuwaj dokumentów drużyn ani członków bez decyzji organizatora.
 6. W konsoli utwórz dla historycznych zaliczeń `teams/{ID}/awards/{s1…s4}` z `by`, `at`, `emergency:true`, `reason: Migracja zatwierdzona przez organizatora`. Sam `unlocked` nie może już zawierać sekretu.
 7. Dla każdej drużyny utwórz `leaderboard/{ID}` **wyłącznie** z `name`, `school`, `unlocked` (booleany), `bonus`, `updatedAt` Timestamp. Nie kopiuj całego prywatnego dokumentu. Sprawdź spójność z prywatnym stanem.

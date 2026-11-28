@@ -27,3 +27,18 @@ test('reset obejmuje parametry, rolę, klawisze, poziom i gwiazdki',()=>{
   const reset=js.slice(js.indexOf('   function reset(){'),js.indexOf('   function finish(){'));
   for(const term of ['predkosc:4','grawitacja:0.5','klucze:0','poziom:1','keys={}','stars.clear()',"setItem('rola','elf')",'hintLvl=0'])assert.ok(reset.includes(term),term);
 });
+test('jedna wersja Firebase SDK: aplikacja, service worker i testy',()=>{
+  const versions=new Set([...html.matchAll(/gstatic\.com\/firebasejs\/([\d.]+)\//g)].map(m=>m[1]));
+  assert.equal(versions.size,1);const [v]=versions;
+  assert.ok(fs.readFileSync('public/sw.js','utf8').includes(`/firebasejs/${v}/`));
+  assert.equal(JSON.parse(fs.readFileSync('package.json','utf8')).devDependencies.firebase,v);
+});
+test('limit drużyny spójny w aplikacji i regułach; etap zmieniany osobno',()=>{
+  assert.ok(js.includes('const TEAM_MAX = 4;'));
+  assert.ok(fs.readFileSync('firestore.rules','utf8').includes('d.memberCount <= 4'));
+  assert.ok(js.includes('memberCount:increment(1)')&&js.includes('memberCount:increment(-1)'));
+  assert.ok(!js.includes('endTime'));
+  const settings=js.slice(js.indexOf('const fields={'),js.indexOf('const settings ='));
+  assert.ok(!settings.includes('phase'));
+  assert.ok(js.includes("'Tak, zmień etap'"));
+});

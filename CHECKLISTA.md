@@ -11,8 +11,10 @@
 
 ## Rejestracja i etapy
 - [ ] Nazwy szkół, sale, harmonogram i wiadomość centrali ustawione w panelu.
+- [ ] Etap zmieniany tylko kartą „Etap wydarzenia” z potwierdzeniem; przy Grze głównej brak ostrzeżenia o minionym terminie.
 - [ ] Właściwa **data**, strefa i deadline `mainEndsAt`; sam zegar nie wystarczy.
 - [ ] Gracz sam tworzy drużynę, drugi telefon wpisuje 6-znakowy kod i od razu dołącza, bez akceptacji prowadzącego.
+- [ ] Limit 4 osób: piąty telefon dostaje odmowę, odejście zwalnia miejsce. Istniejące drużyny mają ustawiony licznik (`#admin → Prowadź → Ustaw licznik`, jeśli panel go pokazuje).
 - [ ] Sam publiczny ID nie pozwala dołączyć; kod nie jest w rankingu, na rzutniku ani w URL.
 - [ ] Kod jest widoczny członkom po odświeżeniu; po zmianie stary kod przestaje działać.
 - [ ] Zamknięta drużyna i zamknięta Rejestracja blokują samodzielne dołączanie, także przy zapamiętanym kodzie.

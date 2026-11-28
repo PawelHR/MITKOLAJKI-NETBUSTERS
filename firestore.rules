@@ -25,8 +25,9 @@ service cloud.firestore {
     }
     function validTeam(d) {
       return d.keys().hasAll(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus'])
-        && d.keys().hasOnly(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus','joinCode'])
+        && d.keys().hasOnly(['name','school','createdAt','createdBy','unlocked','side','soc','registrationOpen','bonus','joinCode','memberCount'])
         && (!('joinCode' in d) || (d.joinCode is string && d.joinCode.matches('^[A-Z2-9]{6}$')))
+        && (!('memberCount' in d) || (d.memberCount is int && d.memberCount >= 0 && d.memberCount <= 4))
         && d.name is string && d.name.size() >= 2 && d.name.size() <= 28
         && d.school in [0,1,2] && d.registrationOpen is bool
         && d.bonus is int && d.bonus >= 0 && d.bonus <= 100
@@ -83,11 +84,28 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/stationFlags/$(id)).data.active == true
         && get(/databases/$(database)/documents/stationFlags/$(id)).data.value == d.flag;
     }
+    // Limit 4 osób: licznik zmienia się o 1 wyłącznie razem z dołączeniem/odejściem tego UID.
+    // Drużyny bez licznika (sprzed limitu) nie przyjmują nowych osób, dopóki organizator go nie ustawi.
+    function memberCountUpdate(t) {
+      let old = resource.data;
+      let next = request.resource.data;
+      let me = /databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid);
+      return next.diff(old).affectedKeys().hasOnly(['memberCount']) && 'memberCount' in old
+        && ((next.memberCount == old.memberCount + 1 && !exists(me) && existsAfter(me))
+          || (next.memberCount == old.memberCount - 1 && exists(me) && !existsAfter(me)));
+    }
+    function countUp(t) {
+      return getAfter(/databases/$(database)/documents/teams/$(t)).data.get('memberCount',-1) == team(t).get('memberCount',-100) + 1;
+    }
+    function countDown(t) {
+      return !exists(/databases/$(database)/documents/teams/$(t)) || !('memberCount' in team(t))
+        || getAfter(/databases/$(database)/documents/teams/$(t)).data.get('memberCount',-1) == team(t).memberCount - 1;
+    }
     function updateTeam(t) {
       let old = resource.data;
       let next = request.resource.data;
       let changed = next.diff(old).affectedKeys();
-      return (admin() ? adminUpdate(t) : member(t) && (
+      return (admin() ? adminUpdate(t) : memberCountUpdate(t) || member(t) && (
         (playing() && (changed.hasOnly(['unlocked']) ? stationUpdate(t) : educationalUpdate()))
         || (registration() && old.createdBy == request.auth.uid && changed.hasOnly(['registrationOpen','joinCode'])
           && (next.get('joinCode','') == old.get('joinCode','') || linkedCode(t,next)))
@@ -153,6 +171,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time && request.resource.data.registrationOpen == true
         && request.resource.data.unlocked == {} && request.resource.data.side == {}
         && request.resource.data.soc == {} && request.resource.data.bonus == 0
+        && request.resource.data.memberCount == 1
         && linkedCode(t,request.resource.data)
         && existsAfter(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid))
         && mirrored(t,request.resource.data);
@@ -163,14 +182,14 @@ service cloud.firestore {
         allow create: if signed() && request.resource.data.keys().hasOnly(['nick','joinedAt','joinCode'])
           && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
           && request.resource.data.joinedAt == request.time
-          && (joinByCode(t,uid,request.resource.data)
+          && ((joinByCode(t,uid,request.resource.data) && countUp(t))
           || (admin() && registration() && team(t).registrationOpen
             && !exists(/databases/$(database)/documents/teams/$(t)/revoked/$(uid))
-            && exists(/databases/$(database)/documents/teams/$(t)/requests/$(uid)))
+            && exists(/databases/$(database)/documents/teams/$(t)/requests/$(uid)) && countUp(t))
           || (request.auth.uid == uid && !exists(/databases/$(database)/documents/teams/$(t))
             && getAfter(/databases/$(database)/documents/teams/$(t)).data.createdBy == uid));
         allow update: if false;
-        allow delete: if admin() || (signed() && request.auth.uid == uid);
+        allow delete: if (admin() || (signed() && request.auth.uid == uid)) && countDown(t);
       }
       match /requests/{uid} {
         allow get: if admin() || (signed() && request.auth.uid == uid);

@@ -19,7 +19,7 @@ Drużyny po 3–4 osoby. Cztery rotacje po 25 min + 5 min przejścia.
 | 12:00–12:40 | Finał fabularny i opcjonalny teleturniej |
 | 12:40–13:00 | Zakończenie, podium |
 
-Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu. Deadline zapisów ma **datę i godzinę**, nie sam zegar. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
+Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę**, nie sam zegar — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
 
 ## Cztery stacje
 
@@ -62,7 +62,7 @@ Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Drużyna s
 ```
 config/main                         publiczne etapy, deadline, sale, finał
 leaderboard/{publicznyID}            publiczna projekcja: nazwa, szkoła, statusy true, bonus, aktualizacja
-teams/{publicznyID}                  prywatny stan drużyny i wspólne dowody SOC
+teams/{publicznyID}                  prywatny stan drużyny, wspólne dowody SOC, licznik memberCount (maks. 4)
 teams/{ID}/members/{uid}             członkowie: czytają drużyna i organizatorzy
 teams/{ID}/requests/{uid}            starsze prośby: kompatybilność z poprzednią wersją
 teams/{ID}/revoked/{uid}             cofnięte członkostwo: tylko organizatorzy
@@ -75,6 +75,8 @@ admins/{uid}                        lista organizatorów, dodawana w konsoli
 ```
 
 **Proste dołączanie:** gracz sam zakłada drużynę i dostaje **6-znakowy kod**. Koledzy wpisują kod i pseudonim — od razu dołączają, **bez prowadzącego, długiego tokenu i oczekiwania na akceptację**. Kod pozostaje widoczny członkom drużyny także po odświeżeniu. Drużynę, pierwszego członka i indeks kodu tworzy jeden atomowy batch.
+
+**Limit 4 osób na drużynę.** Dołączenie i odejście zmieniają `memberCount` o 1 w tym samym batchu co dokument członka; reguły odrzucają piątą osobę, fałszywy licznik i odejście bez zwolnienia miejsca. Gdy drużyna jest pełna, kod znika z ekranu członków. Drużyny sprzed limitu nie mają licznika i nikogo nie przyjmą, dopóki organizator nie kliknie w `#admin → Prowadź` przycisku **Ustaw licznik**.
 
 Publiczny czteroznakowy ID służy prowadzącemu i rankingowi, **nie pozwala dołączyć**. Kod do dołączania jest osobny i nie trafia do rankingu ani URL. Nie można pobrać listy kodów; reguły sprawdzają podany kod, etap i stan drużyny przed dodaniem konkretnego UID. Twórca lub organizator może zmienić kod; stary przestaje działać bez wyrzucania obecnych członków.
 
@@ -96,7 +98,7 @@ Service worker przechowuje wyłącznie publiczną stronę, moduły punktacji/fla
 
 ## Uruchomienie i testy
 
-Wymagane Node 20+ i Java 21 do emulatora (żadnych zależności runtime poza SDK z CDN).
+Wymagane Node 20+ i Java 21+ do emulatora (JDK 22 też działa; stara Java 7/8 na PATH go nie uruchomi — ustaw `JAVA_HOME`). Żadnych zależności runtime poza SDK z CDN. Testy używają **tej samej wersji SDK co aplikacja (10.12.2)**; test statyczny pilnuje zgodności `index.html`, `sw.js` i `package.json`.
 
 ```powershell
 npm ci

@@ -183,7 +183,7 @@ td.num,th.num{text-align:right}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, doc, collection, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, runTransaction, serverTimestamp, Timestamp, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, doc, collection, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, runTransaction, serverTimestamp, increment, Timestamp, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { PHASES, officialPoints, stationCount, buildRanking, resultsCsv } from './core.js';
 import { STATION_FLAGS } from './station-flags.js';
 
@@ -223,6 +223,7 @@ const SIDE = [
   { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty." }
 ];
 const BONUS_MAX = 100;
+const TEAM_MAX = 4; // ten sam limit sprawdzają reguły Firestore (memberCount)
 const MESSAGES = [
   { from:"SMS · 8080", body:"InPost: Twoja paczka jest wstrzymana. Dopłać 1,99 zł za dostawę: inpost-pl.delivery-24.com", bad:true, why:"Prawdziwa domena to inpost.pl. Tu „inpost” jest tylko ozdobą przed delivery-24.com." },
   { from:"Aplikacja banku", body:"Zalogowano w aplikacji na nowym telefonie. To nie Ty? Zadzwoń na numer z odwrotu swojej karty.", bad:false, why:"Nie ma linku i nikt nie prosi o dane. Każe zadzwonić na numer, który sam znasz." },
@@ -414,7 +415,7 @@ async function createTeam(name, school, nick){
     const code = randomCode();
     const b = writeBatch(S.db);
     const joinCode = randomCode(6);
-    const data = { name, school, createdAt:serverTimestamp(), createdBy:S.user.uid, unlocked:{}, side:{}, soc:{}, registrationOpen:true, bonus:0, joinCode };
+    const data = { name, school, createdAt:serverTimestamp(), createdBy:S.user.uid, unlocked:{}, side:{}, soc:{}, registrationOpen:true, bonus:0, joinCode, memberCount:1 };
     b.set(doc(S.db,"teams",code), data);
     b.set(doc(S.db,"teams",code,"members",S.user.uid), { nick, joinedAt:serverTimestamp() });
     b.set(doc(S.db,'leaderboard',code), publicTeam(data));
@@ -431,7 +432,11 @@ async function joinTeam(code, nick){
   // Powrót istniejącego członka nie nadpisuje jego członkostwa ani joinedAt.
   try { const existing=await getDocFromServer(doc(S.db,'teams',teamId)); if(existing.exists())return teamId; }
   catch(e){if(!denied(e))throw e;}
-  await setDoc(doc(S.db,'teams',teamId,'members',S.user.uid),{nick,joinedAt:serverTimestamp(),joinCode:code});
+  // Członkostwo i licznik w jednym batchu: reguły odrzucą piątą osobę.
+  const b=writeBatch(S.db);
+  b.set(doc(S.db,'teams',teamId,'members',S.user.uid),{nick,joinedAt:serverTimestamp(),joinCode:code});
+  b.update(doc(S.db,'teams',teamId),{memberCount:increment(1)});
+  await b.commit();
   return teamId;
 }
 async function issueJoinCode(teamId){
@@ -539,7 +544,7 @@ function renderJoin(){
         const btn = e.submitter; if (btn) btn.disabled = true;
         try {
           const teamId=await joinTeam(c,n);S.nick=n;S.code=teamId;ls.set('ob_nick',n);ls.set('ob_team',teamId);S.notice='Jesteś w drużynie. Możecie działać razem!';watchTeam(teamId);render();
-        } catch(ex){ if (btn) btn.disabled = false; fail('Nie można dołączyć: sprawdź kod i internet. Drużyna lub etap rejestracji mogą być zamknięte; usunięty telefon wymaga pomocy organizatora.'); }
+        } catch(ex){ if (btn) btn.disabled = false; fail('Nie można dołączyć: sprawdź kod i internet. Drużyna może być pełna ('+TEAM_MAX+' osoby) albo dołączanie lub etap rejestracji są zamknięte; usunięty telefon wymaga pomocy organizatora.'); }
       }},
       h("h2",null,"Dołącz do drużyny"),
       h("label",{for:"j-code"},"Kod drużyny (6 znaków)", code), nickL, err,
@@ -593,7 +598,8 @@ function renderHome(){
       h("div",{class:"spread"}, h("h2",null,"Wasza drużyna"), h("span",{class:"pill gold"}, pointsOf(t) + " pkt oficjalnych")),
       h('p',{class:'educational'},'Edukacyjne: '+SIDE.filter(s=>sd[s.id]).reduce((n,s)=>n+s.max,0)+' pkt · poza rankingiem'),
        h("p",{class:"small muted"},"Publiczny ID: ", h("b",{class:"mono"}, t.id), " · " + (schools()[t.school]||"")),
-        t.joinCode ? h('div',{class:'stack',style:'gap:4px'},h('span',{class:'small muted'},'Kod do dołączenia — podaj go kolegom'),h('div',{class:'codebox',style:'font-size:1.7rem'},t.joinCode)) : null,
+        S.members.length >= TEAM_MAX ? h('p',{class:'small muted'},'Drużyna jest pełna ('+TEAM_MAX+' osoby). Nikt więcej nie dołączy, dopóki ktoś nie opuści drużyny.')
+        : t.joinCode ? h('div',{class:'stack',style:'gap:4px'},h('span',{class:'small muted'},'Kod do dołączenia — podaj go kolegom (maks. '+TEAM_MAX+' osoby w drużynie)'),h('div',{class:'codebox',style:'font-size:1.7rem'},t.joinCode)) : null,
        t.createdBy===S.user.uid ? h('button',{class:'btn sm ghost',disabled:S.config.phase!=='registration',onclick:async()=>{
          try { await updateDoc(doc(S.db,'teams',t.id),{registrationOpen:!t.registrationOpen}); }
          catch(e){ S.notice='Nie udało się zmienić rejestracji.'; render(); }
@@ -625,7 +631,9 @@ function leaveBtn(){
   const wrap = h("div",{class:"row",style:"justify-content:center"});
   const reset = ()=> wrap.replaceChildren(h("button",{class:"btn sm ghost",onclick:ask},"Opuść drużynę na tym telefonie"));
   const ask = ()=> wrap.replaceChildren(h("span",{class:"muted small"},'Postęp zostaje przy drużynie. W czasie rejestracji możesz wrócić jej kodem, jeśli dołączanie jest otwarte.'),
-      h("button",{class:"btn sm red",onclick:async ()=>{ const ref = doc(S.db,"teams",S.code,"members",S.user.uid); try { await deleteDoc(ref); leaveLocal('Opuszczono drużynę.'); } catch(e){ S.notice='Nie udało się opuścić drużyny. Sprawdź internet.'; render(); } }},"Opuść"),
+      h("button",{class:"btn sm red",onclick:async ()=>{ const b = writeBatch(S.db); b.delete(doc(S.db,"teams",S.code,"members",S.user.uid));
+        if (typeof S.team?.memberCount === 'number') b.update(doc(S.db,"teams",S.code),{memberCount:increment(-1)}); // zwalnia miejsce w drużynie
+        try { await b.commit(); leaveLocal('Opuszczono drużynę.'); } catch(e){ S.notice='Nie udało się opuścić drużyny. Sprawdź internet.'; render(); } }},"Opuść"),
       h("button",{class:"btn sm ghost",onclick:reset},"Anuluj"));
   reset(); return wrap;
 }
@@ -676,7 +684,7 @@ async function openSeal(material, blob){
   } catch(e){ return null; }
 }
 
-/* ---- stacja 3: wspólne dowody → reakcja → raport dla prowadzącego ---- */
+/* ---- stacja 3: wspólne dowody → konsola SOC → reakcja → flaga labu 3 ---- */
 const S3_PARTS = [
   { id:"mail", name:"Mail od „Mikołaja”", what:"Analiza phishingu", view:"s3mail" },
   { id:"idor", name:"Portal prezentów", what:"Podglądanie cudzych danych", view:"s3idor" },
@@ -692,7 +700,7 @@ async function s3Done(id, container){
   catch(e){ container.replaceChildren(h('div',{class:'msg err'},'Nie zapisano. Sprawdź internet i etap gry.'),h('button',{class:'btn',onclick:()=>s3Done(id,container)},'Ponów zapis')); return; }
   container.replaceChildren(h("div",{class:"card",style:"text-align:center"},
     h("span",{class:"eyebrow",style:"color:var(--ok)"},"Dowód zabezpieczony"),
-    h("p",null,'Dowód zsynchronizowany. Kod raportu pojawi się dopiero po reakcji na incydent.'),
+    h("p",null,'Dowód zsynchronizowany. Flaga labu 3 pojawi się dopiero po czterech zadaniach i reakcji na incydent.'),
     h("button",{class:"btn ghost",onclick:()=>{view={type:"s3hub"};render();}},"Wróć do śledztwa")));
   container.scrollIntoView({behavior:"smooth",block:"center"});
 }
@@ -1427,21 +1435,32 @@ function renderAdmin(){
   }
   const sch = schools();
   const inputs = sch.map((s,i)=>h("input",{id:"set-s"+i,maxlength:"40",value:s}));
-  const end = h("input",{id:"set-end",type:"time",value:S.config.endTime || "11:25"});
-  const phase=h('select',{},Object.entries(PHASES).map(([id,text])=>h('option',{value:id,selected:(S.config.phase||'registration')===id},text)));
   const localDate=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  const deadline=h('input',{type:'datetime-local',required:true,value:localDate(S.config.mainEndsAt?.toDate()||new Date())});
+  // Brak terminu = puste pole do uzupełnienia, nigdy domyślne „teraz” (to od razu zamknęłoby grę).
+  const deadline=h('input',{type:'datetime-local',required:true,value:S.config.mainEndsAt ? localDate(S.config.mainEndsAt.toDate()) : ''});
   const rooms=h('input',{maxlength:160,value:(S.config.rooms||['Sala 1','Sala 2','Sala 3','Sala 4']).join(' | ')});
   const rotation=h('input',{maxlength:250,value:S.config.rotation||'09:25 → 09:55 → 10:25 → 10:55 · 25 min + 5 min przejścia'});
   const central=h('input',{maxlength:240,value:S.config.central||'Centrala: odzyskajcie cztery fragmenty. Liczy się współpraca.'});
+  // Zapisujemy tylko pola zmienione w tym formularzu, żeby nie nadpisać zmian innego organizatora.
+  const fields={
+    schools:{read:()=>inputs.map(x=>x.value).join('\n'),value:()=>inputs.map((x,i)=>x.value.trim()||DEFAULT_SCHOOLS[i])},
+    mainEndsAt:{read:()=>deadline.value,value:()=>Timestamp.fromDate(new Date(deadline.value))},
+    rooms:{read:()=>rooms.value,value:()=>rooms.value.split('|').map(x=>x.trim()).slice(0,4)},
+    rotation:{read:()=>rotation.value,value:()=>rotation.value},
+    central:{read:()=>central.value,value:()=>central.value}
+  };
+  const initial=Object.fromEntries(Object.entries(fields).map(([k,f])=>[k,f.read()]));
   const settings = h("form",{class:"card",onsubmit:async e=>{ e.preventDefault();
-      try { await setDoc(doc(S.db,"config","main"), { schools: inputs.map((x,i)=>x.value.trim()||DEFAULT_SCHOOLS[i]), endTime: end.value || "11:25", phase:phase.value, mainEndsAt:Timestamp.fromDate(new Date(deadline.value)), rooms:rooms.value.split('|').map(x=>x.trim()).slice(0,4), rotation:rotation.value, central:central.value },{merge:true}); flash("Zapisano ustawienia.","good"); }
+      const payload=Object.fromEntries(Object.entries(fields).filter(([k,f])=>f.read()!==initial[k]||!(k in S.config)).map(([k,f])=>[k,f.value()]));
+      if (!S.config.phase) payload.phase='registration'; // pierwsza konfiguracja; później etap zmienia osobna karta
+      if (!Object.keys(payload).length) return flash('Brak zmian do zapisania.','good');
+      try { await setDoc(doc(S.db,"config","main"), payload,{merge:true}); flash("Zapisano: "+Object.keys(payload).join(', ')+".","good"); }
       catch(ex){ flash("Nie udało się zapisać ustawień.","err"); } }},
     h("h2",null,"Ustawienia"), inputs.map((inp,i)=>h("label",{for:"set-s"+i},"Szkoła " + (i+1), inp)),
-    h("label",{for:"set-end"},"Koniec gry głównej (odliczanie na ekranie)", end),
-    h('label',null,'Etap wydarzenia',phase),h('label',null,'Termin serwera: koniec zapisów gry głównej (data i czas lokalny)',deadline),
+    h('label',null,'Koniec gry głównej: termin serwera dla zapisów i odliczanie na #ekran (data i czas lokalny)',deadline),
     h('label',null,'Sale stacji 1–4 (oddziel znakiem |)',rooms),h('label',null,'Harmonogram rotacji',rotation),h('label',null,'Wiadomość centrali',central),
-    h("button",{class:"btn",type:"submit"},"Zapisz"));
+    h("button",{class:"btn",type:"submit"},"Zapisz zmienione pola"),
+    h('p',{class:'muted small'},'Etap wydarzenia zmieniasz w osobnej karcie powyżej. Zapis wysyła tylko pola, które zmieniłeś.'));
   const { teams } = ranking();
   const table = h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Drużyny"), h("span",{class:"pill"}, teams.length + " drużyn")),
     h("p",{class:"muted small"},"„Finał” to opcjonalne punkty z teleturnieju (0–" + BONUS_MAX + "). Usuń drużynę, jeśli ma nieodpowiednią nazwę."),
@@ -1454,7 +1473,26 @@ function renderAdmin(){
   put(top,
     h("div",{class:"row"}, h("a",{class:"tab",href:"#ekran",style:"text-decoration:none"},"Ekran do rzutnika ↗"), logout),
     adminMsg.text ? h("div",{class:"msg " + adminMsg.kind}, adminMsg.text) : null,
-    settings, finaleControls(), h('button',{class:'btn ghost',onclick:exportCsv},'Eksport wyników CSV'), table, adminDetailCard());
+    phaseCard(), settings, finaleControls(), h('button',{class:'btn ghost',onclick:exportCsv},'Eksport wyników CSV'), table, adminDetailCard());
+}
+// Etap zmienia się wyłącznie tutaj, z potwierdzeniem. Stan pytania przetrwa odświeżenie panelu.
+let phaseAsk=null;
+function phaseCard(){
+  const current=S.config.phase||'registration';
+  const select=h('select',{id:'set-phase'},Object.entries(PHASES).map(([id,text])=>h('option',{value:id,selected:(phaseAsk||current)===id},text)));
+  const endMs=S.config.mainEndsAt?.toMillis?.()||0;
+  const warn=target=>target==='main'&&endMs<=Date.now()?'Termin gry głównej minął lub nie jest ustawiony — uczestnicy nie zapiszą flag. Najpierw ustaw termin w Ustawieniach.':'';
+  const body=phaseAsk&&phaseAsk!==current
+    ? [h('p',null,'Zmienić etap: ',h('b',null,PHASES[current]),' → ',h('b',null,PHASES[phaseAsk]),'?'),
+       warn(phaseAsk)?h('p',{class:'msg err small'},warn(phaseAsk)):null,
+       h('div',{class:'row'},
+         h('button',{class:'btn',onclick:async()=>{const target=phaseAsk;phaseAsk=null;
+           try{await setDoc(doc(S.db,'config','main'),{phase:target},{merge:true});flash('Etap: '+PHASES[target]+'.','good');}
+           catch(e){flash('Nie zmieniono etapu. Najpierw zapisz ustawienia z terminem gry głównej.','err');}}},'Tak, zmień etap'),
+         h('button',{class:'btn ghost',onclick:()=>{phaseAsk=null;render();}},'Anuluj'))]
+    : [h('label',{for:'set-phase'},'Nowy etap',select),
+       h('button',{class:'btn ghost',onclick:()=>{if(select.value===current)return flash('To już jest bieżący etap.','good');phaseAsk=select.value;render();}},'Zmień etap…')];
+  return h('section',{class:'card'},h('div',{class:'spread'},h('h2',null,'Etap wydarzenia'),h('span',{class:'pill gold'},PHASES[current])),body);
 }
 function flash(text, kind){ adminMsg = { text, kind }; render(); }
 function bonusInput(t){
@@ -1505,13 +1543,19 @@ function adminDetailCard(){
     h('h3',null,'Starsze prośby o członkostwo (nowi gracze dołączają kodem sami)'),
     t.requests.length ? t.requests.map(r=>h('div',{class:'row'},h('span',null,r.nick||'elf'),
       h('button',{class:'btn sm',onclick:()=>action(async()=>{
-        const b=writeBatch(S.db); b.set(doc(S.db,'teams',t.id,'members',r.id),{nick:r.nick,joinedAt:serverTimestamp()}); b.delete(doc(S.db,'teams',t.id,'requests',r.id)); await b.commit();
+        const b=writeBatch(S.db); b.set(doc(S.db,'teams',t.id,'members',r.id),{nick:r.nick,joinedAt:serverTimestamp()}); b.delete(doc(S.db,'teams',t.id,'requests',r.id)); b.update(doc(S.db,'teams',t.id),{memberCount:increment(1)}); await b.commit();
       })},'Zatwierdź telefon'),
       h('button',{class:'btn sm ghost',onclick:()=>action(()=>deleteDoc(doc(S.db,'teams',t.id,'requests',r.id)))},'Odrzuć'))) : h('p',{class:'muted'},'Brak próśb.'),
     h('h3',null,'Członkowie'),t.members.map(m=>h('div',{class:'row'},h('span',null,m.nick||'elf'),
       h('button',{class:'btn sm red',onclick:()=>action(async()=>{
-        const b=writeBatch(S.db); b.set(doc(S.db,'teams',t.id,'revoked',m.id),{at:serverTimestamp()}); b.delete(doc(S.db,'teams',t.id,'members',m.id)); await b.commit();
+        const b=writeBatch(S.db); b.set(doc(S.db,'teams',t.id,'revoked',m.id),{at:serverTimestamp()}); b.delete(doc(S.db,'teams',t.id,'members',m.id));
+        if (typeof t.memberCount==='number') b.update(doc(S.db,'teams',t.id),{memberCount:increment(-1)});
+        await b.commit();
       })},'Cofnij członkostwo'))),
+    // Drużyny sprzed limitu nie mają licznika: bez niego reguły nie przyjmą nowych osób.
+    t.memberCount!==Math.min(t.members.length,TEAM_MAX) ? h('div',{class:'stack',style:'gap:6px'},
+      h('p',{class:'small msg err'},'Licznik członków: '+(typeof t.memberCount==='number'?t.memberCount:'brak')+', faktycznie: '+t.members.length+'. Bez poprawnego licznika nikt nie dołączy kodem.'+(t.members.length>TEAM_MAX?' Drużyna przekracza limit '+TEAM_MAX+' osób — cofnij nadmiarowe członkostwa.':'')),
+      h('button',{class:'btn sm ghost',onclick:()=>action(()=>officialUpdate(t.id,{memberCount:Math.min(t.members.length,TEAM_MAX)}))},'Ustaw licznik na '+Math.min(t.members.length,TEAM_MAX))) : null,
     t.revoked.map(uid=>h('div',{class:'row'},h('span',{class:'small'},'Blokada telefonu: '+uid.slice(0,8)+'…'),h('button',{class:'btn sm ghost',onclick:()=>action(()=>deleteDoc(doc(S.db,'teams',t.id,'revoked',uid)))},'Usuń blokadę (potem można dołączyć kodem)'))));
 }
 function exportCsv(){
