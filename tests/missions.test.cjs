@@ -143,3 +143,8 @@ test('etap rejestracji usunięty: zakładanie drużyny aktywne w grze, zablokowa
   assert.equal(btn().disabled,false);
   h.run('S.config={phase:"ended"};renderJoin()');assert.equal(btn().disabled,true);
 });
+test('telefon nie linkuje do stron stacji ani dużego ekranu',()=>{
+  const h=harness();h.run('S.team={unlocked:{}};S.code="ABCD";S.config={phase:"main",mainEndsAt:{toMillis:()=>Date.now()+60000}}');
+  for(const i of [0,1,2,3]){h.run('renderStation(STATIONS['+i+'])');assert.ok(!h.elements().some(e=>e.tagName==='A'),'lab '+(i+1));}
+  h.run('S.team={unlocked:{s1:true,s2:true,s3:true,s4:true},name:"X",id:"ABCD"};renderKey()');assert.ok(!h.elements().some(e=>e.tagName==='A'&&/#(final|gra|skarbiec|siem|drzwi)/.test(e.attrs.href||'')));
+});

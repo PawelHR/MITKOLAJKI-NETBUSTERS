@@ -669,8 +669,8 @@ function renderStation(s){
     nodes.push(h("p",null,s.intro));
     nodes.push(h('p',{class:'muted small'},'Sala: '+(S.config.rooms?.[s.nr-1]||'zapytaj prowadzącego')+' · '+(S.config.rotation||'Rotacja według harmonogramu.')));
     if (s.hasTask) nodes.push(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"🔎 Otwórz śledztwo"));
-    const links={s1:'#gra',s2:'#skarbiec',s4:'#drzwi'};
-    if(links[s.id])nodes.push(h('a',{class:'btn ghost',href:links[s.id]},'Otwórz stronę stacji ↗'));
+    // Strony stacji (#gra, #skarbiec, #siem, #drzwi) są tylko na sprzęcie w sali, nie w telefonie uczestnika.
+    if(!s.hasTask)nodes.push(h('p',{class:'msg'},'Zadanie wykonujecie na sprzęcie w sali stacji. Flagę zobaczycie na jego ekranie.'));
     const input=h('input',{id:'station-flag',class:'code',maxlength:40,autocomplete:'off',autocapitalize:'characters',spellcheck:'false',placeholder:'Flaga ze stacji'});
     const error=h('div',{class:'msg err',hidden:true});
     const active=S.config.phase==='main'&&S.config.mainEndsAt?.toMillis()>Date.now();
@@ -1335,7 +1335,7 @@ function renderKey(){
     h("h1",null,'Cztery fragmenty odzyskane'), keyStrip(),
     h("div",{class:"codebox",style:"font-size:1.1rem;letter-spacing:.12em"}, STATIONS.map(s=>s.frag).join("-")),
     h("p",null,'To publiczny klucz fabularny, nie hasło do konta. Prawdziwą frazę buduje się z losowych słów, niepublikowanych i unikalnych. Nie używajcie tych fragmentów jako hasła.'),
-    h("p",{class:"muted"},'Centrala uruchomi wspólny finał. Zadania opcjonalne nie są wymagane.'),h('a',{href:'#final',class:'btn'},'Przejdź do centrum dowodzenia'));
+    h("p",{class:"muted"},'Centrala uruchomi wspólny finał. Zadania opcjonalne nie są wymagane.'),h('p',{class:'msg'},'Centrum dowodzenia pojawi się na dużym ekranie w auli.'));
 }
 
 function finaleControls(){
