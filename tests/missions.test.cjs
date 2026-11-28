@@ -45,9 +45,9 @@ test('Grand Scam Auto VI: flagi → infostealer → wszystkie zabezpieczenia →
   await h.click('Zakończ misję');assert.ok(h.app.textContent.includes('MISSION PASSED – RESPECT +'));assert.ok(h.app.textContent.includes('Vice City Defender'));
   assert.deepEqual(Array.from(h.context.saved),['side.p8']);h.clean();
 });
-test('usunięto ClickFix, w grze jest 8 zadań pobocznych i 210 pkt edukacyjnych',()=>{
+test('usunięto ClickFix, w grze jest 9 zadań pobocznych i 240 pkt edukacyjnych',()=>{
   const h=harness();assert.equal(h.run('typeof sideClickFix'),'undefined');
-  assert.equal(h.run('SIDE.length'),8);assert.equal(h.run('SIDE.reduce((n,s)=>n+s.max,0)'),210);
+  assert.equal(h.run('SIDE.length'),9);assert.equal(h.run('SIDE.reduce((n,s)=>n+s.max,0)'),240);
   assert.equal(h.run('SIDE.some(s=>s.id==="p9")'),false);
 });
 test('agent: wykrycie, minimalne uprawnienia, blokada i człowiek wymagane łącznie',async()=>{
@@ -258,4 +258,37 @@ test('gra: ramka ufa tylko roli od rodzica; reset żąda wyłącznie rola=elf',(
   fromParent({type:'biegun-game-role',role:'admin'});assert.equal(h.run('client.read()'),'admin');
   h.run('client.reset()');assert.equal(h.run('client.read()'),'elf');
   assert.deepEqual(JSON.parse(JSON.stringify(messages)),[{data:{type:'biegun-game-reset-role'},target:'*'}]);
+});
+test('przepełnienie sań: pamięć jak po strcpy — terminator, admin, cel, wyjście poza strukturę',()=>{
+  const h=harness(),m=x=>h.run('sleighMemory('+JSON.stringify(x)+')');
+  assert.equal(m('RUDOLF').admin,false);assert.equal(m('RUDOLF').cel,'BIEGUN');
+  assert.equal(m('AAAAAAAA').admin,false,'8 znaków: terminator \0 trafia w bajt admin');
+  const nine=m('AAAAAAAAX');assert.equal(nine.admin,true);assert.equal(nine.cel,'','terminator obcina cel');
+  const win=m('AAAAAAAA1GRINCH');assert.equal(win.admin,true);assert.equal(win.cel,'GRINCH');assert.equal(win.crash,false);
+  assert.equal(m('AAAAAAAA1GRINCHXX').crash,true);
+});
+test('przepełnienie sań: odmowa, admin bez celu, potem przejęcie kursu zapisuje side.p10',async()=>{
+  const h=harness();h.run('S.team={side:{}};sideOverflow("p10")');h.clean();
+  const input=()=>h.elements().find(e=>e.attrs?.id==='bof-in');
+  input().value='RUDOLF';await submit(h,'Uruchom sanie');assert.ok(h.app.textContent.includes('Odmowa'));assert.equal(h.context.saved.length,0);
+  input().value='AAAAAAAAX';await submit(h,'Uruchom sanie');assert.ok(h.app.textContent.includes('Jesteście adminem'));assert.equal(h.context.saved.length,0);
+  input().value='aaaaaaaa1grinch';await submit(h,'Uruchom sanie');
+  assert.ok(h.app.textContent.includes('Sanie lecą do jaskini Grincha'));assert.deepEqual(Array.from(h.context.saved),['side.p10']);h.clean();
+});
+test('tabela hakerów: punkty edukacyjne, wspólne miejsca, bez drużyn z zerem i historycznego p9',()=>{
+  const h=harness();h.context.teams=[{id:'A',name:'Alfa',side:{p1:true,p10:true}},{id:'B',name:'Beta',side:{p7:true,p8:true}},{id:'C',name:'Celta',side:{p9:true}},{id:'D',name:'Delta',side:{p2:true}}];
+  const board=h.run('hackerBoard(teams).map(t=>[t.name,t.edu,t.hplace,t.done])');
+  assert.deepEqual(JSON.parse(JSON.stringify(board)),[['Alfa',60,1,2],['Beta',60,1,2],['Delta',20,3,1]]);
+});
+test('kontrola zaliczeń: szybka seria i wspólny telefon są sygnałem, awaryjne tylko informacją',()=>{
+  const h=harness(),min=60000;
+  h.context.list=[
+    {id:'AAAA',name:'Szybcy',awards:[{id:'s1',at:0,by:'u1'},{id:'s2',at:5*min,by:'u1'},{id:'s3',at:40*min,by:'u2'}]},
+    {id:'BBBB',name:'Uczciwi',awards:[{id:'s1',at:0,by:'u3'},{id:'s2',at:31*min,by:'u3'}]},
+    {id:'CCCC',name:'Bliźniacy',awards:[{id:'s1',at:0,by:'u2'},{id:'s4',at:3*min,by:'p',emergency:true,reason:'Awaria czytnika'}]}];
+  const rows=JSON.parse(JSON.stringify(h.run('suspiciousAwards(list)')));
+  assert.deepEqual(rows.map(r=>r.id),['AAAA','CCCC']);
+  assert.ok(rows[0].reasons.some(x=>x.includes('Stacje 1 i 2')&&x.includes('5 min')));
+  assert.ok(rows[0].reasons.some(x=>x.includes('CCCC')));assert.ok(rows[1].reasons.some(x=>x.includes('AAAA')));
+  assert.deepEqual(rows[1].emergency,['stacja 4: Awaria czytnika']);assert.ok(!rows[1].reasons.some(x=>x.includes('Stacje')),'awaryjne nie liczą się do serii');
 });

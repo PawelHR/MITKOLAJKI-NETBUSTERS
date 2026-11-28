@@ -16,7 +16,8 @@ async function main(){
   const ranking=await get(base+'/leaderboard');if(ranking.status!==200)throw new Error('PUBLIC_RANKING_UNAVAILABLE');
   const data=await ranking.json(),documents=data.documents||[];
   for(const d of documents){
-    const keys=Object.keys(d.fields||{}).sort();if(keys.join('|')!==['name','school','unlocked','bonus','updatedAt'].sort().join('|'))throw new Error('PUBLIC_SCHEMA_FAILED');
+    const keys=Object.keys(d.fields||{}).filter(k=>k!=='side').sort();if(keys.join('|')!==['name','school','unlocked','bonus','updatedAt'].sort().join('|'))throw new Error('PUBLIC_SCHEMA_FAILED');
+    for(const value of Object.values(d.fields.side?.mapValue?.fields||{}))if(value.booleanValue!==true)throw new Error('PUBLIC_SIDE_FAILED');
     for(const value of Object.values(d.fields.unlocked.mapValue.fields||{}))if(value.booleanValue!==true||Object.keys(value).length!==1)throw new Error('PUBLIC_SECRET_OR_STATUS_FAILED');
   }
   const id=documents[0]?.name.split('/').pop()||'ABCD';

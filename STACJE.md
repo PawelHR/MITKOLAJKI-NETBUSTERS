@@ -121,9 +121,27 @@ Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcj
 **Plan B:** emulacja nie działa → pokaż zapisany odczyt i użyj oryginału karty koła. Czytnik nie działa → prowadzący obserwuje zadanie i zalicza awaryjnie z przyczyną. BadUSB nie działa → przeczytaj nieszkodliwy skrypt z rzutnika.
 Po grupie usuń kopie **własnej karty koła** z Flippera, zresetuj pokaz i zabierz rekwizyty z prawdziwych obszarów biura. Żadnych prywatnych kart ani urządzeń uczniów.
 
+## Dodatkowe pokazy (opcjonalne)
+
+Fajne uzupełnienie na stoisku koła w przerwie albo dla drużyn, które skończą stację przed czasem. Bez punktów i bez aplikacji — liczy się zabawa i rozmowa o obronie. Prowadzi je członek koła ze swoim sprzętem.
+
+### Pilot Grincha — przejmowanie pilota (Sub-GHz)
+
+- **Sprzęt:** Flipper Zero i **tani własny pilot 433 MHz** koła z odbiornikiem: brama od zabawki, listwa LED, dzwonek bezprzewodowy. Opcjonalnie drugi pilot z **kodem zmiennym (rolling code)** do porównania.
+- **Przebieg:** uczniowie nagrywają Flipperem sygnał pilota (**Sub-GHz → Read**), zapisują go i odtwarzają (**Send**). Urządzenie reaguje jak na oryginał. Potem to samo z pilotem rolling code — powtórka nie działa.
+- **Lekcja:** stare piloty z kodem stałym da się skopiować i powtórzyć, dlatego piloty samochodowe i bramowe używają kodu zmiennego.
+- **Bezpieczeństwo i prawo:** kopiujemy **wyłącznie własny sprzęt koła**. Nagrywanie i odtwarzanie cudzego pilota do bramy, auta czy szlabanu jest nielegalne — to dobry temat do omówienia.
+
+### Kłódki — otwieranie zamków (lockpicking)
+
+- **Sprzęt:** przezroczyste kłódki treningowe i kilka tanich kłódek koła, zestaw napinaczy i wytrychów, ewentualnie kłódka z certyfikatem do porównania. Wszystkie zamki należą do koła.
+- **Przebieg:** prowadzący pokazuje na przezroczystej kłódce, jak działają zapadki (bolce), potem uczniowie próbują sami: napinacz lekko obraca bębenek, wytrych unosi zapadki po kolei. Tania kłódka często puszcza w kilkanaście sekund, certyfikowana — nie.
+- **Lekcja:** zabezpieczenie fizyczne jest tak mocne jak najsłabszy element. Tanie zamki chronią głównie przed okazją; ważne rzeczy wymagają lepszej klasy zamka, kilku warstw ochrony i monitoringu. To ten sam wniosek co przy kartach UID na stacji 4.
+- **Zasady:** ćwiczymy **tylko na zamkach koła**. Nigdy na zamkach w użyciu (drzwi szkoły, szafki, rowery), nawet „dla żartu”. Otwieranie cudzego zamka bez zgody właściciela jest przestępstwem; samo posiadanie narzędzi treningowych nie jest. Nie dajemy uczniom zestawów do domu.
+
 ## Zadania w drodze i finał
 
-Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta) oraz ukryty sygnał Grand Scam Auto VI (2–4 min). Łącznie 8 zadań i 210 pkt edukacyjnych. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
+Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta), **Przepełnienie sań** (buffer overflow: za długie imię kierowcy nadpisuje bajt uprawnień i cel lotu) oraz ukryty sygnał Grand Scam Auto VI (2–4 min). Łącznie 9 zadań i 240 pkt edukacyjnych. Punkty edukacyjne pokazuje osobna tabela „Hakerzy” na rzutniku `#ekran`. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
 
 Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Koordynator uruchamia `#final`: alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
 
@@ -135,6 +153,7 @@ Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych 
 | 2 | 3–4 laptopy/tablety, kalendarz, zdjęcie, wydruk hasha, wskazówki |
 | 3 | Telefony, komputer stacji z `/#siem` (duży ekran lub rzutnik, mysz), wydruki awaryjne |
 | 4 | Flipper, własny NTAG215 NDEF, etui/smycz, czapka elfa, Android NFC + ładowarka, laptop Windows, bezpieczny skrypt BadUSB, rekwizyty biurka |
+| Pokazy dodatkowe | Flipper + własny pilot 433 MHz z odbiornikiem (opcjonalnie pilot rolling code), przezroczyste kłódki treningowe, tanie kłódki koła, napinacze i wytrychy |
 | Wspólne | 8 prowadzących + koordynator, przedłużacze, dostęp do internetu, plakaty, plan sal, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
 
 Przed wydarzeniem wykonaj [CHECKLISTA.md](CHECKLISTA.md). Konfiguracja i migracja: [INSTRUKCJA.md](INSTRUKCJA.md).

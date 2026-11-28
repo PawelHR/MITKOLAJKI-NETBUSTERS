@@ -33,7 +33,7 @@ service cloud.firestore {
         && d.school in [0,1,2] && d.registrationOpen is bool
         && d.bonus is int && d.bonus >= 0 && d.bonus <= 100
         && monotone({},d.unlocked,['s1','s2','s3','s4'])
-        && monotone({},d.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
+        && monotone({},d.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10'])
         && monotone({},d.soc,['open','mail','idor','logs','triage','resp']);
     }
     function mirrored(t, d) {
@@ -59,8 +59,8 @@ service cloud.firestore {
     function educationalUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['side','soc'])
         // p9 pozostaje wyłącznie jako historyczne dane, bez nowego zaliczania.
-        && monotone(resource.data.side,request.resource.data.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
-        && request.resource.data.side.diff(resource.data.side).addedKeys().hasOnly(['p1','p2','p3','p4','p5','p6','p7','p8'])
+        && monotone(resource.data.side,request.resource.data.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10'])
+        && request.resource.data.side.diff(resource.data.side).addedKeys().hasOnly(['p1','p2','p3','p4','p5','p6','p7','p8','p10'])
         && request.resource.data.side.diff(resource.data.side).addedKeys().size()
            + request.resource.data.soc.diff(resource.data.soc).addedKeys().size() == 1
         && monotone(resource.data.soc,request.resource.data.soc,['open','mail','idor','logs','triage','resp'])
@@ -149,17 +149,21 @@ service cloud.firestore {
     match /leaderboard/{t} {
       allow read: if true;
       allow create, update: if signed()
-        && request.resource.data.keys().hasOnly(['name','school','unlocked','bonus','updatedAt'])
+        && request.resource.data.keys().hasOnly(['name','school','unlocked','bonus','updatedAt','side'])
         && monotone({},request.resource.data.unlocked,['s1','s2','s3','s4'])
+        // Statusy zadań pobocznych (tabela hakerów) są opcjonalne, ale zawsze równe prywatnemu stanowi drużyny.
+        && (!('side' in request.resource.data) || request.resource.data.side == getAfter(/databases/$(database)/documents/teams/$(t)).data.side)
         && request.resource.data.bonus is int && request.resource.data.bonus >= 0 && request.resource.data.bonus <= 100
         && request.resource.data.updatedAt == request.time
         && request.resource.data.name == getAfter(/databases/$(database)/documents/teams/$(t)).data.name
         && request.resource.data.school == getAfter(/databases/$(database)/documents/teams/$(t)).data.school
         && request.resource.data.unlocked == getAfter(/databases/$(database)/documents/teams/$(t)).data.unlocked
         && request.resource.data.bonus == getAfter(/databases/$(database)/documents/teams/$(t)).data.bonus
-        && (admin() || (member(t) && playing()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked','updatedAt'])
-          && request.resource.data.unlocked.diff(resource.data.unlocked).addedKeys().size() == 1)
+        && (admin() || (member(t) && playing() && (
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked','updatedAt','side'])
+              && request.resource.data.unlocked.diff(resource.data.unlocked).addedKeys().size() == 1)
+            || ('side' in request.resource.data
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['side','updatedAt']))))
         || (!exists(/databases/$(database)/documents/teams/$(t))
           && getAfter(/databases/$(database)/documents/teams/$(t)).data.createdBy == request.auth.uid));
       allow delete: if admin();

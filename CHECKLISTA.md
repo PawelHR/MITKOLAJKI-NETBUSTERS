@@ -44,7 +44,10 @@
 ## Misje, ranking, finał
 - [ ] Grand Scam Auto VI i oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.
 - [ ] Laby mają etykietę „Do zrobienia”; odkrycie Grand Scam pozostaje po odświeżeniu na tym telefonie, ale nie przechodzi na inną drużynę i samo nie daje punktów.
-- [ ] Oficjalne maksimum 500, edukacyjne 210 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
+- [ ] Oficjalne maksimum 500, edukacyjne 240 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
+- [ ] Przepełnienie sań przeklikane (odmowa → admin bez celu → kurs GRINCH); tabela hakerów na `#ekran` pokazuje punkty edukacyjne.
+- [ ] Przed podium: `#admin` → „Sprawdź zaliczenia”; oznaczone drużyny wyjaśnione z prowadzącymi.
+- [ ] Pokazy dodatkowe (pilot, kłódki): tylko sprzęt i zamki koła, nigdy zamki w użyciu.
 - [ ] Remis szkół i drużyn oznacza wspólne miejsce także na rzutniku (np. 1, 1, 3); CSV otwiera polskie znaki i nie wykonuje formuł.
 - [ ] Ranking działa po zamknięciu rzutnika, ma czas aktualizacji; limit odczytów Spark monitorowany.
 - [ ] Finał: przed potwierdzeniem liczba gotowych drużyn i ostrzeżenie o zamknięciu flag; anulowanie bez zapisu. Inny organizator nie może zostać nieświadomie nadpisany.

@@ -186,6 +186,12 @@ td.num,th.num{text-align:right}
 .siem-alert>.row{grid-column:2}
 @media (max-width:520px){.siem-stats{grid-template-columns:1fr}}
 .sev-crit,.sev-high{color:#ff7473} .sev-med{color:var(--gold)} .sev-low,.sev-info{color:var(--text)}
+.bof-mem{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin:6px 0}
+.bof-cell{border:1px solid var(--line);border-radius:6px;padding:6px 2px;text-align:center;background:var(--night);font-family:var(--f-mono);min-width:0}
+.bof-cell b{display:block;font-size:1.05rem;line-height:1.2} .bof-cell small{display:block;font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden}
+.bof-cell.buf{border-color:#5ea2ff} .bof-cell.adm{border-color:var(--gold)} .bof-cell.cel{border-color:var(--muted)}
+.bof-cell.ok{background:color-mix(in srgb,var(--ok) 18%,var(--night))} .bof-cell.over{background:color-mix(in srgb,var(--red) 28%,var(--night))}
+.bof-cell.crash{grid-column:span 8}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .vice{isolation:isolate;position:relative;overflow:hidden;border-radius:12px;min-height:240px;padding:24px;background:linear-gradient(155deg,#251046 15%,#9b287a 54%,#ff9b54);display:flex;flex-direction:column;justify-content:space-between;gap:20px;border:1px solid #ff6bcb}
 .vice h1,.vice h2{position:relative;color:#fff4e6;text-shadow:3px 3px #aa267e;font-style:italic;z-index:2}
@@ -243,6 +249,7 @@ const SIDE = [
   { id:"p5", name:"Darmowe pierniki", max:30, short:"Gdzieś na korytarzu wisi plakat z darmowymi piernikami. Znajdźcie go." },
   { id:"p6", name:"Zhakuj elfa-bota", max:30, short:"Bot pilnuje tajnego słowa. Namówcie go, żeby je zdradził." },
   { id:"p7", name:"Dziurawy panel elfów", max:30, short:"Zaloguj się do panelu bez hasła. Zobaczycie, czym jest SQL injection." },
+  { id:"p10", name:"Przepełnienie sań", max:30, short:"Za długie imię kierowcy nadpisuje pamięć sań. Przejmijcie kurs — buffer overflow." },
   { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty." }
 ];
 const BONUS_MAX = 100;
@@ -483,12 +490,14 @@ async function saveProgress(path, value){
     if (!['side','soc'].includes(group)) throw new Error('Zalicza prowadzący');
     if (s.data()[group]?.[id] === true) return; // idempotencja dwóch telefonów
     tx.update(ref, {[path]:true});
+    // Tabela hakerów na rzutniku: publiczna kopia statusów zadań pobocznych (reguły wymagają zgodności z drużyną).
+    if (group === 'side') tx.update(doc(S.db,'leaderboard',code), {side:{...(s.data().side||{}),[id]:true}, updatedAt:serverTimestamp()});
   });
   if (S.code === code) {
     const s = await getDocFromServer(ref); S.team={id:s.id,...s.data()}; S3={...S.team.soc};
   }
 }
-function publicTeam(t){ return {name:t.name,school:t.school,unlocked:t.unlocked,bonus:t.bonus,updatedAt:serverTimestamp()}; }
+function publicTeam(t){ return {name:t.name,school:t.school,unlocked:t.unlocked,bonus:t.bonus,side:t.side||{},updatedAt:serverTimestamp()}; }
 async function officialUpdate(code, change, award){
   await runTransaction(S.db,async tx=>{
     const ref=doc(S.db,'teams',code), s=await tx.get(ref);
@@ -1024,7 +1033,7 @@ async function finishSide(id, container, value){
 function renderSide(id){
   if(!SIDE.some(s=>s.id===id)){view={type:'home'};return renderHome();}
   if ((S.team.side||{})[id]) return sideShell(id, doneCard(id));
-  const task=({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli, p8:sideVice })[id];
+  const task=({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli, p8:sideVice, p10:sideOverflow })[id];
   if(!task){view={type:'home'};return renderHome();}task(id);
 }
 
@@ -1423,6 +1432,74 @@ function renderFinal(){
   tick();clockTimer=setInterval(tick,250);
 }
 
+/* zadanie poboczne p10: "Przepełnienie sań" — symulacja przepełnienia bufora (buffer overflow).
+   Program kopiuje imię kierowcy do 8-bajtowego bufora bez sprawdzenia długości (jak strcpy w C),
+   więc dłuższy tekst nadpisuje sąsiednie pola struktury. To tylko wizualizacja pamięci, nic się nie wykonuje. */
+const SLEIGH = { BUF:8, ADMIN:8, CEL:9, SIZE:16, TARGET:'GRINCH' };
+function sleighMemory(input){
+  const mem = Array(SLEIGH.SIZE).fill('\0'), touched = Array(SLEIGH.SIZE).fill(false);
+  'BIEGUN'.split('').forEach((c,i)=>{ mem[SLEIGH.CEL+i] = c; });
+  const bytes = [...String(input||'')].slice(0,24).concat('\0');   // strcpy kopiuje też terminator \0
+  const crash = bytes.length > SLEIGH.SIZE;                          // zapis poza strukturą
+  bytes.slice(0,SLEIGH.SIZE).forEach((c,i)=>{ mem[i] = c; touched[i] = true; });
+  let cel = ''; for (let i=SLEIGH.CEL; i<SLEIGH.SIZE && mem[i] !== '\0'; i++) cel += mem[i];
+  return { mem, touched, crash, admin: mem[SLEIGH.ADMIN] !== '\0', cel, overflow: bytes.length - 1 > SLEIGH.BUF };
+}
+function sideOverflow(id){
+  const input = h('input',{id:'bof-in',maxlength:'24',autocomplete:'off',autocapitalize:'characters',spellcheck:'false',placeholder:'np. RUDOLF',class:'mono'});
+  const memBox = h('div',{class:'bof-mem','aria-live':'polite'}), status = h('div',{class:'stack',style:'gap:6px'}), fb = h('div'), res = h('div');
+  const cellLabel = i => i < SLEIGH.BUF ? 'kierowca[' + i + ']' : i === SLEIGH.ADMIN ? 'admin' : 'cel[' + (i-SLEIGH.CEL) + ']';
+  const show = c => c === '\0' ? '\\0' : c === ' ' ? '␠' : c;
+  const draw = () => {
+    const m = sleighMemory(String(input.value||'').toUpperCase());
+    replaceContent(memBox, m.mem.map((c,i)=>h('div',{class:'bof-cell' + (i<SLEIGH.BUF?' buf':i===SLEIGH.ADMIN?' adm':' cel') + (m.touched[i] && i>=SLEIGH.BUF ? ' over' : m.touched[i] ? ' ok' : ''),title:cellLabel(i)},
+      h('b',null,show(c)), h('small',null, i<SLEIGH.BUF ? 'imię '+i : i===SLEIGH.ADMIN ? 'admin' : 'cel'))),
+      m.crash ? h('div',{class:'bof-cell over crash',title:'poza strukturą'},h('b',null,'💥'),h('small',null,'poza')) : null);
+    replaceContent(status,
+      h('div',{class:'spread'}, h('span',null,'Uprawnienia: ', h('b',{style:'color:' + (m.admin?'var(--red)':'var(--ok)')}, m.admin ? 'ADMIN (bajt ≠ 0)' : 'zwykły elf (bajt = 0)')),
+        h('span',null,'Cel lotu: ', h('b',{class:'mono'}, m.cel || '(pusty)'))),
+      m.crash ? h('div',{class:'msg err'},'Zapis wyszedł poza strukturę sań. Prawdziwy program by się wysypał (segmentation fault). Skróćcie tekst.') : null);
+    return m;
+  };
+  input.addEventListener('input', draw);
+  let hintLvl = 0; const hintBox = h('div');
+  const hintBtn = h('button',{class:'btn ghost',type:'button',onclick:()=>{
+    hintLvl = Math.min(hintLvl+1, 3);
+    const tips = ['Policzcie komórki: na imię jest dokładnie 8 miejsc. Co leży zaraz za nimi?',
+      'Najpierw 8 dowolnych liter (wypełniacz), potem 1 znak, który trafi w bajt admin, a dalej nowy cel lotu.',
+      'Wpiszcie: AAAAAAAA1GRINCH — osiem A, jedynka dla admina i GRINCH jako cel.'];
+    replaceContent(hintBox, tips.slice(0,hintLvl).map(t=>h('div',{class:'msg',style:'margin-top:6px'},t)),
+      hintLvl===3 ? h('button',{class:'btn sm',type:'button',style:'margin-top:8px',onclick:()=>{ input.value='AAAAAAAA1GRINCH'; draw(); }},'Wpisz przykład za mnie') : null);
+  }},'Podpowiedź 💡');
+  const form = h('form',{class:'card',onsubmit:e=>{
+    e.preventDefault();
+    const m = draw();
+    if (m.crash) return fb.replaceChildren(h('div',{class:'msg err'},'Sanie się zawiesiły. Za długi tekst nadpisał pamięć poza strukturą.'));
+    if (!m.admin) return fb.replaceChildren(h('div',{class:'msg err'}, m.overflow ? 'Prawie! Bajt admin dostał \\0 — terminator tekstu. Dopiszcie jeszcze jeden znak.' : '⛔ Odmowa: tylko admin może zmienić kurs. Na imię jest 8 miejsc… a jeśli wpiszecie więcej?'));
+    if (m.cel !== SLEIGH.TARGET) return fb.replaceChildren(h('div',{class:'msg'},'Jesteście adminem! Teraz cel lotu: Grinch chce, żeby sanie poleciały do ' + SLEIGH.TARGET + '. Dopiszcie ten cel zaraz za bajtem admin.'));
+    form.hidden = true; fb.replaceChildren();
+    const done = h('div');
+    res.replaceChildren(h('div',{class:'browser-page',style:'border:1px solid var(--red);border-radius:10px'},
+        h('span',{class:'eyebrow',style:'color:var(--red)'},'Kurs zmieniony: ' + SLEIGH.TARGET),
+        h('h3',null,'Sanie lecą do jaskini Grincha 🛷'),
+        h('p',{class:'small'},'Wasz tekst nie zmieścił się w 8 bajtach imienia i nadpisał sąsiednie pola: uprawnienia i cel lotu. Tak wygląda przepełnienie bufora — atakujący przejmuje kontrolę nad danymi programu.')),
+      h('section',{class:'card'}, h('h3',null,'Jak się przed tym bronić'), h('ul',{class:'tips'},
+        h('li',null,'Sprawdzać długość danych przed kopiowaniem: zamiast strcpy bezpieczne funkcje z limitem.'),
+        h('li',null,'Pisać w językach bezpiecznych pamięciowo (Rust, Python, Java), które pilnują granic za programistę.'),
+        h('li',null,'Systemy dodają zabezpieczenia: kanarki stosu i losowe adresy pamięci (ASLR) utrudniają atak.')),
+        done));
+    finishSide(id, done);
+  }},
+    h('p',{class:'small'},'Program sań przechowuje dane kierowcy w pamięci tak:'),
+    h('pre',{class:'sql'},'struct Sanie {\n  char kierowca[8];  // imię: 8 bajtów\n  char admin;        // 0 = zwykły elf\n  char cel[7];       // "BIEGUN"\n};\nstrcpy(sanie.kierowca, wpis);  // brak sprawdzenia długości!'),
+    h('label',{for:'bof-in'},'Imię kierowcy (program rezerwuje 8 znaków)', input),
+    memBox, status, fb,
+    h('div',{class:'row'}, h('button',{class:'btn',type:'submit'},'Uruchom sanie'), hintBtn), hintBox);
+  sideShell(id, h('p',null,'Grinch chce przekierować sanie do swojej jaskini. Panel startowy przyjmuje tylko imię kierowcy… ale nie sprawdza jego długości. Przejmijcie kurs: zostańcie adminem i ustawcie cel GRINCH.'),
+    form, res, h('p',{class:'muted small'},'Symulacja w przeglądarce: niczego nie uruchamiamy, tylko pokazujemy pamięć.'));
+  draw();
+}
+
 /* ===================== RANKING ===================== */
 // ranking na telefonie: jeden dokument, czytany przy wejściu i na przycisk (z przerwą 30 s)
 let rankRefreshTimer=null;
@@ -1468,10 +1545,69 @@ function renderScreen(){
         h("section",{class:"card"}, h("h2",null,"Najlepsze drużyny"),
           teams.length ? h("table",null, h("tbody",null, teams.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.place), h("td",null, t.name, " ", h("span",{class:"muted small"}, schools()[t.school]||"")), h("td",{class:"num mono"}, t.points)))))
           : h("p",{class:"muted"},"Drużyny pojawią się tu, gdy się zarejestrują.")),
+        (()=>{ const hk = hackerBoard(S.teams); return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Hakerzy · zadania poboczne"), h("span",{class:"muted small"},"poza oficjalnym rankingiem")),
+          hk.length ? h("table",null, h("tbody",null, hk.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.hplace), h("td",null, t.name, " ", h("span",{class:"muted small"}, t.done + "/" + SIDE.length + " zadań")), h("td",{class:"num mono"}, t.edu)))))
+          : h("p",{class:"muted"},"Pierwsze zadania poboczne pojawią się tutaj.")); })(),
         h("section",{class:"stack"}, h("h2",null,"Ostatnie punkty"),
           FEED.length ? h("div",{class:"feed"}, FEED.map(f=>h("div",null, h("b",null,"+" + f.d), " · " + f.team)))
           : h("p",{class:"muted"},"Czekamy na pierwsze punkty.")))),
     h('p',{class:'muted small mono'},'Ostatnia aktualizacja: '+(S.rankingAt?.toLocaleTimeString('pl-PL')||'—')+' · ranking działa niezależnie od rzutnika · remis = wspólne miejsce'));
+}
+
+/* Tabela hakerów: punkty edukacyjne z publicznej kopii statusów zadań pobocznych (poza oficjalnym rankingiem). */
+function eduPoints(t){ return SIDE.filter(s=>t.side?.[s.id]===true).reduce((n,s)=>n+s.max,0); }
+function hackerBoard(teams){
+  const list = teams.map(t=>({...t, edu:eduPoints(t), done:SIDE.filter(s=>t.side?.[s.id]===true).length}))
+    .filter(t=>t.edu>0).sort((a,b)=>b.edu-a.edu || String(a.name).localeCompare(String(b.name),'pl'));
+  list.forEach((t,i)=>{ t.hplace = i && list[i-1].edu===t.edu ? list[i-1].hplace : i+1; });
+  return list;
+}
+
+/* Kontrola zaliczeń: sygnały do rozmowy, nie dowody. Flagi są jawnymi rekwizytami,
+   więc szybkie serie zaliczeń albo ten sam telefon w dwóch drużynach warto wyjaśnić. */
+const SUSPICIOUS_GAP_MIN = 15;   // stacja trwa 25 + 5 min przejścia; dwie stacje szybciej niż w 15 min są nietypowe
+function suspiciousAwards(list){
+  const byUid = new Map();
+  for (const t of list) for (const a of t.awards) if (a.by && !a.emergency){
+    if (!byUid.has(a.by)) byUid.set(a.by, new Set()); byUid.get(a.by).add(t.id);
+  }
+  return list.map(t=>{
+    const reasons = [], aw = t.awards.filter(a=>!a.emergency && Number.isFinite(a.at)).sort((x,y)=>x.at-y.at);
+    for (let i=1;i<aw.length;i++){
+      const gap = (aw[i].at - aw[i-1].at)/60000;
+      if (gap < SUSPICIOUS_GAP_MIN) reasons.push('Stacje ' + aw[i-1].id.slice(1) + ' i ' + aw[i].id.slice(1) + ' zaliczone w odstępie ' + (gap < 1 ? 'poniżej 1' : Math.round(gap)) + ' min (jedna stacja trwa ok. 30 min).');
+    }
+    const shared = [...new Set(t.awards.filter(a=>a.by && !a.emergency).flatMap(a=>[...(byUid.get(a.by)||[])]))].filter(id=>id!==t.id).sort();
+    if (shared.length) reasons.push('Ten sam telefon wpisywał flagi także w drużynie: ' + shared.join(', ') + '.');
+    const emergency = t.awards.filter(a=>a.emergency).map(a=>'stacja ' + a.id.slice(1) + ': ' + (a.reason || 'bez powodu'));
+    return { id:t.id, name:t.name, reasons, emergency };
+  }).filter(r=>r.reasons.length || r.emergency.length);
+}
+const teamsWord = n => n===1 ? 'drużyna' : (n%10>=2 && n%10<=4 && (n%100<12 || n%100>14)) ? 'drużyny' : 'drużyn';
+let awardAudit = null;
+async function runAwardAudit(){
+  awardAudit = { checking:true }; render();
+  try {
+    const list = [];
+    for (const t of S.teams){
+      const snap = await getDocs(collection(S.db,'teams',t.id,'awards'));
+      list.push({ id:t.id, name:t.name, awards:snap.docs.map(d=>({ id:d.id, at:d.data().at?.toMillis?.(), by:d.data().by, emergency:d.data().emergency===true, reason:d.data().reason })) });
+    }
+    awardAudit = { at:new Date(), teams:list.length, rows:suspiciousAwards(list) };
+  } catch(e){ awardAudit = { error:'Nie udało się odczytać zaliczeń. Sprawdź połączenie i uprawnienia organizatora.' }; }
+  render();
+}
+function awardAuditCard(){
+  const a = awardAudit;
+  return h('section',{class:'card'}, h('h2',null,'Kontrola zaliczeń'),
+    h('p',{class:'muted small'},'Szuka nietypowych zaliczeń: dwóch stacji w mniej niż ' + SUSPICIOUS_GAP_MIN + ' min i tego samego telefonu w kilku drużynach. To sygnał do rozmowy z prowadzącymi, nie dowód — drużyna mogła wpisać zaległą flagę później.'),
+    h('button',{class:'btn ghost',disabled:!!a?.checking,onclick:runAwardAudit}, a?.checking ? 'Sprawdzam…' : 'Sprawdź zaliczenia (' + S.teams.length + ' ' + teamsWord(S.teams.length) + ')'),
+    a?.error ? h('div',{class:'msg err'},a.error) : null,
+    a?.rows ? h('p',{class:'small'},'Sprawdzono drużyny: ' + a.teams + ', o ' + a.at.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) + '. Do wyjaśnienia: ' + a.rows.filter(r=>r.reasons.length).length + '.') : null,
+    a?.rows?.map(r=>h('div',{class:'siem-alert',style:'grid-template-columns:minmax(0,1fr)'},
+      h('div',null, h('b',null,r.name + ' · ' + r.id)),
+      r.reasons.map(x=>h('div',{class:'small',style:'color:var(--gold)'},'⚠ ' + x)),
+      r.emergency.length ? h('div',{class:'small muted'},'Zaliczenia awaryjne: ' + r.emergency.join('; ')) : null)));
 }
 
 /* ===================== PANEL ADMINA (#admin) ===================== */
@@ -1546,7 +1682,7 @@ function renderAdmin(){
   put(top,
     h("div",{class:"row"}, h("a",{class:"tab",href:"#ekran",style:"text-decoration:none"},"Ekran do rzutnika ↗"), logout),
     adminMsg.text ? h("div",{class:"msg " + adminMsg.kind}, adminMsg.text) : null,
-    phaseCard(), settings, finaleControls(), h('button',{class:'btn ghost',onclick:exportCsv},'Eksport wyników CSV'), table, adminDetailCard());
+    phaseCard(), settings, finaleControls(), h('button',{class:'btn ghost',onclick:exportCsv},'Eksport wyników CSV'), awardAuditCard(), table, adminDetailCard());
 }
 // Ręczna zmiana etapu z potwierdzeniem; sterowanie finałem ma własne pytanie.
 let phaseAsk=null;

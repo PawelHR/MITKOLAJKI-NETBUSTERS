@@ -295,3 +295,17 @@ test('bez etapu rejestracji: drużyny i osoby dochodzą w grze, przerwie i final
   await assertFails(setDoc(doc(db('org'),'config/main'),{phase:'registration',mainEndsAt:Timestamp.now()}));
   await assertSucceeds(setDoc(doc(db('org'),'config/main'),{phase:'main',mainEndsAt:Timestamp.now()}));
 });
+test('tabela hakerów: publiczne statusy zadań pobocznych tylko zgodne z drużyną; p10 aktywne, p9 nie',async()=>{
+  const d=db('alice'),side=(t,lb)=>{const b=writeBatch(d);b.update(doc(d,'teams',id),t);b.update(doc(d,'leaderboard',id),{...lb,updatedAt:serverTimestamp()});return b.commit();};
+  await assertSucceeds(side({'side.p10':true},{side:{p10:true}}));
+  assert.deepEqual((await getDoc(doc(db(null),'leaderboard',id))).data().side,{p10:true});
+  await assertFails(side({'side.p1':true},{side:{p1:true,p2:true,p3:true}}),'nie można dopisać sobie zadań w rankingu');
+  await assertFails(updateDoc(doc(d,'leaderboard',id),{side:{p10:true,p7:true},updatedAt:serverTimestamp()}));
+  await assertFails(updateDoc(doc(db('eve'),'leaderboard',id),{side:{p10:true},updatedAt:serverTimestamp()}));
+  await assertFails(side({'side.p9':true},{side:{p10:true,p9:true}}));
+  await phase('break');await assertFails(side({'side.p2':true},{side:{p10:true,p2:true}}));
+  await phase('main');const t=(await getDoc(doc(d,'teams',id))).data(),next={...t,unlocked:{s1:true}},b=writeBatch(d);
+  b.set(doc(d,'teams',id,'awards','s1'),{by:'alice',at:serverTimestamp(),emergency:false,reason:'Flaga stacji',flag:'FLAG_S1_TEST'});
+  b.update(doc(d,'teams',id),{unlocked:next.unlocked});b.set(doc(d,'leaderboard',id),{...pub(next),side:next.side});
+  await assertSucceeds(b.commit());
+});
