@@ -250,9 +250,10 @@ const SIDE = [
   { id:"p6", name:"Zhakuj elfa-bota", max:30, short:"Bot pilnuje tajnego słowa. Namówcie go, żeby je zdradził." },
   { id:"p7", name:"Dziurawy panel elfów", max:30, short:"Zaloguj się do panelu bez hasła. Zobaczycie, czym jest SQL injection." },
   { id:"p10", name:"Przepełnienie sań", max:30, short:"Za długie imię kierowcy nadpisuje pamięć sań. Przejmijcie kurs — buffer overflow." },
-  { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty." }
+  { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty.", hidden:true } // tymczasowo ukryta: kod zostaje na później
 ];
 const BONUS_MAX = 100;
+const visibleSide = () => SIDE.filter(s=>!s.hidden); // ukryte misje nie trafiają do listy ani liczników
 const TEAM_MAX = 4; // ten sam limit sprawdzają reguły Firestore (memberCount)
 const MESSAGES = [
   { from:"SMS · 8080", body:"InPost: Twoja paczka jest wstrzymana. Dopłać 1,99 zł za dostawę: inpost-pl.delivery-24.com", bad:true, why:"Prawdziwa domena to inpost.pl. Tu „inpost” jest tylko ozdobą przed delivery-24.com." },
@@ -625,14 +626,14 @@ function discoverVice(){
 }
 function renderHome(){
   const t = S.team, u = t.unlocked||{}, sd = t.side||{};
-  const got = stationsOf(t), sideDone = SIDE.filter(s=>sd[s.id]).length;
+  const got = stationsOf(t), sideDone = visibleSide().filter(s=>sd[s.id]).length;
   const nodes = [
     header(),
     h('section',{class:'card'},h('div',{class:'spread'},h('h2',null,'Postęp misji'),h('span',{class:'pill gold'},got+'/4 · '+(PHASES[S.config.phase]||'Oczekiwanie'))),
       h('progress',{max:4,value:got,'aria-label':'Postęp głównej misji',style:'width:100%'}),
       h('p',{class:'small'},S.config.central||'Centrala: odzyskajcie cztery fragmenty. Współpraca ma znaczenie.'),
       h('p',{class:'muted small'},STATIONS.map(s=>s.nr+': '+(S.config.rooms?.[s.nr-1]||'sala do ustalenia')).join(' · ')),
-      h('button',{class:'back',onclick:discoverVice,'aria-label':'Zbadaj ukryty sygnał 06'},'… sygnał 06 z miasta palm')),
+      SIDE.find(s=>s.id==='p8')?.hidden ? null : h('button',{class:'back',onclick:discoverVice,'aria-label':'Zbadaj ukryty sygnał 06'},'… sygnał 06 z miasta palm')),
     S.notice ? h("div",{class:"msg good"},S.notice) : null,
     h("section",{class:"card"},
       h("div",{class:"spread"}, h("h2",null,"Wasza drużyna"), h("span",{class:"pill gold"}, pointsOf(t) + " pkt oficjalnych")),
@@ -657,9 +658,9 @@ function renderHome(){
         h("div",{class:"spread"}, h("span",{class:"st-num"}, s.nr), u[s.id] ? h("span",{class:"pill ok"},"✓ zaliczona") : h("span",{class:"pill"},"Do zrobienia")),
         h("h3",null,s.name), h("span",{class:"muted small"}, s.topic))))),
     h("section",{class:"stack"},
-      h("div",{class:"spread"}, h("h2",null,"Zadania poboczne"), h("span",{class:"pill"}, sideDone + "/" + SIDE.length)),
+      h("div",{class:"spread"}, h("h2",null,"Zadania poboczne"), h("span",{class:"pill"}, sideDone + "/" + visibleSide().length)),
       h("p",{class:"muted small"},"Punkty edukacyjne nie wpływają na oficjalny ranking. Ćwiczcie w drodze między salami."),
-      SIDE.filter(s=>s.id!=='p8'||viceDiscovered()).map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
+      visibleSide().filter(s=>s.id!=='p8'||viceDiscovered()).map(s=>h("button",{class:"card",onclick:()=>{view={type:"side",id:s.id};render();}},
         h("div",{class:"spread"}, h("h3",null,s.name), sd[s.id] ? h("span",{class:"pill ok"},"✓ +" + s.max) : h("span",{class:"pill gold"},"+" + s.max + " pkt")),
         h("span",{class:"muted small"}, s.short)))),
     rankingCard(),
@@ -1031,7 +1032,7 @@ async function finishSide(id, container, value){
     h("button",{class:"btn",onclick:()=>finishSide(id, container, value)},"Spróbuj zapisać jeszcze raz")); return false; }
 }
 function renderSide(id){
-  if(!SIDE.some(s=>s.id===id)){view={type:'home'};return renderHome();}
+  if(!visibleSide().some(s=>s.id===id)){view={type:'home'};return renderHome();}
   if ((S.team.side||{})[id]) return sideShell(id, doneCard(id));
   const task=({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli, p8:sideVice, p10:sideOverflow })[id];
   if(!task){view={type:'home'};return renderHome();}task(id);
@@ -1215,42 +1216,89 @@ function agentSecurity(id,box){
     }},'Uruchom bezpieczny plan: przygotuj szkic do zatwierdzenia'):null);
   draw();
 }
+/* zadanie poboczne p8 (tymczasowo ukryte): fałszywa „beta” gry jako przynęta z infostealerem.
+   Trzy etapy: sygnały ostrzegawcze z podchwytliwymi odpowiedziami, rodzaj zagrożenia, plan ratunkowy. */
+const VICE_CLUES = [
+  { t:'GTA VI nie ma zapowiedzianej wersji na PC, a ktoś rozdaje „betę” z prywatnego linku', red:true },
+  { t:'Plik ma rozszerzenie .exe', red:false, why:'Programy na Windows zwykle są w plikach .exe. Samo rozszerzenie niczego nie przesądza.' },
+  { t:'„Tylko szybko, jutro to usuwają”', red:true },
+  { t:'Instalator waży 186 MB, a gra zajmuje ponad 100 GB', red:true },
+  { t:'Strona z plikiem ma kłódkę HTTPS', red:false, why:'Kłódka oznacza tylko szyfrowane połączenie. Oszuści też mają strony z HTTPS.' },
+  { t:'Kuba każe kliknąć „Uruchom mimo to”, gdy Windows ostrzeże', red:true },
+  { t:'Wydawca pliku: „Nieznany”', red:true }
+];
+const VICE_THREATS = [
+  { t:'Program wykradający hasła i zalogowane sesje (infostealer)', ok:true, why:'Tak. Fałszywe gry i cracki to najczęstszy sposób rozsyłania infostealerów. Działają po cichu: zabierają hasła zapisane w przeglądarce, ciasteczka sesji i konta do gier.' },
+  { t:'Ransomware, który od razu zaszyfruje dysk i zażąda okupu', ok:false, why:'Możliwe, ale mało prawdopodobne. Przy takich przynętach przestępcom bardziej opłaca się po cichu ukraść konta, niż od razu się ujawnić.' },
+  { t:'Koparka kryptowalut, która tylko spowolni komputer', ok:false, why:'Zdarza się, ale to nie ona jest głównym celem. Przynęta na graczy ma przede wszystkim przejąć konta.' },
+  { t:'Nic groźnego — najwyżej gra się nie uruchomi', ok:false, why:'Plik o rozmiarze 186 MB od nieznanego wydawcy na pewno nie jest grą. Coś zrobi po uruchomieniu.' }
+];
+const VICE_STEPS = [
+  { t:'Odłącz komputer od internetu i powiedz o tym rodzicom albo informatykowi', ok:0 },
+  { t:'Zmień hasła od razu na tym samym komputerze', bad:'Jeśli złośliwy program dalej działa, wykradnie także nowe hasła. Zmieniaj je z innego, czystego urządzenia.' },
+  { t:'Na innym, czystym urządzeniu zmień hasło do poczty, a potem do Discorda i Steama; włącz weryfikację dwuetapową', ok:1 },
+  { t:'Usuń instalator z folderu Pobrane i uznaj sprawę za zamkniętą', bad:'Program uruchomił się już przy instalacji. Usunięcie pliku niczego nie cofa.' },
+  { t:'Wyloguj wszystkie aktywne sesje na kontach (np. „Wyloguj ze wszystkich urządzeń”)', ok:2 },
+  { t:'Sprawdź adres e-mail i numer do odzyskiwania konta, potem zleć wyczyszczenie lub reinstalację komputera', ok:3 }
+];
 function sideVice(id){
-  const box=h('div',{class:'stack'});
-  const hero=h('section',{class:'vice'},h('span',{class:'eyebrow'},'SYGNAŁ 06 · symulacja · 2–4 min'),
+  const box = h('div',{class:'stack'}), feedback = h('div',{role:'status'});
+  const hero = h('section',{class:'vice'},h('span',{class:'eyebrow'},'SYGNAŁ 06 · symulacja · 3–5 min'),
     h('div',{class:'vice-sun','aria-hidden':'true'}),h('div',{class:'vice-palms','aria-hidden':'true'},'🌴','　','🌴'),
     h('h1',null,'Grand Scam Auto VI'),h('p',null,'Darmowa gra. Prawdziwa pułapka.'));
-  const account=()=>{
-    const secured=new Set();
-    const steps=['Przejdź na czyste, zaufane urządzenie; zgłoś incydent i sprawdź zainfekowany komputer z pomocą IT','Unieważnij wszystkie aktywne sesje i tokeny, odłącz obce aplikacje','Zmień unikalne hasło i włącz MFA lub passkey','Sprawdź e-mail i telefon odzyskiwania, usuń obce metody; zabezpiecz też pocztę'];
-    const draw=()=>replaceContent(box,h('h2',null,'Konto przejęte · symulator odzyskiwania'),h('p',null,'Infostealer mógł ukraść hasła i ciasteczka sesyjne. Sama zmiana hasła nie zawsze kończy cudze sesje.'),
-      ...steps.map((text,i)=>h('button',{class:'opt','aria-pressed':String(secured.has(i)),disabled:secured.has(i)||(i>0&&!secured.has(0)),onclick:()=>{secured.add(i);draw();}},(secured.has(i)?'✓ ':'')+text)),
-      secured.size===steps.length?h('button',{class:'btn',onclick:async()=>{
-        const result=h('div');box.replaceChildren(result);
-        if(await finishSide(id,result)) box.prepend(h('div',{class:'vice passed'},h('h2',null,'MISSION PASSED – RESPECT +'),h('p',{class:'pill gold'},'Vice City Defender'),h('p',null,'Nie ma „magicznej darmowej wersji” z Discorda. Sprawdzaj źródło w oficjalnym sklepie i nigdy nie wyłączaj ochrony dla instalatora.'),h('button',{class:'btn ghost',onclick:missionChime},'♪ Odtwórz sygnał zwycięstwa (autorski)')));
-      }},'Zakończ misję'):null);
+  const say = (cls, ...t) => feedback.replaceChildren(h('div',{class:'msg ' + cls}, ...t));
+  // 3. plan ratunkowy: właściwe kroki we właściwej kolejności, z pułapkami
+  const recover = () => {
+    const plan = [];
+    const draw = () => replaceContent(box,
+      h('h2',null,'Ktoś z klasy jednak to uruchomił'),
+      h('p',null,'Następnego dnia z jego konta na Discordzie idzie ten sam link do wszystkich znajomych. Ułóżcie plan ratunkowy: klikajcie kroki w kolejności, w jakiej trzeba je zrobić. Uwaga, nie każdy krok jest dobry.'),
+      plan.length ? h('ol',{class:'tips'}, plan.map(i=>h('li',null,VICE_STEPS[i].t))) : null,
+      VICE_STEPS.map((s,i)=>plan.includes(i) ? null : h('button',{class:'opt',onclick:()=>{
+        if (s.bad) return say('err', s.bad);
+        if (s.ok !== plan.length) return say('err','Dobry krok, ale jeszcze nie teraz. Co trzeba zrobić wcześniej?');
+        plan.push(i); feedback.replaceChildren(); draw();
+      }}, s.t)),
+      feedback,
+      plan.length === 4 ? h('button',{class:'btn',onclick:async()=>{
+        const result = h('div'); box.replaceChildren(result);
+        if (await finishSide(id,result)) box.prepend(h('section',{class:'card'}, h('h3',null,'Co zapamiętać'), h('ul',{class:'tips'},
+          h('li',null,'Gry i „bety” pobieraj tylko z oficjalnych sklepów (Steam, Epic, sklep wydawcy).'),
+          h('li',null,'Jeśli ktoś każe wyłączyć ochronę albo kliknąć „Uruchom mimo to”, to znaczy, że wie, że plik jest groźny.'),
+          h('li',null,'Po infekcji hasła zmieniaj z czystego urządzenia i wyloguj wszystkie sesje — skradzione ciasteczka działają bez hasła.'))));
+      }},'Zakończ misję') : null);
     draw();
   };
-  const threat=()=>box.replaceChildren(h('h2',null,'Co najprawdopodobniej ukrywa instalator?'),
-    ...['Infostealer: kradzież haseł, sesji i danych kont','Legalną aktualizację wymagającą wyłączenia ochrony','Tylko wolniejszy start gry'].map((text,i)=>h('button',{class:'opt',onclick:()=>{
-      if(i===0) account(); else {feedback.textContent='Wyłączenie ochrony i nieoficjalne źródło to czerwone flagi. Spróbuj ponownie.';}
-    }},text)),feedback);
-  const feedback=h('div',{class:'msg',role:'status'}),selected=new Set();
-  const clues=['Domena gta6-free-pc.example (fikcyjna, nieklikalna; to nie oficjalny sklep)','Plik GTA_VI_PC_FREE_setup.exe (tylko nazwa, żadnego pobierania)','Instrukcja: wyłącz antywirusa, bo „fałszywie alarmuje”','Weryfikacja oferty niezależnie w oficjalnym sklepie'];
-  const draw=()=>box.replaceChildren(h('div',{class:'card'},h('span',{class:'eyebrow'},'Symulowana wiadomość · Discord · NitroGift_06'),h('p',null,'„GTA VI na PC ZA DARMO! Tylko dziś, tajny instalator od znajomego. Nie słuchaj ostrzeżeń ochrony!”')),
-    h('p',null,'Wskaż trzy czerwone flagi w analizie fikcyjnego instalatora:'),...clues.map((text,i)=>h('button',{class:'opt','aria-pressed':String(selected.has(i)),onclick:()=>{selected.has(i)?selected.delete(i):selected.add(i);draw();}},text)),
-    h('button',{class:'btn',onclick:()=>{if(selected.size===3&&[0,1,2].every(x=>selected.has(x)))threat();else feedback.textContent='Sprawdź źródło, obietnicę pliku i prośbę o wyłączenie ochrony. Oficjalna weryfikacja jest bezpieczna.';}},'Oceń zagrożenie'),feedback);
+  // 2. rodzaj zagrożenia
+  const threat = () => {
+    let solved = false;
+    const draw = () => replaceContent(box,
+      h('h2',null,'Co najpewniej siedzi w tym pliku?'),
+      VICE_THREATS.map(x=>h('button',{class:'opt' + (solved && x.ok ? ' right' : ''),disabled:solved,onclick:()=>{
+        if (!x.ok) return say('err', x.why);
+        solved = true; draw(); say('good', x.why);
+      }}, x.t)),
+      feedback,
+      solved ? h('button',{class:'btn',onclick:()=>{ feedback.replaceChildren(); recover(); }},'Dalej') : null);
+    feedback.replaceChildren(); draw();
+  };
+  // 1. sygnały ostrzegawcze (5 z 7, dwa podchwytliwe)
+  const picked = new Set();
+  const draw = () => replaceContent(box,
+    h('div',{class:'card'}, h('span',{class:'eyebrow'},'Discord · serwer klasy · #ogólny'),
+      h('p',null,h('b',null,'kubaGG: '),'siema, mam dostęp do bety GTA 6 na PC 😳 kumpel z testów wrzucił instalkę, łapcie: gta6-beta-pc.example/pobierz'),
+      h('p',null,h('b',null,'kubaGG: '),'tylko szybko, jutro to usuwają. jak windows wyskoczy z niebieskim okienkiem, to klikacie „więcej informacji” i „uruchom mimo to”, przy becie tak jest')),
+    h('div',{class:'card mono small'},'GTA6_Beta_Setup.exe · 186 MB · Wydawca: Nieznany · pobrano z https://gta6-beta-pc.example'),
+    h('p',null,'Zaznaczcie wszystkie sygnały ostrzegawcze. Uwaga: nie wszystko na liście jest podejrzane.'),
+    VICE_CLUES.map((c,i)=>h('button',{class:'opt','aria-pressed':String(picked.has(i)),onclick:()=>{ picked.has(i)?picked.delete(i):picked.add(i); draw(); }}, c.t)),
+    h('button',{class:'btn',onclick:()=>{
+      const wrong = [...picked].filter(i=>!VICE_CLUES[i].red), missing = VICE_CLUES.filter((c,i)=>c.red && !picked.has(i)).length;
+      if (wrong.length) return say('err', VICE_CLUES[wrong[0]].why);
+      if (missing) return say('err', 'Dobrze, ale to jeszcze nie wszystko. Brakuje ' + missing + (missing===1 ? ' sygnału.' : ' sygnałów.') + ' Porównajcie wiadomość z opisem pliku.');
+      threat();
+    }},'Sprawdź'),
+    feedback);
   sideShell(id,hero,h('p',{class:'small muted'},'Autorska scenografia CSS; brak zasobów Rockstar, aktywnych linków, instalatorów i malware.'),box);draw();
-}
-function missionChime(){
-  const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;
-  const audio=new Audio(),start=audio.currentTime;
-  [392,523.25,659.25].forEach((frequency,i)=>{
-    const oscillator=audio.createOscillator(),gain=audio.createGain(),at=start+i*.16;
-    oscillator.type='sine';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.08,at+.02);gain.gain.exponentialRampToValueAtTime(.001,at+.25);
-    oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(at);oscillator.stop(at+.26);
-    if(i===2)oscillator.onended=()=>audio.close();
-  });
 }
 function sidePass(id){
   const picks = PASS_Q.map(()=>null);
@@ -1546,7 +1594,7 @@ function renderScreen(){
           teams.length ? h("table",null, h("tbody",null, teams.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.place), h("td",null, t.name, " ", h("span",{class:"muted small"}, schools()[t.school]||"")), h("td",{class:"num mono"}, t.points)))))
           : h("p",{class:"muted"},"Drużyny pojawią się tu, gdy się zarejestrują.")),
         (()=>{ const hk = hackerBoard(S.teams); return h("section",{class:"card"}, h("div",{class:"spread"}, h("h2",null,"Hakerzy · zadania poboczne"), h("span",{class:"muted small"},"poza oficjalnym rankingiem")),
-          hk.length ? h("table",null, h("tbody",null, hk.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.hplace), h("td",null, t.name, " ", h("span",{class:"muted small"}, t.done + "/" + SIDE.length + " zadań")), h("td",{class:"num mono"}, t.edu)))))
+          hk.length ? h("table",null, h("tbody",null, hk.slice(0,8).map(t=>h("tr",null, h("td",{class:"mono muted"}, t.hplace), h("td",null, t.name, " ", h("span",{class:"muted small"}, t.done + "/" + visibleSide().length + " zadań")), h("td",{class:"num mono"}, t.edu)))))
           : h("p",{class:"muted"},"Pierwsze zadania poboczne pojawią się tutaj.")); })(),
         h("section",{class:"stack"}, h("h2",null,"Ostatnie punkty"),
           FEED.length ? h("div",{class:"feed"}, FEED.map(f=>h("div",null, h("b",null,"+" + f.d), " · " + f.team)))
@@ -1557,7 +1605,7 @@ function renderScreen(){
 /* Tabela hakerów: punkty edukacyjne z publicznej kopii statusów zadań pobocznych (poza oficjalnym rankingiem). */
 function eduPoints(t){ return SIDE.filter(s=>t.side?.[s.id]===true).reduce((n,s)=>n+s.max,0); }
 function hackerBoard(teams){
-  const list = teams.map(t=>({...t, edu:eduPoints(t), done:SIDE.filter(s=>t.side?.[s.id]===true).length}))
+  const list = teams.map(t=>({...t, edu:eduPoints(t), done:visibleSide().filter(s=>t.side?.[s.id]===true).length}))
     .filter(t=>t.edu>0).sort((a,b)=>b.edu-a.edu || String(a.name).localeCompare(String(b.name),'pl'));
   list.forEach((t,i)=>{ t.hplace = i && list[i-1].edu===t.edu ? list[i-1].hplace : i+1; });
   return list;

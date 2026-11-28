@@ -43,9 +43,9 @@
 - [ ] Po grupie usunięte kopie własnej karty z Flippera, wyzerowane stanowiska, panel niedostępny uczniom.
 
 ## Misje, ranking, finał
-- [ ] Grand Scam Auto VI i oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.
-- [ ] Laby mają etykietę „Do zrobienia”; odkrycie Grand Scam pozostaje po odświeżeniu na tym telefonie, ale nie przechodzi na inną drużynę i samo nie daje punktów.
-- [ ] Oficjalne maksimum 500, edukacyjne 240 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
+- [ ] Oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.
+- [ ] Laby mają etykietę „Do zrobienia”; ukryta misja Grand Scam nie pojawia się w terminalu (brak „sygnału 06”), licznik zadań pokazuje 8.
+- [ ] Oficjalne maksimum 500, edukacyjne 210 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
 - [ ] Przepełnienie sań przeklikane (odmowa → admin bez celu → kurs GRINCH); tabela hakerów na `#ekran` pokazuje punkty edukacyjne.
 - [ ] Przed podium: `#admin` → „Sprawdź zaliczenia”; oznaczone drużyny wyjaśnione z prowadzącymi.
 - [ ] Pokazy dodatkowe (pilot, kłódki): tylko sprzęt i zamki koła, nigdy zamki w użyciu.

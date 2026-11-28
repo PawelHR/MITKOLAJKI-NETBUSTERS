@@ -38,16 +38,25 @@ function harness(storage=new Map()){
   const clean=()=>{assert.ok(!app.textContent.includes('[object'));assert.ok(!app.textContent.includes('null'));};
   return {app,context,storage,click,clean,elements:()=>all(app),run:code=>vm.runInContext(code,context)};
 }
-test('Grand Scam Auto VI: flagi → infostealer → wszystkie zabezpieczenia → odznaka',async()=>{
+test('Grand Scam Auto VI (ukryta): podchwytliwe sygnały → zagrożenie → plan ratunkowy, bez odznaki i dźwięku',async()=>{
   const h=harness();h.run('sideVice("p8")');h.clean();
-  for(const text of ['Domena gta6','Plik GTA_','Instrukcja: wyłącz','Oceń zagrożenie','Infostealer:']){await h.click(text);h.clean();}
-  for(const text of ['Przejdź na czyste','Unieważnij wszystkie','Zmień unikalne','Sprawdź e-mail']){await h.click(text);h.clean();}
-  await h.click('Zakończ misję');assert.ok(h.app.textContent.includes('MISSION PASSED – RESPECT +'));assert.ok(h.app.textContent.includes('Vice City Defender'));
-  assert.deepEqual(Array.from(h.context.saved),['side.p8']);h.clean();
+  await h.click('kłódkę HTTPS');await h.click('Sprawdź');assert.ok(h.app.textContent.includes('Oszuści też'));
+  await h.click('kłódkę HTTPS');await h.click('nie ma zapowiedzianej');await h.click('Sprawdź');assert.ok(h.app.textContent.includes('Brakuje 4 sygnałów'));
+  for(const t of ['jutro to usuwają','186 MB','Uruchom mimo to','Nieznany'])await h.click(t);
+  await h.click('Sprawdź');h.clean();
+  await h.click('Ransomware');assert.ok(h.app.textContent.includes('mało prawdopodobne'));
+  await h.click('infostealer');await h.click('Dalej');h.clean();
+  await h.click('Zmień hasła od razu');assert.ok(h.app.textContent.includes('czystego urządzenia'));
+  await h.click('Wyloguj wszystkie');assert.ok(h.app.textContent.includes('jeszcze nie teraz'));
+  for(const t of ['Odłącz komputer','Na innym, czystym','Wyloguj wszystkie','Sprawdź adres e-mail'])await h.click(t);
+  await h.click('Zakończ misję');assert.deepEqual(Array.from(h.context.saved),['side.p8']);
+  assert.ok(h.app.textContent.includes('Co zapamiętać'));
+  for(const gone of ['MISSION PASSED','Vice City','RESPECT','Odtwórz sygnał'])assert.ok(!h.app.textContent.includes(gone),gone);
+  assert.equal(h.run('typeof missionChime'),'undefined');h.clean();
 });
 test('usunięto ClickFix, w grze jest 9 zadań pobocznych i 240 pkt edukacyjnych',()=>{
   const h=harness();assert.equal(h.run('typeof sideClickFix'),'undefined');
-  assert.equal(h.run('SIDE.length'),9);assert.equal(h.run('SIDE.reduce((n,s)=>n+s.max,0)'),240);
+  assert.equal(h.run('SIDE.length'),9);assert.equal(h.run('visibleSide().length'),8);assert.equal(h.run('visibleSide().reduce((n,s)=>n+s.max,0)'),210);
   assert.equal(h.run('SIDE.some(s=>s.id==="p9")'),false);
 });
 test('agent: wykrycie, minimalne uprawnienia, blokada i człowiek wymagane łącznie',async()=>{
@@ -160,16 +169,12 @@ test('SIEM: informacja o zaznaczeniu wszystkich alertów ataku; podpowiedź mów
   assert.ok(h.app.textContent.includes('03:20 to szum'));assert.ok(!h.app.textContent.includes('Brakuje jeszcze'));
   h.run('SV.picked.delete("a7")');await submit(h,'Zgłoszenie incydentu');assert.equal(h.run('SV.pin'),'481927');h.clean();
 });
-test('laby mają etykietę Do zrobienia, a odkrycie Grand Scam przetrwa odświeżenie tylko dla właściwej drużyny',async()=>{
-  const h=harness();h.run('S.code="ABCD";ls.set("ob_team",S.code);S.user={uid:"a",isAnonymous:true};S.teamLoaded=true;S.team={id:S.code,name:"Elfy",unlocked:{s1:true},side:{}};rankingCard=()=>null;renderHome()');
+test('laby mają etykietę Do zrobienia; ukryta misja Grand Scam nie pojawia się w terminalu',async()=>{
+  const h=harness();h.run('S.code="ABCD";ls.set("ob_team",S.code);ls.set("ob_vice_ABCD","1");S.user={uid:"a",isAnonymous:true};S.teamLoaded=true;S.viceFound=true;S.team={id:S.code,name:"Elfy",unlocked:{s1:true},side:{p8:true}};rankingCard=()=>null;renderHome()');
   assert.ok(h.app.textContent.includes('Do zrobienia'));assert.ok(!h.app.textContent.includes('zablokowana'));
-  assert.ok(!h.app.textContent.includes('Grand Scam Auto VI'));
-  await h.click('sygnał 06');assert.equal(h.run('viceDiscovered()'),true);assert.equal(h.context.saved.length,0);
-  const reloaded=harness(h.storage);reloaded.run('S.user={uid:"a"};S.team={id:S.code,name:"Elfy",unlocked:{},side:{}};rankingCard=()=>null;renderHome()');
-  assert.equal(reloaded.run('S.code'),'ABCD');assert.ok(reloaded.app.textContent.includes('Grand Scam Auto VI'));
-  reloaded.run('S.code="EFGH";S.team={id:S.code,name:"Inne elfy",unlocked:{},side:{}};renderHome()');
-  assert.ok(!reloaded.app.textContent.includes('Grand Scam Auto VI'));assert.equal(reloaded.context.saved.length,0);
-  reloaded.run('S.team.side.p8=true;renderHome()');assert.ok(reloaded.app.textContent.includes('Grand Scam Auto VI'));
+  assert.ok(!h.app.textContent.includes('Grand Scam Auto VI'));assert.ok(!h.app.textContent.includes('sygnał 06'));
+  assert.ok(h.app.textContent.includes('/8'),'licznik zadań bez ukrytej misji');
+  h.run('view={type:"side",id:"p8"};renderSide("p8")');assert.ok(!h.app.textContent.includes('Grand Scam Auto VI'),'bezpośrednie wejście wraca do terminala');
 });
 function finalControlsHarness(){
   const h=harness(),writes=[];let server;
@@ -278,7 +283,7 @@ test('przepełnienie sań: odmowa, admin bez celu, potem przejęcie kursu zapisu
 test('tabela hakerów: punkty edukacyjne, wspólne miejsca, bez drużyn z zerem i historycznego p9',()=>{
   const h=harness();h.context.teams=[{id:'A',name:'Alfa',side:{p1:true,p10:true}},{id:'B',name:'Beta',side:{p7:true,p8:true}},{id:'C',name:'Celta',side:{p9:true}},{id:'D',name:'Delta',side:{p2:true}}];
   const board=h.run('hackerBoard(teams).map(t=>[t.name,t.edu,t.hplace,t.done])');
-  assert.deepEqual(JSON.parse(JSON.stringify(board)),[['Alfa',60,1,2],['Beta',60,1,2],['Delta',20,3,1]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(board)),[['Alfa',60,1,2],['Beta',60,1,1],['Delta',20,3,1]]); // ukryte p8 nie liczy się do „x/8 zadań”, punkty zostają
 });
 test('kontrola zaliczeń: szybka seria i wspólny telefon są sygnałem, awaryjne tylko informacją',()=>{
   const h=harness(),min=60000;

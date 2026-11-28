@@ -30,7 +30,7 @@ Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Odwiedzają cztery stacje bez 
 | Godzina | Miejsce | Co się dzieje |
 |---|---|---|
 | 09:00–09:25 | Aula | Wprowadzenie fabularne. Drużyny skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. |
-| 09:25–11:25 | 4 sale + korytarze | Gra główna: cztery stacje bez ustalonych godzin zmiany sal. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne i ukryty sygnał 06. |
+| 09:25–11:25 | 4 sale + korytarze | Gra główna: cztery stacje bez ustalonych godzin zmiany sal. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne. |
 | 11:25–12:00 | Hol | Przerwa i stoisko koła ze sprzętem: opcjonalnie przejmowanie pilota Flipperem i otwieranie kłódek treningowych ([STACJE.md](STACJE.md#dodatkowe-pokazy-opcjonalne)). Ranking szkół i tabela hakerów na dużym ekranie (`#ekran`). |
 | 12:00–12:40 | Aula | Finał fabularny w `#final`: alarm, odliczanie i przywracanie czterech systemów. Opcjonalny teleturniej (Kahoot) daje 0–100 pkt. |
 | 12:40–13:00 | Aula | Podium szkół i drużyn, nagrody, eksport wyników do CSV. |
@@ -69,7 +69,7 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła 
 ### Punkty
 
 - **Oficjalnie:** 100 za stację, maks. 400; finał 0–100 wpisany przez organizatora **tylko w etapie Finał**. Maksimum **500**.
-- **Edukacyjnie, poza rankingiem:** Prezent czy pułapka 30, Hasło do sań 20, Szyfr elfów 20, Co zdradza zdjęcie 20, Darmowe pierniki 30, Elf-bot (oba etapy) 30, SQL injection 30, Przepełnienie sań (buffer overflow) 30, Grand Scam Auto VI 30. Maksimum **240**. Na rzutniku pokazuje je osobna tabela „Hakerzy”.
+- **Edukacyjnie, poza rankingiem:** Prezent czy pułapka 30, Hasło do sań 20, Szyfr elfów 20, Co zdradza zdjęcie 20, Darmowe pierniki 30, Elf-bot (oba etapy) 30, SQL injection 30, Przepełnienie sań (buffer overflow) 30. Maksimum **210**. Misja Grand Scam Auto VI (fałszywa „beta” gry z infostealerem) jest tymczasowo ukryta: kod zostaje, ale nie ma jej w terminalu ani w licznikach. Na rzutniku pokazuje je osobna tabela „Hakerzy”.
 - Ranking szkoły: dokładna średnia oficjalnych punktów drużyn z co najmniej jedną stacją. Zaokrąglamy tylko wyświetlanie. **Remis = wspólne miejsce**, bez premii za sumę czy liczbę drużyn.
 - CSV UTF-8 z BOM i średnikami, z zabezpieczeniem przed formułami w nazwach.
 

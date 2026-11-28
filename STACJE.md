@@ -161,7 +161,7 @@ Fajne uzupełnienie na stoisku koła w przerwie albo dla drużyn, które skończ
 
 ## Zadania w drodze i finał
 
-Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta), **Przepełnienie sań** (buffer overflow: za długie imię kierowcy nadpisuje bajt uprawnień i cel lotu) oraz ukryty sygnał Grand Scam Auto VI (2–4 min). Łącznie 9 zadań i 240 pkt edukacyjnych. Punkty edukacyjne pokazuje osobna tabela „Hakerzy” na rzutniku `#ekran`. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
+Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta), **Przepełnienie sań** (buffer overflow: za długie imię kierowcy nadpisuje bajt uprawnień i cel lotu) Łącznie 8 zadań i 210 pkt edukacyjnych. Misja Grand Scam Auto VI jest tymczasowo ukryta i nie pojawia się w terminalu. Punkty edukacyjne pokazuje osobna tabela „Hakerzy” na rzutniku `#ekran`. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
 
 Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Koordynator uruchamia `#final`: alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
 
