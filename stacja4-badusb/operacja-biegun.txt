@@ -44,4 +44,4 @@ ENTER
 STRING Nieznane urzadzenie USB moze byc czyms calkiem innym, niz wyglada.
 ENTER
 ENTER
-STRING -- Operacja Biegun, kolo cyberbezpieczenstwa
+STRING -- Operacja Biegun, kolo cyberbezpieczenstwa NETBUSTERS

@@ -1,6 +1,6 @@
 # 🎅 Operacja Biegun
 
-Mikołajkowa gra terenowa koła cyberbezpieczeństwa dla uczniów trzech szkół średnich.
+Mikołajkowa gra terenowa koła cyberbezpieczeństwa NETBUSTERS dla uczniów trzech szkół średnich.
 Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami rozwiązują zadania poboczne. Telefon służy im za **terminal misji**: prowadzi fabułę, przyjmuje flagi zdobyte na stacjach i pokazuje **ranking szkół**.
 
 **Gra:** https://operacja-biegun.web.app (zmiany w repozytorium nie oznaczają wdrożenia).
