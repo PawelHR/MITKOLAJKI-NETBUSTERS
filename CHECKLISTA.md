@@ -37,6 +37,7 @@
 - [ ] Reakcja pozostaje osobnym etapem 5 po czterech zadaniach; flaga dopiero po reakcji; działają strzałki bez przeciągania.
 - [ ] Opuszczenie drużyny i dołączenie do drugiej nie przenosi SOC ani starego postępu `ob_s3`.
 - [ ] NFC: fizyczna próba oryginału i emulacji Flippera na docelowym Androidzie; plan B sprawdzony.
+- [ ] Stacja 4: wybrany wariant (telefon na drzwiach albo uproszczony — telefon prowadzącego); BadUSB raz podłączony do laptopa koła przed wydarzeniem albo świadomie zastąpiony nagraniem.
 - [ ] Uczestnik nie widzi konfiguracji PIN ani symulacji dobrej karty; kiosk/systemowe przypięcie, nadzór nad urządzeniem.
 - [ ] Ani jednej próby prywatnymi kartami uczniów. BadUSB tylko na własnym laptopie.
 - [ ] Po grupie usunięte kopie własnej karty z Flippera, wyzerowane stanowiska, panel niedostępny uczniom.

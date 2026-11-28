@@ -97,7 +97,7 @@ Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcj
 
 **2 osoby:** prowadzący prowadzi audyt; pomocnik pełni rolę elfa Bartka z kartą i nadzoruje Flippera. Nie potrzeba trzeciego operatora.
 
-**Sprzęt:** Flipper Zero, własny tag/karta NDEF NTAG215 z tekstem „Karta elfa nr 77”, etui ekranujące i smycz, telefon Android Chrome NFC z ładowarką, taśma/karton na drzwi, rekwizyty biurka. Do finału: własny laptop Windows i `stacja4-badusb/operacja-biegun.txt` w Flipperze.
+**Sprzęt:** Flipper Zero, własny tag/karta NDEF NTAG215 z tekstem „Karta elfa nr 77”, etui ekranujące i smycz, telefon Android Chrome NFC z ładowarką (może to być telefon prowadzącego — zob. wariant uproszczony niżej), taśma/karton na drzwi, rekwizyty biurka. Do finału: własny laptop Windows i `stacja4-badusb/operacja-biegun.txt` w Flipperze.
 
 **Ważna granica pokazu:** demonstrujemy proste czytniki podejmujące decyzję na podstawie UID. Nie wszystkie karty NFC można tak skopiować; nowoczesne systemy z kryptograficznym uwierzytelnieniem są inne. Web NFC i emulację trzeba sprawdzić na docelowym zestawie sprzętu.
 
@@ -120,6 +120,26 @@ Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcj
 
 **Plan B:** emulacja nie działa → pokaż zapisany odczyt i użyj oryginału karty koła. Czytnik nie działa → prowadzący obserwuje zadanie i zalicza awaryjnie z przyczyną. BadUSB nie działa → przeczytaj nieszkodliwy skrypt z rzutnika.
 Po grupie usuń kopie **własnej karty koła** z Flippera, zresetuj pokaz i zabierz rekwizyty z prawdziwych obszarów biura. Żadnych prywatnych kart ani urządzeń uczniów.
+
+### Wariant uproszczony (polecany przy mniejszej ilości sprzętu)
+
+Ten sam przebieg i te same wnioski, mniej sprzętu i mniej rzeczy, które mogą zawieść.
+
+**Czytnik na telefonie prowadzącego zamiast telefonu na drzwiach.**
+- Prowadzący używa **własnego Androida z Chrome** (Web NFC działa tylko w Chrome na Androidzie, na iPhonie nie). Loguje się w `#admin`, otwiera `#drzwi`, zapisuje kartę koła. Konfiguracja zostaje w jego telefonie.
+- Trzyma telefon w ręce albo kładzie go przy „drzwiach” z kartonu. Nie trzeba kiosku, systemowego przypięcia aplikacji ani montowania telefonu na drzwiach.
+- Uczniowie przykładają oryginał albo Flippera z kopią do telefonu prowadzącego. „DOSTĘP PRZYZNANY” i flaga labu 4 pojawiają się na jego ekranie.
+- Zaleta: sesja organizatora nie zostaje na urządzeniu bez nadzoru. Miejsce anteny NFC (zwykle środek tylnej ścianki) warto oznaczyć naklejką.
+
+**Bez Androida albo gdy Web NFC zawodzi.**
+- Czytnikiem może być drugi Flipper (NFC → Read) albo dowolny telefon z aplikacją do odczytu NFC. Pokazuje UID kopii, a prowadzący porównuje go z UID karty 77 wydrukowanym na grafiku dyżurów.
+- Zgodny UID = „drzwi otwarte”. Prowadzący pokazuje wtedy flagę labu 4 z kartki (to jawny rekwizyt, jak flagi na stronach stacji).
+
+**BadUSB — jak to działa i jak uprościć.**
+- Flipper Zero ma wbudowaną aplikację **Bad USB**. Po podłączeniu kablem USB-C komputer widzi go jako **zwykłą klawiaturę** (urządzenie HID), nie jako pendrive. Nie trzeba niczego przerabiać ani udawać pendrive'a: skrypt `stacja4-badusb/operacja-biegun.txt` w folderze `badusb/` na karcie SD wystarczy.
+- „Podrzucony pendrive” to fabuła. Prowadzący mówi wprost: prawdziwe urządzenia tego typu (np. USB Rubber Ducky) wyglądają jak zwykły pendrive, a komputer ufa każdej „klawiaturze”.
+- Przed wydarzeniem raz podłącz Flippera do laptopa koła: Windows przy pierwszym razie instaluje sterownik klawiatury. Skrypt używa układu US, dlatego tekst jest bez polskich znaków.
+- Jeszcze prościej: zamiast podłączania pokaż treść skryptu i krótkie nagranie z próby. Gdy brakuje czasu, BadUSB można pominąć — flaga labu 4 od niego nie zależy.
 
 ## Dodatkowe pokazy (opcjonalne)
 
