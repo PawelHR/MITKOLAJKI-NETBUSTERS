@@ -6,15 +6,16 @@
 - [ ] Wdrożony `firestore.rules`, lokalna kopia identyczna. Publiczny ranking ma tylko dozwolone pola.
 - [ ] Cztery aktywne `stationFlags` zgodne z `public/station-flags.js`; klient nie odczyta ich z bazy. Publiczne flagi ćwiczeń nie są sekretami kont.
 - [ ] Próba odczytu cudzej drużyny oraz listy kodów i starych zaproszeń kończy się odmową.
+- [ ] Stacja 4 przećwiczona jako wspólny pokaz na ok. 9 minut (kopia karty, każda drużyna przykłada ją do czytnika).
 - [ ] Konta prowadzących (Sala 1: 2, Sala 2: 2–3) i koordynatora; UID w `admins`, oddzielne profile/urządzenia, brak kont demonstracyjnych w produkcji.
 - [ ] Zwykłe konto e-mail nie dostaje praw organizatora. Rejestracja anonimowa działa.
 
 ## Drużyny i etapy
-- [ ] Nazwy szkół, sale (`Sala 1 | Sala 1 | Sala 2 | Sala 2`) i wiadomość centrali ustawione w panelu; kolejność i godziny tur szkół uzgodnione z prowadzącymi.
+- [ ] Nazwy **czterech** szkół, sale (`Sala 1 | Sala 1 | Sala 2 | Sala 2`) i wiadomość centrali ustawione w panelu; kolejność i godziny tur klas (45 min + 10 min przerwy) uzgodnione z prowadzącymi.
 - [ ] Telewizor lub projektor z `/#ekran` (bez panelu `#admin` i kodów drużyn na ekranie).
 - [ ] Ręczna zmiana etapu oraz start/zakończenie finału wymagają potwierdzenia; przy Grze głównej brak ostrzeżenia o minionym terminie.
-- [ ] Właściwa **data**, strefa i deadline `mainEndsAt`, obejmujący turę **ostatniej** szkoły; sam zegar nie wystarczy.
-- [ ] Między turami etap zostaje „Gra główna”; Przerwa/Finał/Zakończenie dopiero po ostatniej szkole (inaczej kolejne szkoły nie wpiszą flag).
+- [ ] Właściwa **data**, strefa i deadline `mainEndsAt`, obejmujący turę **ostatniej** klasy; sam zegar nie wystarczy.
+- [ ] Między turami etap zostaje „Gra główna”; Przerwa/Finał/Zakończenie dopiero po ostatniej klasie (inaczej kolejne klasy nie wpiszą flag).
 - [ ] Gracz sam tworzy drużynę, drugi telefon wpisuje 6-znakowy kod i od razu dołącza, bez akceptacji prowadzącego.
 - [ ] Limit 4 osób: piąty telefon dostaje odmowę, odejście zwalnia miejsce. Istniejące drużyny mają ustawiony licznik (`#admin → Prowadź → Ustaw licznik`, jeśli panel go pokazuje).
 - [ ] Sam publiczny ID nie pozwala dołączyć; kod nie jest w rankingu, na rzutniku ani w URL.
@@ -43,8 +44,8 @@
 - [ ] Uczestnik nie widzi konfiguracji PIN ani symulacji dobrej karty; kiosk/systemowe przypięcie, nadzór nad urządzeniem.
 - [ ] Ani jednej próby prywatnymi kartami uczniów. BadUSB tylko na własnym laptopie.
 - [ ] Po grupie usunięte kopie własnej karty z Flippera, wyzerowane stanowiska, panel niedostępny uczniom.
-- [ ] Między szkołami reset każdego komputera: Sala 1 — reset w `/#gra` (rola=elf) i `/#skarbiec`; Sala 2 — reset w `/#siem`; na komputerach nikt nie zostaje w drużynie (terminalem jest telefon ucznia).
-- [ ] Kolejne szkoły mogą usłyszeć flagi od poprzednich: po każdej turze „Sprawdź zaliczenia” w `#admin`.
+- [ ] Między klasami (10 min) reset każdego komputera: Sala 1 — reset w `/#gra` (rola=elf) i `/#skarbiec`; Sala 2 — reset w `/#siem`; na komputerach nikt nie zostaje w drużynie (terminalem jest telefon ucznia).
+- [ ] Kolejne klasy mogą usłyszeć flagi od poprzednich: po każdej turze „Sprawdź zaliczenia” w `#admin`.
 
 ## Misje, ranking, finał
 - [ ] Oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.

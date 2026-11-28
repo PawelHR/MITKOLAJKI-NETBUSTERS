@@ -297,3 +297,12 @@ test('kontrola zaliczeń: szybka seria i wspólny telefon są sygnałem, awaryjn
   assert.ok(rows[0].reasons.some(x=>x.includes('CCCC')));assert.ok(rows[1].reasons.some(x=>x.includes('AAAA')));
   assert.deepEqual(rows[1].emergency,['stacja 4: Awaria czytnika']);assert.ok(!rows[1].reasons.some(x=>x.includes('Stacje')),'awaryjne nie liczą się do serii');
 });
+test('cztery szkoły: konfiguracja z trzema nazwami dostaje „Szkoła 4”, formularz drużyny ma 4 szkoły',()=>{
+  const h=harness();h.run('S.config={phase:"main",schools:["Liceum A","Technikum B","Liceum C"]}');
+  assert.deepEqual(JSON.parse(JSON.stringify(h.run('schools()'))),['Liceum A','Technikum B','Liceum C','Szkoła 4']);
+  h.run('joinMode="create";renderJoin()');
+  const opts=h.elements().find(e=>e.attrs?.id==='j-school').children.map(o=>o.attrs?.value).filter(Boolean);
+  assert.deepEqual(opts,['0','1','2','3']);
+  const r=h.run('buildRanking([{id:"A",name:"A",school:3,unlocked:{s1:true}}],schools()).sch');
+  assert.equal(r.length,4);assert.equal(r[0].name,'Szkoła 4');
+});

@@ -1,8 +1,8 @@
 # Scenariusze czterech stacji — dla prowadzących
 
-**Dwie sale po ok. 15 komputerów, szkoły po kolei.** Sala 1: stacje 1 i 2. Sala 2: stacje 3 i 4. Na telewizorze lub projektorze `/#ekran`.
-**Prowadzący:** Sala 1 — dwie osoby; Sala 2 — dwie lub trzy (SOC + kącik stacji 4); do tego koordynator. Plan tury jednej szkoły: [README](README.md#jak-wygląda-wydarzenie).
-W każdej sali jest naraz połowa drużyn szkoły, zwykle 4–5 drużyn 3–4-osobowych (ok. 15 osób). Po ok. 45 minutach grupy zamieniają się salami. Zabawa bez oceniania: pomagamy dojść do końca.
+**Cztery szkoły, dwie sale po ok. 15 komputerów, klasy po kolei — każda na ok. 45 minut.** Sala 1: stacje 1 i 2. Sala 2: stacje 3 i 4. Na telewizorze lub projektorze `/#ekran`.
+**Prowadzący:** Sala 1 — dwie osoby; Sala 2 — dwie lub trzy (SOC + kącik stacji 4); do tego koordynator. Plan tury jednej klasy: [README](README.md#jak-wygląda-wydarzenie).
+W każdej sali jest naraz połowa klasy, zwykle 4–5 drużyn 3–4-osobowych (ok. 15 osób). Po ok. 20 minutach grupy zamieniają się salami. **Na stację wypada ok. 10 minut** — prowadzący od razu prowadzą przez zadanie i dają podpowiedzi. Zabawa bez oceniania: pomagamy dojść do końca.
 Drużyna dostaje flagę na stronie stacji i sama wpisuje ją w odpowiednim labie. Nie czeka na akceptację prowadzącego. `#admin → Prowadź` pozostaje opcją pomocy i awaryjnego zaliczenia.
 Każda stacja daje **100 punktów oficjalnych**, maks. 400 + opcjonalny finał 0–100. Zadania poboczne to oddzielne punkty edukacyjne.
 
@@ -14,16 +14,18 @@ Każda stacja daje **100 punktów oficjalnych**, maks. 400 + opcjonalny finał 0
 4. Po zadaniu drużyna przepisuje flagę do swojego terminala: Laboratoria → numer stacji. Nie pokazuj na rzutniku kodów dołączania do drużyn ani panelu z prywatnymi danymi.
 5. Zwykłe zapisy wymagają etapu Gra główna i niewygasłego deadline. Przy awarii prowadzący używa jawnego trybu awaryjnego z uzasadnieniem. Flagi są jawnymi rekwizytami, nie sekretami kont.
 
-Blok w jednej sali trwa ok. 45 minut i obejmuje dwie stacje:
+Blok w jednej sali trwa ok. 20 minut i obejmuje dwie stacje:
 
 | Minuty bloku | Sala 1 (stacje 1 i 2) | Sala 2 (stacje 3 i 4) |
 |---|---|---|
-| 0–3 | Fabuła, zgoda i zasady | Fabuła, zgoda i zasady |
-| 3–22 | Stacja 1: Skok Mikołaja na komputerach | Śledztwo SOC (telefony + `/#siem` na komputerach); drużyny po kolei w kąciku stacji 4 |
-| 22–40 | Stacja 2: skarbiec na tych samych komputerach | Kolejne drużyny w kąciku stacji 4, reszta kończy SOC i reakcję |
-| 40–45 | Wpisanie flag, wnioski obronne, reset komputerów | Wpisanie flag, wnioski obronne, reset SIEM i pokazu |
+| 0–1 | Jedno zdanie fabuły i zasady | Jedno zdanie fabuły i zasady |
+| 1–10 | Stacja 1: prowadzący pokazuje poziom 1 na jednym komputerze, drużyny robią poziomy 2–3 same | Stacja 4 jako wspólny pokaz: biurko Grincha (2 min), kopia karty Flipperem, każda drużyna przykłada kopię do czytnika i dostaje flagę |
+| 10–18 | Stacja 2: skarbiec, wskazówki od razu widoczne na ścianie | Stacja 3: trzy telefony równolegle robią mail, portal i logi, potem SIEM na komputerze i reakcja |
+| 18–20 | Wpisanie flag, jeden wniosek obronny | Wpisanie flag, jeden wniosek obronny |
 
-**Reset przed kolejną grupą i kolejną szkołą:** na komputerach w Sali 1 przyciski „Nowa drużyna (reset gry)” w `/#gra` (przywraca też `rola=elf`) i „Nowa drużyna (reset)” w `/#skarbiec`; w Sali 2 „Nowa drużyna (reset)” w `/#siem`. Komputery nie są terminalami drużyn — jeśli ktoś dołączył do drużyny na komputerze, kliknij „Opuść drużynę na tym telefonie”.
+Jeśli czas się kończy: flagę można wpisać później na telefonie (termin obejmuje ostatnią klasę), a dodatki skarbca i zadania poboczne są dla chętnych po turze.
+
+**Reset przed kolejną grupą i kolejną klasą (w 10-minutowej przerwie):** na komputerach w Sali 1 przyciski „Nowa drużyna (reset gry)” w `/#gra` (przywraca też `rola=elf`) i „Nowa drużyna (reset)” w `/#skarbiec`; w Sali 2 „Nowa drużyna (reset)” w `/#siem`. Komputery nie są terminalami drużyn — jeśli ktoś dołączył do drużyny na komputerze, kliknij „Opuść drużynę na tym telefonie”.
 
 ## 1 · Zhakuj grę — nie ufaj przeglądarce
 
@@ -100,7 +102,7 @@ Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcj
 
 ## 4 · Biuro Grincha — karta UID i fizyczny dostęp
 
-**Kącik w Sali 2, 2 osoby:** prowadzący prowadzi audyt; pomocnik pełni rolę elfa Bartka z kartą i nadzoruje Flippera. Drużyny podchodzą po kolei (ok. 8–10 minut na drużynę), w tym czasie pozostałe prowadzą śledztwo SOC. Polecany jest **wariant uproszczony** z czytnikiem na telefonie prowadzącego.
+**Pokaz w Sali 2, 2 osoby:** przy turze 45-minutowej stacja 4 jest **wspólnym pokazem dla całej grupy (ok. 9 minut)**, a nie zadaniem każdej drużyny osobno. Prowadzący krótko omawia biurko Grincha; pomocnik jako elf Bartek pokazuje kartę i kopiuje ją Flipperem; potem każda drużyna przykłada kopię do czytnika i dostaje flagę. Polecany jest **wariant uproszczony** z czytnikiem na telefonie prowadzącego. BadUSB tylko, jeśli zostanie czas.
 
 **Sprzęt:** Flipper Zero, własny tag/karta NDEF NTAG215 z tekstem „Karta elfa nr 77”, etui ekranujące i smycz, telefon Android Chrome NFC z ładowarką (może to być telefon prowadzącego — zob. wariant uproszczony niżej), taśma/karton na drzwi, rekwizyty biurka. Do finału: własny laptop Windows i `stacja4-badusb/operacja-biegun.txt` w Flipperze.
 
@@ -168,7 +170,7 @@ Fajne uzupełnienie w Sali 2 dla drużyn czekających na kącik stacji 4, przy `
 
 Zadania poboczne są opcjonalne, bez wpływu na ranking: dotychczasowe 7 (w tym bot rozszerzony o agenta), **Przepełnienie sań** (buffer overflow: za długie imię kierowcy nadpisuje bajt uprawnień i cel lotu) Łącznie 8 zadań i 210 pkt edukacyjnych. Misja Grand Scam Auto VI jest tymczasowo ukryta i nie pojawia się w terminalu. Punkty edukacyjne pokazuje osobna tabela „Hakerzy” na rzutniku `#ekran`. Nie pobieramy plików wykonywalnych, nie kopiujemy nic do schowka, nie używamy aktywnych podejrzanych linków ani API AI.
 
-Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Na koniec tury każdej szkoły pokazujemy jej wyniki na `#ekran` i wręczamy dyplomy uczestnictwa. **Dopiero po ostatniej szkole** koordynator uruchamia `#final` (wcześniej etap Finał zablokowałby flagi kolejnym szkołom): alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
+Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych zadań. Na koniec tury każdej klasy pokazujemy wyniki szkoły na `#ekran` i wręczamy dyplomy uczestnictwa. **Dopiero po ostatniej klasie** koordynator uruchamia `#final` (wcześniej etap Finał zablokowałby flagi kolejnym klasom): alarm → odliczanie → cztery systemy → zielony status. Teleturniej z `final/kahoot-final.xlsx` pozostaje opcjonalny (0–100 oficjalnie, tylko w etapie Finał). Na koniec zamyka wydarzenie, pokazuje podium i pobiera CSV.
 
 ## Zbiorcza lista wyposażenia
 

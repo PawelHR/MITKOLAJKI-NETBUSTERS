@@ -309,3 +309,10 @@ test('tabela hakerów: publiczne statusy zadań pobocznych tylko zgodne z druży
   b.update(doc(d,'teams',id),{unlocked:next.unlocked});b.set(doc(d,'leaderboard',id),{...pub(next),side:next.side});
   await assertSucceeds(b.commit());
 });
+test('cztery szkoły: drużyna może należeć do szkoły nr 4 (indeks 3), ale nie do nieistniejącej piątej',async()=>{
+  const mk=(uid,tid,code,school)=>{const d=db(uid),t={...team(uid),createdAt:serverTimestamp(),soc:{},joinCode:code,memberCount:1,school},b=writeBatch(d);
+    b.set(doc(d,'teams',tid),t);b.set(doc(d,'teams',tid,'members',uid),{nick:'N',joinedAt:serverTimestamp()});
+    b.set(doc(d,'leaderboard',tid),pub(t));b.set(doc(d,'joinCodes',code),{teamId:tid,createdAt:serverTimestamp()});return b.commit();};
+  await assertSucceeds(mk('s4','SZK4','SZKK24',3));
+  await assertFails(mk('s5','SZK5','SZKK25',4));
+});

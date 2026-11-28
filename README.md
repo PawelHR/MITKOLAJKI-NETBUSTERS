@@ -1,6 +1,6 @@
 # 🎅 Operacja Biegun
 
-Mikołajkowa gra terenowa koła cyberbezpieczeństwa NETBUSTERS dla uczniów trzech szkół średnich.
+Mikołajkowa gra terenowa koła cyberbezpieczeństwa NETBUSTERS dla uczniów czterech szkół średnich.
 Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami rozwiązują zadania poboczne. Telefon służy im za **terminal misji**: prowadzi fabułę, przyjmuje flagi zdobyte na stacjach i pokazuje **ranking szkół**.
 
 **Gra:** https://operacja-biegun.web.app (zmiany w repozytorium nie oznaczają wdrożenia).
@@ -24,32 +24,35 @@ Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami
 
 ## Jak wygląda wydarzenie
 
-**Dwie sale po ok. 15 komputerów, szkoły przychodzą po kolei.** Każda szkoła ma swoją turę i przechodzi wszystkie cztery stacje:
+**Cztery szkoły, dwie sale po ok. 15 komputerów. Klasy przychodzą po kolei, każda na ok. 45 minut.** W tym czasie klasa przechodzi wszystkie cztery stacje:
 
 | Sala | Stacje | Na czym |
 |---|---|---|
 | **Sala 1** | 1 · Zhakuj grę, 2 · Złam skarbiec | komputery z `/#gra` i `/#skarbiec` |
-| **Sala 2** | 3 · Fałszywy Mikołaj (SOC i SIEM), 4 · Biuro Grincha | telefony uczniów + komputery z `/#siem`; kącik z biurkiem, Flipperem i czytnikiem |
+| **Sala 2** | 3 · Fałszywy Mikołaj (SOC i SIEM), 4 · Biuro Grincha | telefony uczniów + komputery z `/#siem`; pokaz stacji 4 z biurkiem, Flipperem i czytnikiem |
 | **Telewizor / projektor** | — | `/#ekran`: ranking szkół, najlepsze drużyny i tabela hakerów na żywo |
 
 Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Terminalem drużyny jest telefon ucznia; komputery w salach służą do stron stacji. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać w każdej chwili, aż do etapu „Wydarzenie zakończone”.
-**Prowadzący:** w Sali 1 dwie osoby, w Sali 2 dwie lub trzy (SOC + kącik stacji 4, gdzie pomocnik jest elfem z kartą i operatorem Flippera) oraz koordynator.
+**Prowadzący:** w Sali 1 dwie osoby, w Sali 2 dwie lub trzy (SOC + pokaz stacji 4, gdzie pomocnik jest elfem z kartą i operatorem Flippera) oraz koordynator.
 
-**Przykładowa tura jednej szkoły (ok. 2 godziny; godziny ustalcie z prowadzącymi):**
+**Tura jednej klasy (ok. 45 minut + 10 minut między klasami):**
 
-| Czas od początku tury | Gdzie | Co się dzieje |
+| Czas | Gdzie | Co się dzieje |
 |---|---|---|
-| 0:00–0:10 | Sala 1 | Wprowadzenie fabularne. Uczniowie skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. Podział drużyn na dwie grupy. |
-| 0:10–0:55 | obie sale | Grupa A: stacje 1 i 2 w Sali 1. Grupa B: stacje 3 i 4 w Sali 2 (drużyny kolejno podchodzą do kącika stacji 4, w tym czasie reszta prowadzi śledztwo SOC). |
-| 0:55–1:00 | — | Grupy zamieniają się salami. |
-| 1:00–1:45 | obie sale | Grupa A w Sali 2, grupa B w Sali 1. Między stacjami zadania poboczne na telefonach. |
-| 1:45–2:00 | przy `#ekran` | Wyniki szkoły na ekranie, dyplomy uczestnictwa, reset komputerów przed kolejną szkołą. |
+| przed wejściem | korytarz | Uczniowie skanują QR z plakatu i zakładają drużyny (jedna osoba zakłada, reszta wpisuje 6-znakowy kod). Prowadzący dzieli klasę na grupy A i B. |
+| 0:00–0:20 | obie sale | Grupa A: stacje 1 i 2 w Sali 1. Grupa B: stacje 3 i 4 w Sali 2. |
+| 0:20–0:23 | — | Grupy zamieniają się salami. |
+| 0:23–0:43 | obie sale | Grupa A w Sali 2, grupa B w Sali 1. |
+| 0:43–0:45 | przy `#ekran` | Wynik szkoły na ekranie, dyplomy uczestnictwa. |
+| przerwa 10 min | obie sale | Reset komputerów i pokazu stacji 4, wejście kolejnej klasy. |
 
-**Po ostatniej szkole** koordynator może uruchomić finał fabularny `#final`, wpisać opcjonalne punkty z teleturnieju (0–100, tylko w etapie Finał) i ogłosić podium szkół. Wcześniej etapu nie zmieniamy: Przerwa, Finał i Zakończenie blokują wpisywanie flag kolejnym szkołom.
+Cztery klasy to razem ok. 3 h 40 min. Na stację wypada ok. 10 minut, więc prowadzący od razu dają podpowiedzi, a dodatki (sól i projekt zabezpieczeń w skarbcu, zadania poboczne) są dla najszybszych. Zadania poboczne drużyny mogą dokończyć na telefonach po turze — liczą się do tabeli hakerów, nie do rankingu.
 
-Stacje są **dla zabawy, bez oceniania**: pomoc i podpowiedzi nie odbierają punktów, a flaga to rekwizyt ćwiczenia, nie egzamin. Ranking szkół to średnia na drużynę, więc jest porównywalny także wtedy, gdy szkoły grają w różnych turach.
+**Po ostatniej klasie** koordynator może uruchomić finał fabularny `#final`, wpisać opcjonalne punkty z teleturnieju (0–100, tylko w etapie Finał) i ogłosić podium szkół. Wcześniej etapu nie zmieniamy: Przerwa, Finał i Zakończenie blokują wpisywanie flag kolejnym klasom.
 
-Sale i komunikat centrali ustaw organizacyjnie w panelu (sale stacji 1–4: `Sala 1 | Sala 1 | Sala 2 | Sala 2`); zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę** i musi obejmować turę ostatniej szkoły — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
+Stacje są **dla zabawy, bez oceniania**: pomoc i podpowiedzi nie odbierają punktów, a flaga to rekwizyt ćwiczenia, nie egzamin. Ranking szkół to średnia na drużynę, więc jest porównywalny także wtedy, gdy szkoły grają w różnych turach i mają różną liczbę drużyn.
+
+Nazwy czterech szkół, sale i komunikat centrali ustaw organizacyjnie w panelu (sale stacji 1–4: `Sala 1 | Sala 1 | Sala 2 | Sala 2`); zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę** i musi obejmować turę ostatniej klasy — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
 
 ## Stacje
 

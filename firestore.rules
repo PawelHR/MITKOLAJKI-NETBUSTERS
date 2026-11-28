@@ -30,7 +30,7 @@ service cloud.firestore {
         && (!('joinCode' in d) || (d.joinCode is string && d.joinCode.matches('^[A-Z2-9]{6}$')))
         && (!('memberCount' in d) || (d.memberCount is int && d.memberCount >= 0 && d.memberCount <= 4))
         && d.name is string && d.name.size() >= 2 && d.name.size() <= 28
-        && d.school in [0,1,2] && d.registrationOpen is bool
+        && d.school in [0,1,2,3] && d.registrationOpen is bool
         && d.bonus is int && d.bonus >= 0 && d.bonus <= 100
         && monotone({},d.unlocked,['s1','s2','s3','s4'])
         && monotone({},d.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10'])

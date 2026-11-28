@@ -290,7 +290,7 @@ const URLS = [
   { u:"https://vinted-pl.payment-confirm.shop", fake:true },
   { u:"https://www.gov.pl/web/mobywatel", fake:false }
 ];
-const DEFAULT_SCHOOLS = ["Szkoła 1","Szkoła 2","Szkoła 3"];
+const DEFAULT_SCHOOLS = ["Szkoła 1","Szkoła 2","Szkoła 3","Szkoła 4"]; // 4 szkoły; reguły dopuszczają school 0–3
 const ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_RE = /^[A-Z2-9]{4}$/;
 
@@ -332,7 +332,7 @@ ls.set('ob_pending',null); // stary ekran oczekiwania nie jest już częścią d
 let view = { type:"home" };
 let unsubTeam = null, unsubMembers = null;
 
-function schools(){ const s = S.config.schools; return Array.isArray(s) && s.length===3 ? s.map((x,i)=>String(x||DEFAULT_SCHOOLS[i])) : DEFAULT_SCHOOLS; }
+function schools(){ const s = Array.isArray(S.config.schools) ? S.config.schools : []; return DEFAULT_SCHOOLS.map((d,i)=>String(s[i]||d)); } // starsza konfiguracja z 3 nazwami dostaje „Szkoła 4”
 function pointsOf(t){
   return officialPoints(t);
 }
