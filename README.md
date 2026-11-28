@@ -73,11 +73,6 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła 
 - Ranking szkoły: dokładna średnia oficjalnych punktów drużyn z co najmniej jedną stacją. Zaokrąglamy tylko wyświetlanie. **Remis = wspólne miejsce**, bez premii za sumę czy liczbę drużyn.
 - CSV UTF-8 z BOM i średnikami, z zabezpieczeniem przed formułami w nazwach.
 
-### Nowe misje
-
-- **Grand Scam Auto VI (2–4 min)**: ukryty sygnał 06 w terminalu. Fikcyjny Discord, domena `.example`, atrapa instalatora, infostealer i odzyskanie konta. „MISSION PASSED – RESPECT +”, odznaka „Vice City Defender”. Autorska scenografia CSS w neonach, bez materiałów Rockstar i pobierania plików.
-- **AI Agent Security**: po bezpośrednim prompt injection drugi etap z dokumentem. Rozpoznanie indirect injection, minimalne uprawnienia, blokada wysyłki i zgoda człowieka. Deterministycznie, bez API AI.
-
 ## Bezpieczeństwo i dane
 
 ```
