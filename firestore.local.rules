@@ -44,6 +44,56 @@ service cloud.firestore {
           && !exists(/databases/$(database)/documents/teams/$(t)/awards/$(id))
           && existsAfter(/databases/$(database)/documents/teams/$(t)/awards/$(id)));
     }
+    function stationUpdate(t) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked'])
+        && monotone(resource.data.unlocked,request.resource.data.unlocked,['s1','s2','s3','s4'])
+        && request.resource.data.unlocked.diff(resource.data.unlocked).addedKeys().size() == 1
+        && mirrored(t,request.resource.data)
+        && award(t,'s1',resource.data.unlocked,request.resource.data.unlocked)
+        && award(t,'s2',resource.data.unlocked,request.resource.data.unlocked)
+        && award(t,'s3',resource.data.unlocked,request.resource.data.unlocked)
+        && award(t,'s4',resource.data.unlocked,request.resource.data.unlocked);
+    }
+    function educationalUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['side','soc'])
+        // p9 pozostaje wyłącznie jako historyczne dane, bez nowego zaliczania.
+        && monotone(resource.data.side,request.resource.data.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
+        && request.resource.data.side.diff(resource.data.side).addedKeys().hasOnly(['p1','p2','p3','p4','p5','p6','p7','p8'])
+        && request.resource.data.side.diff(resource.data.side).addedKeys().size()
+           + request.resource.data.soc.diff(resource.data.soc).addedKeys().size() == 1
+        && monotone(resource.data.soc,request.resource.data.soc,['open','mail','idor','logs','triage','resp'])
+        && (request.resource.data.soc == resource.data.soc || resource.data.soc.get('open',false)
+          || request.resource.data.soc.diff(resource.data.soc).affectedKeys().hasOnly(['open']))
+        && (!request.resource.data.soc.get('resp',false) || resource.data.soc.get('resp',false)
+          || (resource.data.soc.get('mail',false) && resource.data.soc.get('idor',false) && resource.data.soc.get('logs',false) && resource.data.soc.get('triage',false)));
+    }
+    function adminUpdate(t) {
+      return mirrored(t,request.resource.data)
+        && (request.resource.data.get('joinCode','') == resource.data.get('joinCode','') || linkedCode(t,request.resource.data))
+        && monotone(resource.data.unlocked,request.resource.data.unlocked,['s1','s2','s3','s4'])
+        && (request.resource.data.unlocked == resource.data.unlocked || (
+          award(t,'s1',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s2',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s3',resource.data.unlocked,request.resource.data.unlocked)
+          && award(t,'s4',resource.data.unlocked,request.resource.data.unlocked)))
+        && (request.resource.data.bonus == resource.data.bonus || config().phase == 'final');
+    }
+    function submittedFlag(id,d) {
+      return d.get('flag','') is string && d.get('flag','').matches('^[A-Z0-9_-]{4,40}$')
+        && get(/databases/$(database)/documents/stationFlags/$(id)).data.active == true
+        && get(/databases/$(database)/documents/stationFlags/$(id)).data.value == d.flag;
+    }
+    function updateTeam(t) {
+      let old = resource.data;
+      let next = request.resource.data;
+      let changed = next.diff(old).affectedKeys();
+      return (admin() ? adminUpdate(t) : member(t) && (
+        (playing() && (changed.hasOnly(['unlocked']) ? stationUpdate(t) : educationalUpdate()))
+        || (registration() && old.createdBy == request.auth.uid && changed.hasOnly(['registrationOpen','joinCode'])
+          && (next.get('joinCode','') == old.get('joinCode','') || linkedCode(t,next)))
+      )) && validTeam(next);
+    }
+    match /stationFlags/{id} { allow read, write: if false; }
     match /admins/{uid} {
       allow get: if signed() && request.auth.uid == uid;
       allow list, write: if false;
@@ -88,7 +138,10 @@ service cloud.firestore {
         && request.resource.data.school == getAfter(/databases/$(database)/documents/teams/$(t)).data.school
         && request.resource.data.unlocked == getAfter(/databases/$(database)/documents/teams/$(t)).data.unlocked
         && request.resource.data.bonus == getAfter(/databases/$(database)/documents/teams/$(t)).data.bonus
-        && (admin() || (!exists(/databases/$(database)/documents/teams/$(t))
+        && (admin() || (member(t) && playing()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlocked','updatedAt'])
+          && request.resource.data.unlocked.diff(resource.data.unlocked).addedKeys().size() == 1)
+        || (!exists(/databases/$(database)/documents/teams/$(t))
           && getAfter(/databases/$(database)/documents/teams/$(t)).data.createdBy == request.auth.uid));
       allow delete: if admin();
     }
@@ -103,29 +156,7 @@ service cloud.firestore {
         && linkedCode(t,request.resource.data)
         && existsAfter(/databases/$(database)/documents/teams/$(t)/members/$(request.auth.uid))
         && mirrored(t,request.resource.data);
-      allow update: if validTeam(request.resource.data) && (
-        (admin() && mirrored(t,request.resource.data)
-          && (request.resource.data.get('joinCode','') == resource.data.get('joinCode','') || linkedCode(t,request.resource.data))
-          && monotone(resource.data.unlocked,request.resource.data.unlocked,['s1','s2','s3','s4'])
-          && award(t,'s1',resource.data.unlocked,request.resource.data.unlocked)
-          && award(t,'s2',resource.data.unlocked,request.resource.data.unlocked)
-          && award(t,'s3',resource.data.unlocked,request.resource.data.unlocked)
-          && award(t,'s4',resource.data.unlocked,request.resource.data.unlocked)
-          && (request.resource.data.bonus == resource.data.bonus || config().phase == 'final'))
-        || (member(t) && playing()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['side','soc'])
-          && monotone(resource.data.side,request.resource.data.side,['p1','p2','p3','p4','p5','p6','p7','p8','p9'])
-          && request.resource.data.side.diff(resource.data.side).addedKeys().size()
-             + request.resource.data.soc.diff(resource.data.soc).addedKeys().size() == 1
-          && monotone(resource.data.soc,request.resource.data.soc,['open','mail','idor','logs','triage','resp'])
-          && request.resource.data.soc.get('open',false) == resource.data.soc.get('open',false)
-          && (request.resource.data.soc == resource.data.soc || resource.data.soc.get('open',false))
-          && (!request.resource.data.soc.get('resp',false) || resource.data.soc.get('resp',false)
-            || (resource.data.soc.get('mail',false) && resource.data.soc.get('idor',false) && resource.data.soc.get('logs',false) && resource.data.soc.get('triage',false))))
-        || (signed() && resource.data.createdBy == request.auth.uid && registration()
-          && member(t) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registrationOpen','joinCode'])
-          && (request.resource.data.get('joinCode','') == resource.data.get('joinCode','') || linkedCode(t,request.resource.data)))
-      );
+      allow update: if signed() && updateTeam(t);
       allow delete: if admin() && existsAfter(/databases/$(database)/documents/retiredTeams/$(t));
       match /members/{uid} {
         allow read: if admin() || member(t);
@@ -158,12 +189,15 @@ service cloud.firestore {
       match /revoked/{uid} { allow read, write: if admin(); }
       match /awards/{id} {
         allow read: if admin() || member(t);
-        allow create: if admin() && id in ['s1','s2','s3','s4']
-          && request.resource.data.keys().hasOnly(['by','at','emergency','reason'])
+        allow create: if signed() && id in ['s1','s2','s3','s4']
+          && request.resource.data.keys().hasOnly(['by','at','emergency','reason','flag'])
           && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time
           && request.resource.data.reason is string && request.resource.data.reason.size() <= 200
-          && ((playing() && request.resource.data.emergency == false)
-            || (request.resource.data.emergency == true && request.resource.data.reason.size() >= 5))
+          && ((member(t) && playing() && request.resource.data.emergency == false
+              && request.resource.data.reason == 'Flaga stacji' && submittedFlag(id,request.resource.data))
+            || (admin() && !('flag' in request.resource.data)
+              && ((playing() && request.resource.data.emergency == false)
+                || (request.resource.data.emergency == true && request.resource.data.reason.size() >= 5))))
           && !(id in team(t).unlocked)
           && getAfter(/databases/$(database)/documents/teams/$(t)).data.unlocked[id] == true;
         allow update, delete: if false;

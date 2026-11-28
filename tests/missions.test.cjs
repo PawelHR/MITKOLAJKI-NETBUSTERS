@@ -19,11 +19,12 @@ class Element {
 }
 function harness(){
   const app=new Element('div'),network=new Element('div'),storage=new Map();
+  const flags=vm.runInNewContext(fs.readFileSync('public/station-flags.js','utf8').replace(/^export /gm,'')+'\nSTATION_FLAGS;');
   const context=vm.createContext({
     document:{createElement:tag=>new Element(tag),createTextNode:text=>({nodeType:3,textContent:text}),getElementById:id=>id==='app'?app:network},
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     window:{addEventListener(){}},location:{hash:''},navigator:{onLine:true},console,crypto:require('node:crypto').webcrypto,atob,TextEncoder,TextDecoder,
-    PHASES:{},officialPoints:()=>0,stationCount:()=>0,setTimeout,clearTimeout,setInterval,clearInterval,
+    STATION_FLAGS:flags,PHASES:{},officialPoints:()=>0,stationCount:()=>0,setTimeout,clearTimeout,setInterval,clearInterval,
   });
   const html=fs.readFileSync('public/index.html','utf8');
   const js=html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm,'').replace(/\nboot\(\);\s*$/,'');
@@ -41,10 +42,10 @@ test('Grand Scam Auto VI: flagi → infostealer → wszystkie zabezpieczenia →
   await h.click('Zakończ misję');assert.ok(h.app.textContent.includes('MISSION PASSED – RESPECT +'));assert.ok(h.app.textContent.includes('Vice City Defender'));
   assert.deepEqual(Array.from(h.context.saved),['side.p8']);h.clean();
 });
-test('ClickFix: zła decyzja daje lekcję, poprawa dopiero zapisuje edukacyjny wynik',async()=>{
-  const h=harness();h.run('sideClickFix("p9")');await h.click('Nie jestem robotem');await h.click('Wykonaj instrukcję');
-  assert.equal(h.context.saved.length,0);assert.ok(h.app.textContent.includes('Niczego nie uruchomiliśmy'));
-  await h.click('Popraw decyzję');assert.deepEqual(Array.from(h.context.saved),['side.p9']);h.clean();
+test('usunięto ClickFix, w grze jest 8 zadań pobocznych i 210 pkt edukacyjnych',()=>{
+  const h=harness();assert.equal(h.run('typeof sideClickFix'),'undefined');
+  assert.equal(h.run('SIDE.length'),8);assert.equal(h.run('SIDE.reduce((n,s)=>n+s.max,0)'),210);
+  assert.equal(h.run('SIDE.some(s=>s.id==="p9")'),false);
 });
 test('agent: wykrycie, minimalne uprawnienia, blokada i człowiek wymagane łącznie',async()=>{
   const h=harness();h.run('agentSecurity("p6",app)');h.clean();
@@ -53,9 +54,9 @@ test('agent: wykrycie, minimalne uprawnienia, blokada i człowiek wymagane łąc
 });
 test('SOC: hub ukrywa kod do ukończenia reakcji i blokuje pominięcie dowodów',()=>{
   const h=harness();h.run('S.code="ABCD";S.team={soc:{open:true}};S3={open:true,mail:true,idor:true,logs:true};renderS3Hub()');
-  assert.ok(!h.app.textContent.includes('SOC-READY'));assert.ok(!h.app.textContent.includes('5. Reakcja'));assert.ok(h.app.textContent.includes('4. Konsola SOC'));
+  const flag=h.run('STATION_FLAGS.s3');assert.ok(!h.app.textContent.includes(flag));assert.ok(!h.app.textContent.includes('5. Reakcja'));assert.ok(h.app.textContent.includes('4. Konsola SOC'));
   h.run('S3.triage=true;renderS3Hub()');assert.ok(h.app.textContent.includes('5. Reakcja'));
-  h.run('S3.resp=true;renderS3Hub()');assert.ok(h.app.textContent.includes('SOC-READY'));
+  h.run('S3.resp=true;renderS3Hub()');assert.ok(h.app.textContent.includes(flag));assert.ok(h.app.textContent.includes('Wpisz flagę w labie 3'));
   h.run('S3={open:true,mail:true};renderS3Resp()');assert.ok(!h.app.textContent.includes('Sprawdź kolejność'));
 });
 test('czwarta konsola SOC: korelacja i priorytet, reakcja pozostaje osobno',async()=>{
@@ -65,12 +66,40 @@ test('czwarta konsola SOC: korelacja i priorytet, reakcja pozostaje osobno',asyn
   h.elements().find(e=>e.attrs?.id==='soc-priority').value='high';
   await h.click('Zatwierdź analizę');
   assert.deepEqual(Array.from(h.context.saved),['soc.triage']);assert.ok(h.app.textContent.includes('osobnym etapie 5'));
-  assert.ok(!h.app.textContent.includes('SOC-READY'));h.clean();
+  assert.ok(!h.app.textContent.includes(h.run('STATION_FLAGS.s3')));h.clean();
 });
 test('odpowiedź skarbca jest spójnym publicznym rekwizytem, nie sekretem',async()=>{
   const h=harness();const demo=await h.run('openSeal("vault|md5|reindeer|d2|upper",V.seal)');
   assert.equal(demo,'RENIFER06');assert.equal(require('node:crypto').createHash('md5').update(demo).digest('hex'),h.run('V.hash'));
+  assert.equal(demo,h.run('STATION_FLAGS.s2'));
   assert.ok(h.run('V.dicts.find(x=>x.id==="reindeer").words.includes("RENIFER")'));
+});
+test('lab ma formularz flagi bez obowiązkowej akceptacji prowadzącego',()=>{
+  const h=harness();h.run('S.team={unlocked:{}};S.code="ABCD";S.config={phase:"main",mainEndsAt:{toMillis:()=>Date.now()+60000}};renderStation(STATIONS[0])');
+  assert.ok(h.app.textContent.includes('Zalicz lab flagą'));assert.ok(h.app.textContent.includes('Nie trzeba czekać na prowadzącego'));
+  assert.ok(h.elements().some(e=>e.attrs?.id==='station-flag'));assert.ok(!h.app.textContent.includes(h.run('STATION_FLAGS.s1')));
+});
+test('wyścig flag: odmowa nie jest sukcesem bez potwierdzenia z serwera',async()=>{
+  const h=harness();Object.assign(h.context,{doc:()=>({}),runTransaction:async()=>{throw {code:'permission-denied'};}});
+  h.run('S.code="ABCD";S.user={uid:"alice"}');
+  let reads=0;
+  h.context.getDocFromServer=async()=>{reads++;return {id:'ABCD',exists:()=>true,data:()=>({unlocked:{}})};};
+  await assert.rejects(h.run('claimStation("s1","WRONG")'),e=>e.code==='permission-denied');assert.equal(reads,1);
+  h.context.getDocFromServer=async()=>{throw {code:'unavailable'};};
+  await assert.rejects(h.run('claimStation("s1","FLAG")'),e=>e.code==='unavailable');
+  h.context.getDocFromServer=async()=>({id:'ABCD',exists:()=>true,data:()=>({unlocked:{s1:true}})});
+  await h.run('claimStation("s1","FLAG")');assert.equal(h.run('S.team.unlocked.s1'),true);
+  h.context.navigator.onLine=false;await assert.rejects(h.run('claimStation("s1","FLAG")'),e=>e.message==='offline');
+});
+test('czytnik pokazuje flagę labu 4 tylko po zgodnym UID (atrapa Web NFC)',async()=>{
+  const h=harness();let reader;
+  class Reader{constructor(){reader=this;}async scan(){}}
+  Object.assign(h.context,{NDEFReader:Reader,AbortController,setTimeout:()=>1,clearTimeout:()=>{}});h.context.window.NDEFReader=Reader;
+  h.run('ls.set("ob_door",JSON.stringify({uid:"AABBCC"}));renderDoor()');
+  const flag=h.run('STATION_FLAGS.s4');assert.ok(!h.app.textContent.includes(flag));
+  await h.click('Uruchom czytnik');reader.onreading({serialNumber:'11:22:33'});assert.ok(!h.app.textContent.includes(flag));
+  reader.onreading({serialNumber:'AA:BB:CC'});assert.ok(h.app.textContent.includes(flag));assert.ok(h.app.textContent.includes('DOSTĘP PRZYZNANY'));
+  assert.equal(h.context.saved.length,0);h.clean();
 });
 test('interfejs dołączania: jeden krótki kod, brak zaproszenia i ekranu akceptacji',()=>{
   const h=harness();h.run('S.config={phase:"registration"};renderJoin()');

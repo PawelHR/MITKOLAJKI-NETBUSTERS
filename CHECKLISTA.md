@@ -4,6 +4,7 @@
 - [ ] Kopia danych przechowywana prywatnie; migracja schematu przećwiczona na kopii.
 - [ ] Dawne PIN-y unieważnione; nie są potrzebne do gry. Wydruki i historia repozytorium traktowane jako publiczne.
 - [ ] Wdrożony `firestore.rules`, lokalna kopia identyczna. Publiczny ranking ma tylko dozwolone pola.
+- [ ] Cztery aktywne `stationFlags` zgodne z `public/station-flags.js`; klient nie odczyta ich z bazy. Publiczne flagi ćwiczeń nie są sekretami kont.
 - [ ] Próba odczytu cudzej drużyny oraz listy kodów i starych zaproszeń kończy się odmową.
 - [ ] Konta 8 prowadzących i koordynatora; UID w `admins`, oddzielne profile/urządzenia, brak kont demonstracyjnych w produkcji.
 - [ ] Zwykłe konto e-mail nie dostaje praw organizatora. Rejestracja anonimowa działa.
@@ -24,10 +25,12 @@
 - [ ] Sprzęt z STACJE.md przygotowany, wszystkie dane i karty należą do koła.
 - [ ] Gra: trzy poziomy, trzy podpowiedzi, klawiatura/dotyk, kontekst ramki w DevTools, pełny reset parametrów i roli, zatrzymanie w tle/po wyjściu.
 - [ ] Gra nie ma dostępu do sesji rodzica ani sieci; lokalna meta nie przyznaje punktów.
+- [ ] Flaga na mecie poziomu 3, wynik skarbca i flaga po poprawnym NFC są czytelne; wpisanie w labie daje 100 pkt bez panelu prowadzącego.
+- [ ] Błędna flaga, flaga innej stacji i zapis po deadline są odrzucane; dwa telefony nie dodają podwójnych punktów.
 - [ ] Skarbiec: poprawny wydruk nowego demonstracyjnego hasha, podpowiedzi, reset rundy.
-- [ ] SOC: trzy telefony jednej drużyny równolegle zbierają dowody; hub synchronizuje stan.
+- [ ] SOC: drużyna sama rozpoczyna śledztwo; trzy telefony równolegle zbierają dowody, hub synchronizuje stan.
 - [ ] Konsola SOC jest osobnym zadaniem 4; wybór dwóch skorelowanych alertów i wysokiego priorytetu zapisuje wspólny postęp.
-- [ ] Reakcja pozostaje osobnym etapem 5 po czterech zadaniach; finalny raport dopiero po reakcji; działają strzałki bez przeciągania.
+- [ ] Reakcja pozostaje osobnym etapem 5 po czterech zadaniach; flaga dopiero po reakcji; działają strzałki bez przeciągania.
 - [ ] Opuszczenie drużyny i dołączenie do drugiej nie przenosi SOC ani starego postępu `ob_s3`.
 - [ ] NFC: fizyczna próba oryginału i emulacji Flippera na docelowym Androidzie; plan B sprawdzony.
 - [ ] Uczestnik nie widzi konfiguracji PIN ani symulacji dobrej karty; kiosk/systemowe przypięcie, nadzór nad urządzeniem.
@@ -35,8 +38,8 @@
 - [ ] Po grupie usunięte kopie własnej karty z Flippera, wyzerowane stanowiska, panel niedostępny uczniom.
 
 ## Misje, ranking, finał
-- [ ] Grand Scam Auto VI, ClickFix, oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI.
-- [ ] Oficjalne maksimum 500, edukacyjne 230 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
+- [ ] Grand Scam Auto VI i oba etapy elfa-bota przeklikane; żadnych plików/komend/schowka/API AI. ClickFix usunięty z interfejsu.
+- [ ] Oficjalne maksimum 500, edukacyjne 210 poza rankingiem. Powtórne zaliczenie niczego nie dodaje.
 - [ ] Remis szkół oznacza wspólne miejsce, niezależnie od liczby drużyn; CSV otwiera polskie znaki i nie wykonuje formuł.
 - [ ] Ranking działa po zamknięciu rzutnika, ma czas aktualizacji; limit odczytów Spark monitorowany.
 - [ ] Finał: odliczanie, gotowe drużyny, cztery systemy, zielony status i podium; odświeżenie/ponowne otwarcie odtwarza etap.

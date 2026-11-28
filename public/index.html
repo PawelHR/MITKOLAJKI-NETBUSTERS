@@ -185,6 +185,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, doc, collection, getDoc, getDocFromServer, getDocs, getDocsFromServer, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, runTransaction, serverTimestamp, Timestamp, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { PHASES, officialPoints, stationCount, buildRanking, resultsCsv } from './core.js';
+import { STATION_FLAGS } from './station-flags.js';
 
 /* Konfiguracja Firebase. Na Firebase Hosting pobiera się sama z /__/firebase/init.json.
    Do testów na innym hostingu wklej tu obiekt z konsoli (Ustawienia projektu → Twoje aplikacje). */
@@ -195,19 +196,19 @@ let bootStarted=false;
 const STATION_PTS = 100;
 const STATIONS = [
   { id:"s1", nr:1, name:"Zhakuj grę", topic:"DevTools: nie ufaj przeglądarce", frag:"SANIE",
-    intro:'Na laptopie działa gra Grincha: przepaść, brak kluczy i meta tylko dla admina. W odizolowanej grze użyjcie F12. Metę pokażcie prowadzącemu do zatwierdzenia stacji.',
+    intro:'Na laptopie działa gra Grincha: przepaść, brak kluczy i meta tylko dla admina. W odizolowanej grze użyjcie F12. Na końcu trzeciego poziomu zobaczycie flagę — wpiszcie ją tutaj.',
     story:"Gra ufała przeglądarce: siłę skoku, liczbę kluczy i rolę gracza trzymała u was. Każdą z tych rzeczy dało się zmienić w kilka sekund. Pierwszy fragment klucza odzyskany.",
-    tips:["Wszystko, co działa w przeglądarce, użytkownik może podejrzeć i zmienić (F12).","Dlatego wynik, uprawnienia czy cenę w koszyku musi sprawdzać serwer, a nie przeglądarka.",'Oficjalne punkty zatwierdza prowadzący. Reguły odrzucają samodzielne nadawanie punktów przez uczestnika.'] },
+    tips:["Wszystko, co działa w przeglądarce, użytkownik może podejrzeć i zmienić (F12).","Dlatego wynik, uprawnienia czy cenę w koszyku musi sprawdzać serwer, a nie przeglądarka.",'Serwer sprawdza flagę, etap i jednokrotność zapisu. Nie udowadnia to samodzielnego przejścia gry — flagę z przeglądarki można podejrzeć lub przekazać.'] },
   { id:"s2", nr:2, name:"Złam skarbiec", topic:"Symulator łamania haseł", frag:"ZORZA",
-    intro:'Grinch zmienił hasło demonstracyjnego skarbca, ale zostawił ślady w sali. Dobierzcie typ hasha, słownik i maskę. Wynik pokażcie prowadzącemu — to rekwizyt, nie sekret zaliczenia.',
+    intro:'Grinch zmienił hasło demonstracyjnego skarbca. Dobierzcie typ hasha, słownik i maskę. Symulator pokaże odzyskane hasło jako flagę — wpiszcie ją tutaj, aby zaliczyć lab.',
     story:"Skarbiec otwarty. Hasło administratora składało się z imienia renifera i daty. Takie hasła wpadają w kilka sekund. Drugi fragment klucza jest wasz.",
     tips:["Imiona, daty i nazwy drużyn to pierwsze, co sprawdza słownik.","Długa fraza z kilku losowych słów jest dużo mocniejsza niż krótkie „H@sło1!”.","Menedżer haseł pozwala mieć różne hasło do każdego konta."] },
   { id:"s3", nr:3, name:"Fałszywy Mikołaj", topic:"Śledztwo SOC: phishing, portal, logi", frag:"KOMINEK", hasTask:true,
-    intro:'Księgowa dostała maila „od Mikołaja” i zatwierdziła przelew. Zbadajcie maila, portal i logi, a w czwartym zadaniu połączcie alerty w konsoli SOC. Potem osobno ułóżcie reakcję na incydent. Prowadzący otworzy śledztwo.',
+    intro:'Rozpocznijcie śledztwo, zbadajcie maila, portal i logi, a w czwartym zadaniu połączcie alerty w konsoli SOC. Potem osobno ułóżcie reakcję na incydent. Dopiero wtedy dostaniecie flagę labu.',
     story:"Mail przyszedł z podrobionym adresem do odpowiedzi, portal pokazywał cudze listy po zmianie numeru w adresie, a w logach widać, że Grinch zgadywał hasło admina przez 7 minut. Trzeci fragment klucza odzyskany.",
     tips:["Zanim klikniecie, sprawdźcie, kto naprawdę pisze i dokąd prowadzi link.","„Pilne!” i „do 17:00” to presja, która ma wyłączyć myślenie. Prośbę o pieniądze potwierdzajcie telefonicznie.","Jeśli po zmianie numeru w adresie widać cudze dane, to błąd strony. Zgłoście go, nie wykorzystujcie.","Setki nieudanych logowań z jednego adresu to atak. Dlatego konta blokują się po kilku próbach, a hasło admina musi być długie."] },
   { id:"s4", nr:4, name:"Biuro Grincha", topic:"Bezpieczeństwo fizyczne i Flipper Zero", frag:"RENIFER",
-    intro:'Ustalcie, czyja demonstracyjna karta otwiera warsztat. Pod nadzorem skopiujcie kartę koła i sprawdźcie czytnik UID. Nie używamy prywatnych kart uczniów. Zaliczenie zatwierdza prowadzący.',
+    intro:'Ustalcie, czyja demonstracyjna karta otwiera warsztat. Pod nadzorem skopiujcie kartę koła i sprawdźcie czytnik UID. Po przyznaniu dostępu czytnik pokaże flagę do wpisania tutaj. Nie używamy prywatnych kart uczniów.',
     story:"Grinch nie musiał niczego łamać. Grafik dyżurów zdradził, czyja karta otwiera warsztat, a kartę elfa dało się skopiować w kilka sekund, gdy wyjął ją z etui. Ostatni fragment klucza jest wasz.",
     tips:["Karteczka z hasłem przy monitorze przekreśla nawet najlepsze hasło.","Grafiki, identyfikatory i plany budynku na widoku mówią obcym, kogo i gdzie szukać.","Karty dostępu to klucze. Część z nich da się odczytać z bliska i skopiować w kilka sekund. Trzymajcie je w etui ekranującym.","Nie podłączajcie znalezionych pendrive'ów."] }
 ];
@@ -219,8 +220,7 @@ const SIDE = [
   { id:"p5", name:"Darmowe pierniki", max:30, short:"Gdzieś na korytarzu wisi plakat z darmowymi piernikami. Znajdźcie go." },
   { id:"p6", name:"Zhakuj elfa-bota", max:30, short:"Bot pilnuje tajnego słowa. Namówcie go, żeby je zdradził." },
   { id:"p7", name:"Dziurawy panel elfów", max:30, short:"Zaloguj się do panelu bez hasła. Zobaczycie, czym jest SQL injection." },
-  { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty." },
-  { id:"p9", name:"ClickFix: fałszywa CAPTCHA", max:20, short:"Czy sprawdzenie człowieczeństwa wymaga polecenia systemowego? 1–2 minuty." }
+  { id:"p8", name:"Grand Scam Auto VI", max:30, short:"Ukryty sygnał z miasta neonów. 2–4 minuty." }
 ];
 const BONUS_MAX = 100;
 const MESSAGES = [
@@ -476,6 +476,30 @@ async function officialUpdate(code, change, award){
 }
 
 /* ===================== WIDOK GRACZA ===================== */
+async function claimStation(id,flag){
+  if(!navigator.onLine)throw new Error('offline');
+  if(!STATIONS.some(s=>s.id===id))throw new Error('INVALID_STATION');
+  const teamId=S.code;
+  try{await runTransaction(S.db,async tx=>{
+    const ref=doc(S.db,'teams',teamId),snapshot=await tx.get(ref);
+    if(!snapshot.exists())throw new Error('NOT_FOUND');
+    const t=snapshot.data();if(t.unlocked?.[id]===true)return;
+    const next={...t,unlocked:{...t.unlocked,[id]:true}};
+    tx.set(doc(S.db,'teams',teamId,'awards',id),{by:S.user.uid,at:serverTimestamp(),emergency:false,reason:'Flaga stacji',flag:norm(flag)});
+    tx.update(ref,{unlocked:next.unlocked});tx.set(doc(S.db,'leaderboard',teamId),publicTeam(next));
+  });}catch(error){
+    // Inny telefon mógł wygrać po naszym odczycie; audyt jest niezmienialny.
+    // Nie ufamy cache ani lokalnemu statusowi — sukces potwierdza wyłącznie serwer.
+    if(!denied(error))throw error;
+    const confirmed=await getDocFromServer(doc(S.db,'teams',teamId));
+    if(!confirmed.exists()||confirmed.data().unlocked?.[id]!==true)throw error;
+  }
+  if(S.code===teamId){const snapshot=await getDocFromServer(doc(S.db,'teams',teamId));S.team={id:snapshot.id,...snapshot.data()};}
+}
+function flagCard(id){
+  return h('section',{class:'card',style:'text-align:center'},h('span',{class:'eyebrow'},'Flaga labu '+id.slice(1)),
+    h('div',{class:'codebox'},STATION_FLAGS[id]),h('p',null,'Wpisz tę flagę w terminalu: Laboratoria → '+id.slice(1)+'.'));
+}
 function renderPlayer(){
   app.className = "wrap";
   if (!S.user){ put(header(), S.error ? h("div",{class:"msg err"},S.error) : h("p",{class:"muted"},"Łączę z Centrum Logistyki Mikołaja…")); return; }
@@ -580,7 +604,7 @@ function renderHome(){
       h("div",{class:"spread"}, h("h2",null,"Klucz główny"), h("span",{class:"pill gold"}, got + "/4 fragmenty")),
       keyStrip(),
       got === 4 ? h("button",{class:"btn",onclick:()=>{view={type:"key"};render();}},"Przywróć system Mikołaja")
-                : h("p",{class:"muted small"},"Prowadzący zatwierdza stację dla waszego publicznego ID. Fragment pojawi się po potwierdzeniu serwera.")),
+                : h("p",{class:"muted small"},'Po zadaniu na stronie stacji dostaniecie flagę. Wpiszcie ją w odpowiednim labie — cała drużyna odzyska fragment klucza.')),
     h("section",{class:"stack"},
       h("h2",null,"Laboratoria"),
       h("div",{class:"grid2"}, STATIONS.map(s=>h("button",{class:"card",onclick:()=>{view={type:"station",id:s.id};render();}},
@@ -614,8 +638,19 @@ function renderStation(s){
     nodes.push(h("p",null,s.intro));
     nodes.push(h('p',{class:'muted small'},'Sala: '+(S.config.rooms?.[s.nr-1]||'zapytaj prowadzącego')+' · '+(S.config.rotation||'Rotacja według harmonogramu.')));
     if (s.hasTask) nodes.push(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"🔎 Otwórz śledztwo"));
-    nodes.push(h('div',{class:'card'},h('h2',null,'Zatwierdzenie u prowadzącego'),
-      h('p',null,'Pokaż publiczny ID drużyny: '+S.code+'. Tylko zalogowany organizator może przyznać 100 punktów i fragment klucza. Nie wpisujemy wspólnych PIN-ów.')));
+    const links={s1:'#gra',s2:'#skarbiec',s4:'#drzwi'};
+    if(links[s.id])nodes.push(h('a',{class:'btn ghost',href:links[s.id]},'Otwórz stronę stacji ↗'));
+    const input=h('input',{id:'station-flag',class:'code',maxlength:40,autocomplete:'off',autocapitalize:'characters',spellcheck:'false',placeholder:'Flaga ze stacji'});
+    const error=h('div',{class:'msg err',hidden:true});
+    const active=S.config.phase==='main'&&S.config.mainEndsAt?.toMillis()>Date.now();
+    nodes.push(h('form',{class:'card',onsubmit:async e=>{
+      e.preventDefault();const flag=norm(input.value);if(!/^[A-Z0-9_-]{4,40}$/.test(flag)){error.textContent='Wpisz flagę wyświetloną po zadaniu na tej stacji.';error.hidden=false;return;}
+      const btn=e.submitter;if(btn)btn.disabled=true;
+      try{await claimStation(s.id,flag);render();}
+      catch(ex){if(btn)btn.disabled=false;error.textContent=denied(ex)?'Serwer nie przyjął flagi. Sprawdź kod, numer labu oraz to, czy trwa gra główna i nie minął jej termin.':'Nie zapisano zaliczenia. Sprawdź połączenie i spróbuj ponownie.';error.hidden=false;}
+    }},h('h2',null,'Zalicz lab flagą'),h('label',{for:'station-flag'},'Flaga / kod ze stacji',input),error,
+      h('button',{class:'btn',type:'submit',disabled:!active},'Zalicz lab · +100 pkt'),
+      h('p',{class:'muted small'},active?'Nie trzeba czekać na prowadzącego. Zaliczenie potwierdza serwer.':'Flagi można zapisywać w etapie Gra główna przed końcem czasu. Etap i deadline ustawia organizator.')));
   } else {
     nodes.push(h("div",{class:"msg good"},"Fragment klucza odzyskany: ", h("b",{class:"mono"}, s.frag), " · +" + STATION_PTS + " pkt"));
     nodes.push(h("p",null,s.story));
@@ -665,7 +700,9 @@ function renderS3Hub(){
   const back = h("button",{class:"back",onclick:()=>{view={type:"station",id:"s3"};render();}},"← Wróć do stacji 3");
   const head = h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 3 · zespół SOC"), h("h1",null,"Śledztwo: Fałszywy Mikołaj"));
   if (!S3.open){
-    return put(back,head,h('div',{class:'msg'},'Prowadzący otworzy śledztwo w panelu dla drużyny '+S.code+'.'));
+    const feedback=h('div',{role:'status'});
+    return put(back,head,h('p',null,'Rozpocznijcie wspólne śledztwo. Każdy telefon może zająć się innym zadaniem.'),
+      h('button',{class:'btn',onclick:async e=>{const btn=e.currentTarget;btn.disabled=true;try{await saveProgress('soc.open',true);render();}catch(ex){btn.disabled=false;feedback.textContent='Nie udało się rozpocząć. Sprawdź internet, etap Gra główna i termin zapisów.';}}},'Rozpocznij śledztwo'),feedback);
   }
   const all = S3_PARTS.every(p=>S3[p.id]);
   put(back, head,
@@ -676,7 +713,8 @@ function renderS3Hub(){
       h("span",{class:"muted small"}, p.what))),
     all && !S3.resp ? h("div",{class:"msg good"},'Cztery zadania ukończone. Teraz osobno zaplanujcie reakcję na incydent.') : null,
     all && !S3.resp ? h("button",{class:"btn",onclick:()=>{view={type:"s3resp"};render();}},'5. Reakcja na incydent — ułóż kolejność') : null,
-    all && S3.resp ? h("div",{class:"msg good"},'Incydent opanowany · kod raportu SOC-READY (rekwizyt, nie sekret). Pokażcie raport prowadzącemu do zatwierdzenia stacji.') : null,
+    all && S3.resp ? flagCard('s3') : null,
+    all && S3.resp ? h('button',{class:'btn',onclick:()=>{view={type:'station',id:'s3'};render();}},'Wpisz flagę w labie 3') : null,
     h("button",{class:"card",onclick:()=>{view={type:"s3task"};render();}},
       h("div",{class:"spread"}, h("h3",null,"Dla szybkich: fałszywe strony"), h("span",{class:"pill"},"na czas")),
       h("span",{class:"muted small"},"8 adresów logowania. Prawdziwy czy fałszywy?")));
@@ -795,7 +833,7 @@ let mailFails = 0;
 function renderS3Mail(){
   const sel = {}; const res = h("div",{class:"stack"});
   const box = h("div",{class:"stack"});
-  // Dydaktyczne sprawdzenie na kliencie; oficjalnie zatwierdza prowadzący.
+  // Dydaktyczne sprawdzenie na kliencie; po całej sprawie uczestnik wpisuje flagę.
   const draw = (checked, ok) => {
     const n = Object.values(sel).filter(Boolean).length;
     box.replaceChildren(
@@ -943,8 +981,10 @@ async function finishSide(id, container, value){
     h("button",{class:"btn",onclick:()=>finishSide(id, container, value)},"Spróbuj zapisać jeszcze raz")); return false; }
 }
 function renderSide(id){
+  if(!SIDE.some(s=>s.id===id)){view={type:'home'};return renderHome();}
   if ((S.team.side||{})[id]) return sideShell(id, doneCard(id));
-  ({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli, p8:sideVice, p9:sideClickFix })[id](id);
+  const task=({ p1:sideSwipe, p2:sidePass, p3:sideCipher, p4:sidePhoto, p5:sideQrHint, p6:sideBot, p7:sideSqli, p8:sideVice })[id];
+  if(!task){view={type:'home'};return renderHome();}task(id);
 }
 
 /* zadanie poboczne p7: "Dziurawy panel elfów" — symulacja SQL injection.
@@ -1124,21 +1164,6 @@ function agentSecurity(id,box){
       const result=h('div');box.append(result);finishSide(id,result);
     }},'Uruchom bezpieczny plan: przygotuj szkic do zatwierdzenia'):null);
   draw();
-}
-function sideClickFix(id){
-  const box=h('div',{class:'stack'});
-  const end=safe=>{
-    const result=h('div');
-    box.replaceChildren(h('div',{class:'msg '+(safe?'good':'err')},safe?'Dobra decyzja: przerwano i zgłoszono próbę ataku.':'W symulacji przekazano by sterowanie programowi podsuniętemu przez oszusta. Niczego nie uruchomiliśmy.'),
-      h('section',{class:'card'},h('h3',null,'ClickFix: „napraw to sam”'),h('p',null,'Oszust udaje błąd lub CAPTCHA, aby skłonić cię do uruchomienia polecenia. CAPTCHA nigdy nie wymaga terminala systemowego. Nie wykonuj instrukcji, zamknij stronę i zgłoś ją. Jeśli wykonałeś podobny krok: odłącz urządzenie od sieci i poproś o pomoc zaufaną osobę/IT.')),
-      safe?result:h('button',{class:'btn',onclick:()=>end(true)},'Popraw decyzję: przerwij i zgłoś'));
-    if(safe) finishSide(id,result);
-  };
-  box.append(h('button',{class:'opt',onclick:()=>box.replaceChildren(
-    h('div',{class:'card'},h('h3',null,'Błąd weryfikacji!'),h('p',null,'Podejrzana strona każe otworzyć terminal systemowy i wkleić rzekomą poprawkę. [ATRAPA — BRAK POLECENIA]')),
-    h('p',{class:'small muted'},'Ta symulacja nie kopiuje niczego do schowka i nie zawiera poleceń systemowych.'),
-    h('div',{class:'choice'},h('button',{class:'btn red',onclick:()=>end(false)},'Wykonaj instrukcję (symulacja)'),h('button',{class:'btn ok',onclick:()=>end(true)},'Przerwij i zgłoś')))},'☐ Nie jestem robotem · ATRAPA CAPTCHA'));
-  sideShell(id,h('p',null,'Weryfikacja przed odbiorem prezentu wygląda znajomo. Sprawdź, czego naprawdę wymaga.'),box);
 }
 function sideVice(id){
   const box=h('div',{class:'stack'});
@@ -1500,7 +1525,7 @@ function exportCsv(){
    Hasło pada wyłącznie przy ustawieniach zgodnych ze wskazówkami z sali. */
 const V = {
   user:"admin_grinch",
-  hash:'649f2bfb89641699abf9ff52cec4cd7d', // jawny rekwizyt, nie PIN
+  hash:'649f2bfb89641699abf9ff52cec4cd7d', // dydaktyczne hasło; wynik jest flagą labu 2
   seal:'mFGvD/2uoLIwTHib1/XIdbftUenK6Hgalp5wTFMzD8nHH24s8w==',
   hints:{ type:"a2ba48ea2b39aace07f7272240b0d5dd0deb9ecf733f7110b63a6fca8cfa4c89", dict:"ccdf8844f32ebdd9b9555d6eea4b43e183b6bd916a5a99ab01f543b9d9ccb37d",
           mask:"d845288774c7bbb589193914b3453f316e75c5732d22d7576528b770d9c44144", kase:"75ead7cda861dc30670e143fc5bed38ed80ac8a9c203d94a0c8dfeae357cec08" },
@@ -1627,7 +1652,7 @@ function renderVault(){
     result.replaceChildren(h("div",{class:"card",style:"text-align:center"},
         h("span",{class:"eyebrow",style:"color:var(--ok)"},"Skarbiec otwarty"),
         h("div",{class:"codebox"}, pin),
-        h("p",null,'To jawne hasło demonstracyjne, nie PIN. Pokaż wynik prowadzącemu do zatwierdzenia stacji.')),
+        h("p",null,'To flaga labu 2. Wpisz ją w terminalu: Laboratoria → 2. To hasło demonstracyjne, nie używaj go do prawdziwych kont.')),
       h("section",{class:"card"}, h("h3",null,"Dlaczego poszło tak szybko?"),
         h("div",{class:"tablewrap"}, h("table",null,
           h("thead",null,h("tr",null,h("th",null,"Hasło"),h("th",{class:"num"},"MD5"),h("th",{class:"num"},"bcrypt"),h("th",{class:"num"},"Argon2id"))),
@@ -1695,7 +1720,7 @@ function renderDoor(){
       setState("ok","Zapisano kartę elfa", uidShow(u)); return later(5000);
     }
     if (doorCfg.uid && u === doorCfg.uid){
-      setState("ok","DOSTĘP PRZYZNANY",'Demonstracja zakończona. Prowadzący zatwierdzi stację dla waszej drużyny.');
+      setState("ok","DOSTĘP PRZYZNANY",'Flaga labu 4 — wpisz ją w terminalu drużyny.',STATION_FLAGS.s4);
       try { navigator.vibrate?.([120,60,120]); } catch(e){}
       return later(20000);
     }
@@ -1722,7 +1747,7 @@ function renderDoor(){
   drawCfg();
   const cfg = S.isAdmin ? h("details",{class:"card"},
     h("summary",{style:"cursor:pointer"},"Ustawienia czytnika (dla koła)"),
-    h("p",{class:"small"},'Uruchom czytnik i zapisz wyłącznie kartę demonstracyjną koła. PIN-y nie są używane; oficjalne zaliczenie wymaga panelu organizatora.'),
+    h("p",{class:"small"},'Uruchom czytnik i zapisz wyłącznie kartę demonstracyjną koła. Po odczycie właściwego UID pojawi się flaga labu 4. Uczestnicy wpisują ją sami; awaryjne zaliczenie jest w panelu.'),
     h("button",{class:"btn ghost",onclick:()=>{ if(S.isAdmin){doorLearn = true; idle();} }},"Zapisz kartę elfa"),cfgInfo,
     h('button',{class:'btn sm ghost',onclick:()=>{doorCfg={};saveDoor();drawCfg();idle();}},'Wyczyść konfigurację urządzenia')) : null;
   if (!supported) setState("deny","Ten telefon nie obsługuje czytania NFC w przeglądarce","Potrzebny jest telefon z Androidem, włączonym NFC i przeglądarką Chrome.");
@@ -1749,10 +1774,10 @@ function renderGame(){
   // Brak postMessage: wynik piaskownicy nigdy nie zapisuje punktów produkcyjnych.
   const frame=h('iframe',{title:'Odizolowany Skok Mikołaja',sandbox:'allow-scripts',style:'width:100%;height:1100px;border:0;border-radius:12px'});
   const style=document.querySelector('style').textContent;
-  const script=`const memory=new Map(); const localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v))};
+  const script=`const STATION_FLAGS=${JSON.stringify({s1:STATION_FLAGS.s1})}; const memory=new Map(); const localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v))};
     const app=document.getElementById('app'); const put=(...n)=>app.replaceChildren(...n.flat(Infinity).filter(Boolean));
     let gameRoot=null,gameRaf=null,gameKeyDown=null,gameKeyUp=null;
-    ${h.toString()} ${stopGame.toString()} ${renderVulnerableGame.toString()} renderVulnerableGame();`;
+    ${h.toString()} ${flagCard.toString()} ${stopGame.toString()} ${renderVulnerableGame.toString()} renderVulnerableGame();`;
   frame.srcdoc='<!doctype html><html lang="pl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; connect-src \'none\'; form-action \'none\'"><style>'+style+'</style><div id="app" class="wrap wide"></div><script>'+script+'<'+ '/script></html>';
   put(h('a',{href:'#',class:'back'},'← Terminal (poza piaskownicą)'),h('div',{class:'msg'},'Piaskownica bez Firebase i sesji organizatora. Rola Local Storage jest tu symulowana w pamięci. Odświeżenie/reset usuwa stan.'),frame);
@@ -1894,15 +1919,16 @@ function renderVulnerableGame(){
       h("div",{class:"card",style:"text-align:center"},
         h("span",{class:"eyebrow",style:"color:var(--ok)"},"Gra zhakowana · meta osiągnięta"),
          h("div",{class:"codebox"},'★★★'),
-         h("p",null,'Pokaż metę prowadzącemu. Tylko on zatwierdzi oficjalny wynik.')),
+         h("p",null,'Odzyskana flaga czeka poniżej. Wpisz ją w terminalu drużyny, w labie 1.')),
+       flagCard('s1'),
        h('section',{class:'card'},h('h3',null,'Dwa światy: komu ufamy?'),
          h('p',null,'Niezabezpieczona gra: klient deklaruje „mam klucze i jestem adminem” → lokalna meta ufa temu bez sprawdzania.'),
-         h('p',null,'Zabezpieczona wersja: zaufany serwer sprawdza zdarzenia i uprawnienia albo prowadzący obserwuje wykonanie. Zmiana gra.klucze nie daje punktów w rankingu Operacji Biegun.')),
+         h('p',null,'Zabezpieczona wersja: zaufany serwer sprawdza zdarzenia i uprawnienia. Tutaj sama zmiana gra.klucze nie zapisuje punktów — wpisujesz flagę do osobnego terminala. Flaga z przeglądarki nie dowodzi jednak samodzielnego przejścia gry.')),
       h("section",{class:"card"}, h("h3",null,"Czego się nauczyliście"),
         h("ul",{class:"tips"},
           h("li",null,"Gra trzymała siłę skoku, liczbę kluczy i rolę gracza w przeglądarce. Każdą z tych rzeczy zmieniliście w DevTools."),
           h("li",null,"Dlatego ważnych rzeczy (wyniku, uprawnień, ceny w koszyku) nigdy nie sprawdza się tylko w przeglądarce. Musi to robić serwer."),
-           h("li",null,'W Operacji Biegun zatwierdza prowadzący, a reguły bazy odrzucają punkty wpisane przez uczestnika.'))),
+           h("li",null,'Serwer sprawdza flagę i dopuszcza tylko jedno zaliczenie w czasie gry. Nie sprawdzi, czy ktoś przekazał wam wspólną flagę.'))),
        h("button",{class:"btn ghost",onclick:reset},"Nowa drużyna (reset gry)"));
     result.scrollIntoView({ behavior:"smooth", block:"start" });
   }
@@ -1923,7 +1949,7 @@ function renderVulnerableGame(){
 
   gameRoot = h("div",{class:"stack",style:"gap:16px"},
     h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium 1 · zhakuj grę"), h("h1",null,"Skok Mikołaja")),
-     h("p",null,'Zmieńcie grę w przeglądarce. W DevTools wybierzcie kontekst ramki about:srcdoc. Na mecie prowadzący zatwierdzi stację; gra nie zna sekretów i nie wysyła wyników.'),
+     h("p",null,'Zmieńcie grę w przeglądarce. W DevTools wybierzcie kontekst ramki about:srcdoc. Na końcu trzeciego poziomu pojawi się flaga labu 1. Piaskownica nie ma dostępu do sesji ani danych Firebase.'),
     h("div",{class:"gamewrap"}, cv),
     h("div",{class:"row",style:"justify-content:center"}, pad("◀","left"), pad("⤒ skok","jump"), pad("▶","right")),
      info, h('button',{class:'btn ghost',onclick:reset},'Nowa drużyna (reset gry)'), result);

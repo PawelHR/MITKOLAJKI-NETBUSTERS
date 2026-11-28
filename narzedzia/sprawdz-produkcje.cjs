@@ -7,7 +7,7 @@ async function main(){
   const origin=`https://${PROJECT}.web.app`;
   const initResponse=await fetch(origin+'/__/firebase/init.json');if(!initResponse.ok)throw new Error('INIT_UNAVAILABLE');
   const init=await initResponse.json();if(init.projectId!==PROJECT||!init.apiKey)throw new Error('WRONG_HOSTING_PROJECT');
-  for(const name of ['index.html','core.js','sw.js']){
+  for(const name of ['index.html','core.js','station-flags.js','sw.js']){
     const response=await fetch(origin+'/'+name,{headers:{'Cache-Control':'no-cache'}});
     if(!response.ok||hash(Buffer.from(await response.arrayBuffer()))!==hash(fs.readFileSync('public/'+name)))throw new Error('HOSTING_CONTENT_MISMATCH');
   }
@@ -20,7 +20,7 @@ async function main(){
     for(const value of Object.values(d.fields.unlocked.mapValue.fields||{}))if(value.booleanValue!==true||Object.keys(value).length!==1)throw new Error('PUBLIC_SECRET_OR_STATUS_FAILED');
   }
   const id=documents[0]?.name.split('/').pop()||'ABCD';
-  for(const resource of [base+'/teams',base+'/teams/'+id,base+'/teams/'+id+'/members',base+'/joinCodes',base+'/joinCodes/AAAAAA',base+'/invites',base+'/invites/'+'0'.repeat(32),base+'/config/ranking']){
+  for(const resource of [base+'/teams',base+'/teams/'+id,base+'/teams/'+id+'/members',base+'/stationFlags',base+'/stationFlags/s1',base+'/joinCodes',base+'/joinCodes/AAAAAA',base+'/invites',base+'/invites/'+'0'.repeat(32),base+'/config/ranking']){
     if((await get(resource)).status!==403)throw new Error('PRIVATE_ACCESS_NOT_DENIED');
   }
   const configResponse=await get(base+'/config/main');if(configResponse.status!==200)throw new Error('PUBLIC_CONFIG_UNAVAILABLE');

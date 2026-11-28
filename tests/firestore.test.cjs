@@ -2,7 +2,7 @@ const {test,before,after,beforeEach}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/rules-unit-testing');
-const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,runTransaction,serverTimestamp,Timestamp}=require('firebase/firestore');
+const {doc,collection,getDoc,getDocFromServer,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,runTransaction,serverTimestamp,Timestamp}=require('firebase/firestore');
 let env;
 const token='a'.repeat(32), id='ABCD';
 const team=(uid='alice')=>({name:'Elfy',school:0,createdBy:uid,createdAt:Timestamp.now(),unlocked:{},side:{},soc:{open:true},registrationOpen:true,bonus:0,joinCode:'K7MX4P'});
@@ -19,6 +19,7 @@ beforeEach(async()=>{
       setDoc(doc(d,'teams',id,'members','alice'),{nick:'A',joinedAt:Timestamp.now()}),
       setDoc(doc(d,'teams',id,'members','bob'),{nick:'B',joinedAt:Timestamp.now()}),
       setDoc(doc(d,'joinCodes/K7MX4P'),{teamId:id,createdAt:Timestamp.now()}),
+      ...['s1','s2','s3','s4'].map(s=>setDoc(doc(d,'stationFlags',s),{value:'FLAG_'+s.toUpperCase()+'_TEST',active:true})),
       setDoc(doc(d,'invites',token),{teamId:id,expiresAt:Timestamp.fromMillis(Date.now()+3600000)})]);
   });
   await phase('main');
@@ -86,7 +87,7 @@ test('równoczesne transakcje z dwóch telefonów zachowują oba dowody SOC',asy
   await Promise.all([done('alice','mail'),done('bob','logs')]);
   const s=await getDoc(doc(db('alice'),'teams',id)); assert.equal(s.data().soc.mail,true);assert.equal(s.data().soc.logs,true);
 });
-test('reakcja SOC dopiero po 4 zadaniach; uczestnik nie otworzy SOC',async()=>{
+test('reakcja SOC dopiero po 4 zadaniach; uczestnik sam rozpoczyna śledztwo',async()=>{
   const r=doc(db('alice'),'teams',id);
   await assertFails(updateDoc(r,{'soc.resp':true}));
   for(const k of ['mail','idor','logs']) await assertSucceeds(updateDoc(r,{['soc.'+k]:true}));
@@ -94,7 +95,8 @@ test('reakcja SOC dopiero po 4 zadaniach; uczestnik nie otworzy SOC',async()=>{
   await assertSucceeds(updateDoc(r,{'soc.triage':true}));
   await assertSucceeds(updateDoc(r,{'soc.resp':true}));
   await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{soc:{}}));
-  await assertFails(updateDoc(r,{'soc.open':true}));await assertFails(updateDoc(r,{'soc.mail':true}));
+  await assertFails(updateDoc(r,{'soc.mail':true}));
+  await assertSucceeds(updateDoc(r,{'soc.open':true}));await assertSucceeds(updateDoc(r,{'soc.mail':true}));
 });
 test('nowa konsola SOC nie odbiera wcześniej potwierdzonej reakcji',async()=>{
   await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{soc:{open:true,mail:true,idor:true,logs:true,resp:true}}));
@@ -190,8 +192,62 @@ test('dwa telefony mogą dołączyć równocześnie, nie nadpisując drużyny an
   const t=(await getDoc(doc(d,'teams',id))).data();assert.deepEqual(t.unlocked,{});assert.deepEqual(t.soc,{open:true});
 });
 test('pełny stan misji nadal pozwala zapisać ostatnie zadanie i bonus',async()=>{
-  const full={...team(),unlocked:{s1:true,s2:true,s3:true,s4:true},side:Object.fromEntries(Array.from({length:8},(_,i)=>['p'+(i+1),true])),soc:{open:true,mail:true,idor:true,logs:true,triage:true,resp:true}};
+  const full={...team(),unlocked:{s1:true,s2:true,s3:true,s4:true},side:Object.fromEntries(Array.from({length:7},(_,i)=>['p'+(i+1),true])),soc:{open:true,mail:true,idor:true,logs:true,triage:true,resp:true}};
   await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();await setDoc(doc(d,'teams',id),full);await setDoc(doc(d,'leaderboard',id),pub(full));});
-  await assertSucceeds(updateDoc(doc(db('alice'),'teams',id),{'side.p9':true}));
+  await assertSucceeds(updateDoc(doc(db('alice'),'teams',id),{'side.p8':true}));
   await phase('final');const d=db('org'),b=writeBatch(d);b.update(doc(d,'teams',id),{bonus:100});b.set(doc(d,'leaderboard',id),pub({...full,bonus:100}));await assertSucceeds(b.commit());
+});
+async function flagBatch(uid,station,flag){
+  const d=db(uid),snapshot=await getDoc(doc(d,'teams',id)),t=snapshot.data(),next={...t,unlocked:{...t.unlocked,[station]:true}},b=writeBatch(d);
+  b.update(doc(d,'teams',id),{unlocked:next.unlocked});b.set(doc(d,'leaderboard',id),pub(next));
+  b.set(doc(d,'teams',id,'awards',station),{by:uid,at:serverTimestamp(),emergency:false,reason:'Flaga stacji',flag});return b.commit();
+}
+test('uczestnik sam zalicza lab poprawną flagą; publicznie tylko status, bez flagi',async()=>{
+  await assertSucceeds(flagBatch('alice','s1','FLAG_S1_TEST'));
+  const publicDoc=(await getDoc(doc(db(null),'leaderboard',id))).data();assert.deepEqual(publicDoc.unlocked,{s1:true});assert.ok(!JSON.stringify(publicDoc).includes('FLAG_'));
+  assert.equal((await getDoc(doc(db('bob'),'teams',id))).data().unlocked.s1,true);
+});
+test('błędna flaga i flaga z innej stacji nie dają punktów; brak częściowego zapisu',async()=>{
+  await assertFails(flagBatch('alice','s1','WRONG_FLAG'));await assertFails(flagBatch('alice','s2','FLAG_S1_TEST'));
+  assert.deepEqual((await getDoc(doc(db(null),'leaderboard',id))).data().unlocked,{});
+  assert.deepEqual((await getDoc(doc(db('alice'),'teams',id))).data().unlocked,{});
+});
+test('brak podwójnego zaliczenia flagą oraz zakaz edycji/usunięcia audytu',async()=>{
+  await assertSucceeds(flagBatch('alice','s1','FLAG_S1_TEST'));await assertFails(flagBatch('bob','s1','FLAG_S1_TEST'));
+  await assertFails(deleteDoc(doc(db('alice'),'teams',id,'awards','s1')));
+});
+test('poprawna flaga nie omija etapów i czasu serwera',async()=>{
+  for(const p of ['registration','break','final','ended']){await phase(p);await assertFails(flagBatch('alice','s1','FLAG_S1_TEST'));}
+  await phase('main',true);await assertFails(flagBatch('alice','s1','FLAG_S1_TEST'));
+});
+test('flagi w bazie nie są odczytywalne ani listowalne przez klientów, także admina',async()=>{
+  for(const uid of [null,'alice','eve','org']){await assertFails(getDoc(doc(db(uid),'stationFlags/s1')));await assertFails(getDocs(collection(db(uid),'stationFlags')));}
+});
+test('dwa telefony wpisujące tę samą flagę równocześnie przyznają tylko jedno zaliczenie',async()=>{
+  // Wykonujemy prawdziwą funkcję aplikacji, nie jej testową kopię.
+  const html=fs.readFileSync('public/index.html','utf8');
+  const source=html.slice(html.indexOf('async function claimStation('),html.indexOf('\nfunction flagCard('));
+  async function claim(uid){const context={navigator:{onLine:true},S:{db:db(uid),code:id,user:{uid}},STATIONS:[{id:'s1'}],
+    doc,runTransaction,getDocFromServer,serverTimestamp,publicTeam:pub,norm:s=>s.trim().toUpperCase(),denied:e=>e.code==='permission-denied'};
+    return new Function(...Object.keys(context),source+'\nreturn claimStation("s1","FLAG_S1_TEST");')(...Object.values(context));}
+  await Promise.all([claim('alice'),claim('bob')]);assert.equal((await getDocs(collection(db('alice'),'teams',id,'awards'))).size,1);
+  assert.deepEqual((await getDoc(doc(db(null),'leaderboard',id))).data().unlocked,{s1:true});
+});
+test('wyłączona flaga oraz samo utworzenie audytu bez statusu nie są zaliczeniem',async()=>{
+  await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'stationFlags/s1'),{active:false}));await assertFails(flagBatch('alice','s1','FLAG_S1_TEST'));
+  await assertFails(setDoc(doc(db('alice'),'teams',id,'awards','s2'),{by:'alice',at:serverTimestamp(),emergency:false,reason:'Flaga stacji',flag:'FLAG_S2_TEST'}));
+});
+test('usunięte zadanie p9 nie przyjmuje nowych zaliczeń, historia nie blokuje pozostałych',async()=>{
+  const r=doc(db('alice'),'teams',id);await assertFails(updateDoc(r,{'side.p9':true}));
+  await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'teams',id),{'side.p9':true}));await assertSucceeds(updateDoc(r,{'side.p8':true}));
+});
+test('cztery flagi różnych labów dają dokładnie cztery statusy i gotowość do finału',async()=>{
+  for(const s of ['s1','s2','s3','s4'])await assertSucceeds(flagBatch('alice',s,'FLAG_'+s.toUpperCase()+'_TEST'));
+  const result=(await getDoc(doc(db(null),'leaderboard',id))).data();assert.deepEqual(result.unlocked,{s1:true,s2:true,s3:true,s4:true});assert.equal(Object.keys(result.unlocked).length*100,400);
+});
+test('znajomość flagi nie pozwala osobie spoza drużyny wpisać zaliczenia',async()=>{
+  const d=db('eve'),b=writeBatch(d),next={...team(),unlocked:{s1:true}};
+  b.update(doc(d,'teams',id),{unlocked:next.unlocked});b.set(doc(d,'leaderboard',id),pub(next));
+  b.set(doc(d,'teams',id,'awards','s1'),{by:'eve',at:serverTimestamp(),emergency:false,reason:'Flaga stacji',flag:'FLAG_S1_TEST'});
+  await assertFails(b.commit());
 });

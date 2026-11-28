@@ -11,13 +11,15 @@ test('składnia aplikacji i service workera',()=>{
 test('lokalne i wdrażane reguły są identyczne',()=>{
   assert.equal(fs.readFileSync('firestore.rules','utf8'),fs.readFileSync('firestore.local.rules','utf8'));
 });
-test('piaskownica bez pochodzenia rodzica, kodów stacji i połączeń sieciowych',()=>{
+test('piaskownica bez pochodzenia rodzica i połączeń sieciowych; tylko flaga ćwiczenia',()=>{
   assert.ok(js.includes("sandbox:'allow-scripts'"));
   assert.ok(!js.includes("sandbox:'allow-scripts allow-same-origin'"));
   assert.ok(js.includes("connect-src \\'none\\'"));
   assert.ok(!js.includes('GAME_SEAL'));
   assert.ok(!js.includes('Test: udawaj dobrą kartę'));
   assert.ok(!js.includes('doorCfg.pin ||'));
+  assert.ok(js.includes("flagCard('s1')"));
+  assert.ok(!js.includes('sideClickFix'));
 });
 test('reset obejmuje parametry, rolę, klawisze, poziom i gwiazdki',()=>{
   const reset=js.slice(js.indexOf('   function reset(){'),js.indexOf('   function finish(){'));

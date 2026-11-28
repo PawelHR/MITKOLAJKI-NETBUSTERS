@@ -4,13 +4,17 @@
 
 Środowisko testów: Windows, Node/npm, lokalny Firebase Emulator Suite, przenośna Java 21. Testy i seed korzystają wyłącznie z `demo-operacja-biegun`. Oddzielne operacje na produkcji wykonane później, na wyraźne polecenie właściciela, opisuje [WDROZENIE.md](WDROZENIE.md).
 
-- `npm test`: **18/18** testów punktacji, remisów, CSV, składni, zgodności reguł, piaskownicy, resetu i misji. Obejmuje konsolę SOC jako zadanie 4, osobną reakcję 5, prosty formularz dołączania i model migracji.
-- `npm run test:rules`: uzyskano 13/13 pierwotnych scenariuszy. Finalne 24 scenariusze uruchomiono na już działającym emulatorze: `$env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; node --test tests/firestore.test.cjs`. Wynik finalny: **24/24**.
+- `npm test`: **21/21** testów punktacji, remisów, CSV, składni, zgodności reguł, piaskownicy, resetu i misji. Obejmuje konsolę SOC jako zadanie 4, osobną reakcję 5, formularz flagi, potwierdzenie wyścigu przez serwer, atrapę Web NFC, usunięcie ClickFix, proste dołączanie i model migracji.
+- Testy reguł na działającym emulatorze: `$env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; node --test tests/firestore.test.cjs`. Wynik finalny: **34/34**. `npm run test:rules` uruchamia ten sam zestaw we własnym emulatorze.
 - Reguły: prywatność, atomowe zakładanie drużyny, autoryzowane członkostwo, cofnięcie i zamknięcie rejestracji, blokada zmiany punktów/admina, duplikaty, współbieżny SOC, cztery zadania przed nową reakcją, zachowanie wcześniejszej reakcji, etapy/deadline serwera, niezmienialny audyt, awaryjne zaliczenie, bonus tylko w finale, ważność i powiązanie zaproszenia oraz zakaz ponownego użycia wycofanego ID.
+- Flagi: poprawna/błędna/z innego labu/wyłączona, brak częściowego zapisu, zakaz dla osoby spoza drużyny, cztery flagi = 400 pkt, dwa telefony = jeden audyt. Surowe powtórne zapisy pozostają zabronione; aplikacja w razie wyścigu sprawdza `getDocFromServer`, nie udaje sukcesu na podstawie cache. Refaktoryzacja wyboru ścieżki reguł usunęła błąd limitu 1000 wyrażeń w odmowach.
+- Historyczne `side.p9` nie jest kasowane, ale nowych zaliczeń nie można dopisać; osiem aktywnych zadań daje maks. 210 pkt edukacyjnych.
 - `git diff --check`: bez błędów whitespace (Git zgłasza jedynie lokalną konwersję LF/CRLF).
 - Uruchomiono generator rekwizytu, bez argumentów z sekretami.
 
 ### Próba w przeglądarce Chromium z lokalnym Hosting/Auth/Firestore
+
+Pierwsze próby poniżej opisują też historyczny model zatwierdzania przez prowadzącego. Aktualną próbę flag opisano na końcu listy.
 
 - Utworzenie drużyny przez interfejs, widoczny publiczny ID i postęp 0/4.
 - Drugi anonimowy klient SDK złożył prośbę; zatwierdzenie telefonu wykonano przyciskiem panelu i potwierdzono odczyt prywatnej drużyny przez nowego członka.
@@ -22,12 +26,15 @@
 - Dodatkowa próba lokalna czwartego zadania: przed analizą alertów etap 5 i kod raportu były ukryte; po wskazaniu dwóch skorelowanych alertów i wysokiego priorytetu potwierdzono cztery wspólne zaliczenia i odblokowanie **osobnej reakcji**, nadal bez kodu raportu.
 - Aktualny prosty tryb: dwa osobne anonimowe konta na `127.0.0.1` i `localhost`. Pierwszy gracz sam utworzył drużynę w interfejsie, drugi wpisał krótki kod małymi literami i od razu dołączył, bez panelu organizatora. Obie sesje pokazały 2 członków i kod długości 6. Po przeładowaniu telefonu założyciela kod i skład drużyny pozostały dostępne.
 - Reguły krótkich kodów: brak listowania i publicznego publikowania, odmowa dla publicznego ID/błędnego kodu/innego UID, samodzielne poprawne dołączenie, zamknięcie etapu i drużyny, blokada cofniętego UID, rotacja kodu i równoczesne dołączenie dwóch telefonów. Pełny stan wszystkich zadań nadal pozwala zapisać ostatnie zadanie i bonus finału.
+- Aktualny tryb flag: przejście trzech poziomów gry pokazało flagę labu 1; dostęp ramki do dokumentu rodzica był zablokowany. Poprawne opcje skarbca pokazały hasło/flagę labu 2. Drużynę utworzono tylko lokalnie; błędną flagę odrzucono, poprawną wpisaną małymi literami i ze spacjami zaliczono za 100 pkt bez panelu. Terminal ma 8 zadań, bez ClickFix.
+- SOC uruchomiono przyciskiem uczestnika. Na lokalnej próbce z trzema przygotowanymi dowodami przeklikano konsolę SOC: po niej reakcja była dostępna, ale flaga nadal ukryta. Ułożenie reakcji przyciskami i potwierdzenie zapisu na serwerze pokazało flagę labu 3 oraz powrót do formularza.
+- Web NFC sprawdzono automatycznie atrapą czytnika: zły UID bez flagi, zgodny UID z flagą labu 4, bez automatycznego zapisu punktów. Nie zastępuje to fizycznej próby sprzętu.
 
 Naprawiono też problemy ujawnione w tej próbie: tablice elementów stringifikowane przez natywne `replaceChildren`, niepotwierdzony pusty cache drużyny oraz odczyt roli organizatora z cache zamiast serwera. Lokalny emulator używa long-pollingu, aby uniknąć buforowania streamów w przeglądarce testowej. Sukcesy zapisów drużyny uwzględniają metadane potwierdzenia serwera.
 
 ## Co pozostaje świadomym ograniczeniem
 
-1. **Prowadzący jest zaufanym weryfikatorem.** Spark bez własnego zaufanego backendu nie sprawdzi rzetelnie całej aktywności przeglądarki. Uczeń może oszukać lokalną symulację lub dowody SOC, ale nie może sam nadać oficjalnych punktów. Edukacyjne punkty są oddzielne.
+1. **Wspólne flagi są publicznymi rekwizytami.** Uczestnik może podejrzeć je w module źródłowym albo przekazać innej drużynie i w ten sposób zaliczyć lab bez samodzielnego wykonania. To świadomie przywrócony prosty tryb. Serwer sprawdza flagę, członkostwo, etap, deadline i jednokrotność, nie rzetelność symulacji. Edukacyjne punkty są oddzielne.
 2. **Migracja starych danych jest obowiązkowa dla starych instalacji.** Dla bieżącej produkcji została wykonana z prywatną kopią i weryfikacją. Dawne PIN-y pozostają nieaktualne również w historii Git. Istniejące członkostwa zachowano bez automatycznego przywracania; ich zgodność z faktycznym składem drużyn nadal powinien sprawdzić organizator.
 3. **NFC wymaga próby fizycznej.** Nie było dostępu do Androida NFC, kart i Flippera. Zgodność Web NFC/emulacji, ekranowanie, BadUSB, systemowe przypięcie kiosku i nadzór nad urządzeniem muszą zostać sprawdzone na miejscu. Pełny ekran strony nie jest zabezpieczeniem urządzenia.
 4. **Offline jest częściowe.** Wczytane zadania działają w bieżącej stronie; worker zachowuje tylko publiczny shell i wcześniej pobrane moduły. Brak pełnej kopii prywatnego stanu po zamknięciu sesji. Zapisy wymagają sieci. Realne odcięcie internetu, słaby zasięg i ponowienia na telefonach pozostają elementem próby generalnej.
@@ -41,6 +48,7 @@ Naprawiono też problemy ujawnione w tej próbie: tablice elementów stringifiko
 - `.gitignore` — oba bezsekretowe pliki reguł mogą być wersjonowane; prywatna historyczna ściąga nadal ignorowana.
 - `public/index.html` — bezpieczeństwo UI, członkostwo, SOC, NFC, piaskownica, nowe misje, etapy, ranking, CSV, finał i UX.
 - `public/core.js` — wspólna oficjalna punktacja, remisy i CSV.
+- `public/station-flags.js` — jawne flagi ćwiczeń; `narzedzia/flagi-stacji.cjs` — kontrolowana konfiguracja czterech flag na serwerze, bez zmian drużyn i etapu.
 - `public/sw.js` — cache wyłącznie publicznych treści.
 - `public/local-config.json` — demonstracyjny projekt emulatora, nie konfiguracja produkcji.
 - `firestore.rules`, `firestore.local.rules` — identyczne reguły bez PIN-ów.

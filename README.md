@@ -25,12 +25,12 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu. Deadline zapis
 
 | # | Laboratorium | Zadanie | Zaliczenie |
 |---|---|---|---|
-| 1 | Zhakuj grę | Skok Mikołaja: siła skoku, klucze, rola | Obserwacja prowadzącego |
-| 2 | Złam skarbiec | Dobór hasha, słownika i maski w symulatorze | Wynik pokazany prowadzącemu |
-| 3 | Fałszywy Mikołaj | Mail → portal → logi → konsola SOC (4) → osobno reakcja (5) | Raport po reakcji sprawdza prowadzący |
-| 4 | Biuro Grincha | Audyt biurka, własna karta demonstracyjna UID, pokaz BadUSB | Prowadzący, także awaryjnie |
+| 1 | Zhakuj grę | Skok Mikołaja: siła skoku, klucze, rola | Flaga na mecie trzeciego poziomu |
+| 2 | Złam skarbiec | Dobór hasha, słownika i maski w symulatorze | Odzyskane hasło jest flagą |
+| 3 | Fałszywy Mikołaj | Mail → portal → logi → konsola SOC (4) → osobno reakcja (5) | Flaga w hubie po reakcji |
+| 4 | Biuro Grincha | Audyt biurka, własna karta demonstracyjna UID, pokaz BadUSB | Flaga po poprawnym odczycie karty |
 
-Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Nie ma już wspólnych PIN-ów zaliczenia.** Szczegóły, sprzęt i plan B: [STACJE.md](STACJE.md).
+Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Drużyna sama wpisuje flagę ze strony stacji w odpowiednim labie, bez akceptacji prowadzącego.** To inny kod niż 6-znakowy kod dołączenia do drużyny. Szczegóły, sprzęt i plan B: [STACJE.md](STACJE.md).
 
 ## Widoki aplikacji
 
@@ -48,14 +48,13 @@ Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Nie ma ju�
 ### Punkty
 
 - **Oficjalnie:** 100 za stację, maks. 400; finał 0–100 wpisany przez organizatora **tylko w etapie Finał**. Maksimum **500**.
-- **Edukacyjnie, poza rankingiem:** Prezent czy pułapka 30, Hasło do sań 20, Szyfr elfów 20, Co zdradza zdjęcie 20, Darmowe pierniki 30, Elf-bot (oba etapy) 30, SQL injection 30, Grand Scam Auto VI 30, ClickFix 20. Maksimum **230**.
+- **Edukacyjnie, poza rankingiem:** Prezent czy pułapka 30, Hasło do sań 20, Szyfr elfów 20, Co zdradza zdjęcie 20, Darmowe pierniki 30, Elf-bot (oba etapy) 30, SQL injection 30, Grand Scam Auto VI 30. Maksimum **210**.
 - Ranking szkoły: dokładna średnia oficjalnych punktów drużyn z co najmniej jedną stacją. Zaokrąglamy tylko wyświetlanie. **Remis = wspólne miejsce**, bez premii za sumę czy liczbę drużyn.
 - CSV UTF-8 z BOM i średnikami, z zabezpieczeniem przed formułami w nazwach.
 
 ### Nowe misje
 
 - **Grand Scam Auto VI (2–4 min)**: ukryty sygnał 06 w terminalu. Fikcyjny Discord, domena `.example`, atrapa instalatora, infostealer i odzyskanie konta. „MISSION PASSED – RESPECT +”, odznaka „Vice City Defender”. Autorska scenografia CSS w neonach, bez materiałów Rockstar i pobierania plików.
-- **ClickFix (1–2 min)**: atrapa CAPTCHA, odmowa uruchomienia „poprawki”, wyjaśnienie. Brak poleceń systemowych i dostępu do schowka.
 - **AI Agent Security**: po bezpośrednim prompt injection drugi etap z dokumentem. Rozpoznanie indirect injection, minimalne uprawnienia, blokada wysyłki i zgoda człowieka. Deterministycznie, bez API AI.
 
 ## Bezpieczeństwo i dane
@@ -68,6 +67,7 @@ teams/{ID}/members/{uid}             członkowie: czytają drużyna i organizato
 teams/{ID}/requests/{uid}            starsze prośby: kompatybilność z poprzednią wersją
 teams/{ID}/revoked/{uid}             cofnięte członkostwo: tylko organizatorzy
 teams/{ID}/awards/{stacja}           jednokrotny audyt zaliczenia
+stationFlags/{stacja}               konfiguracja sprawdzana przez reguły, bez odczytu klienta
 joinCodes/{kod6znakowy}              odczyt konkretnego kodu po logowaniu; bez listowania
 invites/{losowy128bitToken}          starsze zaproszenia (nieużywane przez nowy interfejs)
 retiredTeams/{ID}                    wycofane ID: zakaz ponownego użycia
@@ -80,11 +80,11 @@ Publiczny czteroznakowy ID służy prowadzącemu i rankingowi, **nie pozwala do�
 
 Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga jej świadomego usunięcia przez organizatora, a następnie ponownego wpisania aktualnego kodu.
 
-**Kompromis prostoty:** kto pozna kod, może dołączyć do otwartej drużyny w czasie rejestracji. Kod nie jest silnym hasłem (ok. 30 bitów losowości) i nie ma serwerowego limitera zgadywania na Spark. Udostępniajcie go tylko kolegom; w razie wycieku zmieńcie kod lub zamknijcie dołączanie. Oficjalne punkty nadal zatwierdza prowadzący — znajomość kodu nie daje praw administratora ani możliwości wpisania wyniku.
+**Kompromis prostoty:** kto pozna kod, może dołączyć do otwartej drużyny w czasie rejestracji. Kod nie jest silnym hasłem (ok. 30 bitów losowości) i nie ma serwerowego limitera zgadywania na Spark. Udostępniajcie go tylko kolegom; w razie wycieku zmieńcie kod lub zamknijcie dołączanie. Członkostwo nie daje praw administratora; do zaliczenia labu potrzebna jest flaga stacji.
 
-Zaliczenie stacji zapisuje organizator atomowo ze statusem `true`, publiczną projekcją i niezmienialnym audytem. Powtórka nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
+Zaliczenie flagą zapisuje członek drużyny atomowo ze statusem `true`, publiczną projekcją i niezmienialnym prywatnym audytem. Flaga nie trafia do rankingu. Powtórka, także z drugiego telefonu, nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
 
-**Kompromisy Spark:** przeglądarka może oszukać symulacje i dowody SOC, dlatego nie decydują o oficjalnych punktach. Zaufanym weryfikatorem jest prowadzący. AES-GCM z publicznego rozwiązania nie zapewnia tajności. Szyfr w symulatorze to dekoracja dydaktyczna, nie autoryzacja. Nie ma Functions, zewnętrznych usług AI ani płatnego serwera.
+**Kompromis flag:** strona pokazuje je po ćwiczeniu, ale ich publiczny moduł `station-flags.js` można podejrzeć, a flagę przekazać innej drużynie. Serwer sprawdza wartość, członkostwo, etap, termin i jednokrotność — nie udowadnia samodzielnego wykonania zadania. AES-GCM w skarbcu jest dekoracją dydaktyczną, nie tajnością. Nie ma Functions, zewnętrznych usług AI ani płatnego serwera.
 
 Piaskownica gry ma `sandbox="allow-scripts"` **bez** `allow-same-origin`, blokadę sieci CSP, atrapę localStorage i brak mostu do rankingu. Pozostałe demonstracje też niczego naprawdę nie atakują. Używamy tylko sprzętu i kart koła, nigdy prywatnych kart, kont i danych uczniów.
 
@@ -92,7 +92,7 @@ Piaskownica gry ma `sandbox="allow-scripts"` **bez** `allow-same-origin`, blokad
 
 Telefony słuchają własnej drużyny i członków oraz jednego dokumentu konfiguracji. Ranking pobierają na żądanie, maks. raz na 30 s (N odczytów dla N drużyn). Tylko ekran, finał i zalogowany panel słuchają publicznych wyników na żywo. Punkty publikowane są przy zaliczeniu, **bez zależności od rzutnika**. Dla 40 drużyn i 160 telefonów, po 20 odświeżeń rankingu: ok. 12800 odczytów samego rankingu; dodaj aktualizacje drużyn, reguły i ekrany, monitoruj limit Spark 50 tys./dzień.
 
-Service worker przechowuje wyłącznie publiczną stronę, moduł punktacji i wcześniej pobrane moduły SDK. Nie cache'uje odpowiedzi Auth/Firestore. Wczytane zadania można dokończyć bez sieci; nowa sesja i zaliczenie wymagają połączenia. Transakcja nie pokazuje sukcesu przed potwierdzeniem serwera. Offline nie jest pełną lokalną kopią gry.
+Service worker przechowuje wyłącznie publiczną stronę, moduły punktacji/flag i wcześniej pobrane moduły SDK. Nie cache'uje odpowiedzi Auth/Firestore. Wczytane zadania można dokończyć bez sieci; nowa sesja i zaliczenie wymagają połączenia. Transakcja nie pokazuje sukcesu przed potwierdzeniem serwera. Offline nie jest pełną lokalną kopią gry.
 
 ## Uruchomienie i testy
 

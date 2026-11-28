@@ -1,6 +1,6 @@
 # Wdrożenie Operacji Biegun — 28 listopada 2026 (czas polski)
 
-**Aktualny tryb po uproszczeniu:** gracze sami tworzą drużyny i dołączają 6-znakowym kodem, bez akceptacji prowadzącego. Poniższy pierwszy etap wdrożenia jest zapisem historycznym; późniejszą aktualizację opisano na końcu dokumentu.
+**Aktualny tryb po uproszczeniu:** gracze sami tworzą drużyny i dołączają 6-znakowym kodem. Laby zaliczają samodzielnie flagami pokazywanymi po ćwiczeniach na stronach stacji. ClickFix usunięty. Pierwsze etapy wdrożenia poniżej są zapisem historycznym; późniejsze aktualizacje opisano na końcu dokumentu.
 
 Wykonane na wyraźne polecenie właściciela projektu.
 
@@ -36,7 +36,7 @@ Kopia zawiera dane prywatne i dawne kody. **Nie jest i nie powinna być publikow
 - Zalogować się istniejącym kontem w `#admin`; nowe konta uprzywilejowane nie były tworzone.
 - Ustawić rzeczywistą datę i godzinę `mainEndsAt`, sale i harmonogram. Domyślny/migracyjny deadline nie uruchamia gry.
 - Przejrzeć dotychczasowe członkostwa — stary system nie gwarantował ich autoryzacji.
-- Świadomie otworzyć rejestrację wybranych istniejących drużyn i wydawać im nowe sekretne zaproszenia. Publiczny ID nie wystarczy do dołączenia.
+- Świadomie otworzyć rejestrację wybranych istniejących drużyn i przekazać członkom ich krótki kod dołączania. Publiczny ID nie wystarczy do dołączenia.
 - Wykonać fizyczną próbę NFC/Flippera, telefonów, zasięgu i trybu offline zgodnie z [CHECKLISTA.md](CHECKLISTA.md).
 
 Nie cofaj reguł do poprzedniej wersji przy ewentualnym rollbacku strony. Kopia pozwala na świadome odzyskanie danych przez operatora, ale nie jest zgodą na automatyczne nadpisywanie nowych postępów. Instrukcje narzędzi: [INSTRUKCJA.md](INSTRUKCJA.md).
@@ -51,4 +51,18 @@ Po testach reguł wykonano atomowe 14 zapisów: 7 kodów i 7 uzupełnień istnie
 
 Weryfikacja: 18/18 testów aplikacji/modelu oraz 24/24 reguł, w tym współbieżne dołączanie, błędny/stary kod, zamknięcie drużyny i etapu oraz blokady. Próba dwóch anonimowych sesji w przeglądarce potwierdziła samodzielne utworzenie/dołączenie i zachowanie kodu po odświeżeniu. Nie utworzono testowej drużyny na produkcji.
 
-Kto pozna kod, może dołączyć w czasie otwartej rejestracji — to oczekiwany, prosty model uczestnictwa, nie silne uwierzytelnienie hasłem. Nie pokazuj kodów na rzutniku. Główne punkty i zatwierdzanie stacji nadal należą do prowadzących.
+Kto pozna kod, może dołączyć w czasie otwartej rejestracji — to oczekiwany, prosty model uczestnictwa, nie silne uwierzytelnienie hasłem. Nie pokazuj kodów na rzutniku. W tej historycznej wersji stacje zatwierdzali jeszcze prowadzący; kolejna zmiana przywraca flagi.
+
+## Aktualizacja — samodzielne flagi labów, bez ClickFix
+
+Na kolejne polecenie właściciela przywrócono formularz flagi w każdym labie. Strona gry pokazuje flagę po trzecim poziomie, skarbiec po odzyskaniu hasła, SOC po czterech zadaniach i osobnej reakcji, a czytnik po zgodnym UID. Drużyna sama rozpoczyna SOC. ClickFix usunięto; osiem zadań pobocznych daje maks. 210 pkt edukacyjnych. Historycznych danych p9 nie kasujemy.
+
+Przed zmianą wykonano **trzecią prywatną kopię**: 26 dokumentów bazy (w tym 3 aktualnie istniejące drużyny), 2 osieroconych rodziców, 11 kont Auth, 6 plików Hostingu, reguły i repozytorium. Manifest SHA-256 zweryfikowano, ACL ograniczono do operatora i SYSTEM. Nie odtwarzamy drużyn usuniętych przez właściciela między wdrożeniami.
+
+Testy przed wdrożeniem: **21/21 aplikacji/modelu i 34/34 reguł**. Lokalna próba przeglądarkowa potwierdziła flagi gry i skarbca, błędny/poprawny formularz oraz SOC: zadanie 4 → osobna reakcja 5 → flaga. Web NFC zweryfikowano atrapą w testach, nie fizycznym sprzętem.
+
+Flagi są jawne i możliwe do przekazania innym drużynom. Serwer sprawdza wartość, członkostwo, etap, deadline i jednokrotność; audyt pozostaje prywatny i niezmienialny, publiczny ranking nie zawiera flag. Prowadzący zachowuje tryb awaryjny z uzasadnieniem. Konfiguracja wdrożenia dotyczy tylko czterech dokumentów `stationFlags`, reguł i publicznych plików — bez zmiany drużyn, członkostw, wyników lub ustawień wydarzenia.
+
+**Wynik wdrożenia:** reguły skompilowano i opublikowano, atomowo utworzono cztery aktywne flagi, następnie opublikowano Hosting. Ponowne `--verify` potwierdziło zgodność wszystkich flag; smoke test potwierdził SHA-256 czterech publicznych plików, 3 aktualne dokumenty rankingu i odmowy odczytu danych prywatnych. Odczytano etap **Finał**, ustawiony przez organizatora; nie został zmieniony. Zapisy flag wymagają przełączenia w panelu na Grę główną oraz aktualnego deadline.
+
+Otwarta w osobnej karcie produkcyjna piaskownica zawiera nowe instrukcje flagi, zachowuje sandbox bez `allow-same-origin`; publiczna wersja ma formularz i moduł flag oraz nie zawiera ClickFix. Nie tworzono testowej drużyny na produkcji ani nie zmieniano otwartego panelu użytkownika. Wszystkie trzy prywatne kopie pozostają poza repozytorium.

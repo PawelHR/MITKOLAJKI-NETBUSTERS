@@ -39,7 +39,7 @@ Nowe reguły **nie są zgodne ze starym schematem**. Nie ma samoczynnego usuwani
 5. Dla każdej zachowywanej drużyny doprowadź dokument do dokładnego schematu:
    - `name`, `school` 0–2, `createdAt` Timestamp, `createdBy` UID;
    - `unlocked`: tylko `s1`–`s4` ze statusem **true**, nigdy tekstem PIN-u;
-   - `side`: tylko `p1`–`p9` ze statusem true (szyfr też true), bez oficjalnych punktów;
+    - `side`: `p1`–`p8` ze statusem true (szyfr też true), bez oficjalnych punktów; wcześniejsze `p9` zachowaj wyłącznie jako historię, nowe zapisy są zabronione;
    - `soc: {}` (nie importuj postępu z localStorage), `registrationOpen: false`, `bonus` liczba całkowita 0–100; krótki `joinCode` i indeks kodów uzupełnia się osobnym krokiem opisanym niżej;
    - usuń nieznane pola ze schematu po zabezpieczeniu kopii. Nie usuwaj dokumentów drużyn ani członków bez decyzji organizatora.
 6. W konsoli utwórz dla historycznych zaliczeń `teams/{ID}/awards/{s1…s4}` z `by`, `at`, `emergency:true`, `reason: Migracja zatwierdzona przez organizatora`. Sam `unlocked` nie może już zawierać sekretu.
@@ -61,6 +61,7 @@ Korzystają wyłącznie z istniejącej sesji Firebase CLI. Token jest w pamięci
 6. Po wdrożeniu Hostingu: `node narzedzia/sprawdz-produkcje.cjs` — porównuje pliki z lokalną wersją i sprawdza odmowy publicznego odczytu danych prywatnych.
 7. Tylko po świadomej decyzji: `node narzedzia/sprawdz-produkcje.cjs --open-registration operacja-biegun`. Zmienia wyłącznie etap z Przerwy na Rejestrację. Nie otwiera starych drużyn ani gry głównej. Przed grą ustaw w panelu właściwą datę, deadline i sale.
 8. Uzupełnienie krótkich kodów starszych drużyn: `node narzedzia/kody-druzyn.cjs NOWA_KOPIA` pokazuje plan. Zapis wymaga `--apply operacja-biegun`; dodatkowe `--open-existing` świadomie otwiera dołączanie do uzupełnianych drużyn. Operacja jest atomowa, kontroluje `updateTime`, nie zmienia wyników ani członkostw i nie wypisuje kodów w logach. Przed nią wykonaj nową kopię; nie używaj starej kopii sprzed zmian stanu gry.
+9. Flagi labów: po prywatnej kopii `node narzedzia/flagi-stacji.cjs NOWA_KOPIA` pokazuje plan czterech dokumentów `stationFlags/{s1…s4}`. Po wdrożeniu reguł użyj `--apply operacja-biegun`, potem `--verify`, następnie wdróż Hosting. Zapisuje tylko konfigurację flag zgodną z publicznym `station-flags.js`; nie zmienia drużyn, członkostw, wyników ani etapu. Przy nowej instalacji innego projektu operator ustawia w konsoli cztery dokumenty z `value` zgodnym z modułem i `active: true`. Publiczny moduł jest rekwizytem, nie sekretem.
 
 Kopia nie jest zarządzanym backupem Google Cloud i nie wymaga Blaze. Odtwarzanie to oddzielna, świadoma czynność operatorska z prywatnych plików; skrypty nie nadpisują automatycznie działającej bazy przy awarii. Nie cofaj reguł do wersji ujawniającej PIN-y.
 
@@ -85,7 +86,7 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 - Dołączanie działa w etapie Rejestracja i przy otwartej drużynie. Publiczny ID dla prowadzącego nie jest kodem. Twórca może zamknąć dołączanie lub zmienić kod; organizator ma te same możliwości w **Prowadź**. Stary kod po zmianie nie działa, ale obecni członkowie pozostają.
 - Cofnięcie członkostwa blokuje UID; nawet poprawny kod nie przywraca usuniętego telefonu. Organizator może świadomie usunąć blokadę. Starsze prośby pozostają dostępne w panelu dla zgodności, ale nowi gracze ich nie tworzą.
 - Kto zna krótki kod, może dołączyć. Nie pokazuj kodu w publicznym rankingu ani na rzutniku. Na Spark nie ma pełnego serwerowego limitowania prób — przy wycieku zmień kod lub zamknij drużynę.
-- Stacja: **Prowadź → właściwa stacja**. Najpierw **Otwórz śledztwo SOC**. Sprawdź cztery zadania: mail, portal, logi, konsolę SOC oraz osobno reakcję (etap 5). Nie zatwierdzaj wyłącznie na podstawie tekstu kodu raportu.
+- Stacja: drużyna otwiera stronę ćwiczenia, kończy zadanie i wpisuje pokazaną flagę w **Laboratoria → właściwy lab → Zalicz lab**. Nie czeka na prowadzącego. SOC rozpoczyna sama; flaga pojawia się po czterech zadaniach (konsola SOC = 4) i osobnej reakcji (5). Serwer porównuje flagę, sprawdza członkostwo, etap i deadline; zapisuje audyt, status i ranking atomowo, bez powtórnych punktów.
 - Awaria sprzętu / późny zapis: zaznacz **Tryb awaryjny**, wpisz uzasadnienie min. 5 znaków i zatwierdź. Zapisuje się organizator, czas serwera i przyczyna. To świadomy wyjątek, nie furtka dla ucznia.
 - Bonus 0–100 można zapisać tylko w etapie **Finał**. Zadania edukacyjne nie zmieniają oficjalnych punktów.
 - `#ekran` działa bez logowania i nie musi być otwarty. `#final` też jest publiczny. Finał uruchamia organizator: odliczanie 5–600 s → cztery systemy co 3 s → zielony status i podium. Ponowne wejście odtwarza sekwencję z czasu konfiguracji, nie lokalnego licznika.
@@ -97,7 +98,7 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 - Czytnik: Android Chrome, HTTPS, NFC i własny tag NDEF koła. Zalogowany organizator zapisuje UID. **Nie ma pola PIN ani przycisku udającego kartę.** Użyj pełnego ekranu oraz systemowego przypięcia aplikacji Android (pełny ekran strony nie jest blokadą urządzenia).
 - Pokaz obejmuje proste UID, nie zabezpieczenia wszystkich kart NFC. Nie skanuj kart uczniów. Emulację Flipper → Web NFC trzeba sprawdzić fizycznie; zależy od sprzętu i typu karty.
 - Podczas awarii sieci ćwiczenie można dokończyć z wcześniej wczytanej strony. Potwierdzanie wymaga sieci; nie ma fałszywego lokalnego „zaliczono”. Nie czyść danych przeglądarki ucznia — utraci anonimowy UID i będzie potrzebował nowego zaproszenia.
-- Skrypt `szyfruj-odpowiedzi.js` generuje tylko jawny rekwizyt do symulatora. Nie przekazuj mu sekretów ani nie używaj jego wyniku do autoryzacji.
+- Skrypt `szyfruj-odpowiedzi.js` generuje jawny rekwizyt skarbca, którego wynik jest flagą labu 2. Nie przekazuj mu sekretów prawdziwych kont. Wspólne flagi można podejrzeć w źródłach i przekazać innym drużynom — to świadomy kompromis, nie dowód samodzielnego wykonania zadania.
 - Ewentualny lokalny `SEKRETY.md` jest historyczną, ignorowaną przez Git ściągą. Aplikacja go nie czyta, a stare instrukcje i kody nie obowiązują. Zachowaj go wyłącznie w prywatnym archiwum lub usuń świadomie po kopii — nie publikuj go.
 
 Próba generalna: [CHECKLISTA.md](CHECKLISTA.md). Scenariusze: [STACJE.md](STACJE.md).
