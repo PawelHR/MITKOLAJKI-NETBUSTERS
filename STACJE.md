@@ -43,7 +43,7 @@ Trzy poziomy podpowiedzi na każdym etapie: **trop → narzędzie → dokładna 
 
 **Sprzęt:** 3–4 laptopy/tablety z `/#skarbiec`, kalendarz z 6 grudnia, zdjęcie renifera z podpisem „RENIFER”, wydruk skrótu z symulatora, karteczka „imię + dzień, WIELKIMI”.
 
-**Przebieg:** 0–3 fabuła skarbca; 3–8 wyjaśnienie hasha; 8–18 poszukiwanie śladów i dobór opcji; 18–22 wynik i wpisanie flagi w labie 2; 22–25 obrona.
+**Przebieg:** 0–3 fabuła skarbca; 3–8 wyjaśnienie hasha; 8–17 poszukiwanie śladów i dobór opcji; 17–19 wynik i wpisanie flagi w labie 2; 19–23 sól i projekt zabezpieczeń skarbca; 23–25 obrona.
 
 | Ustawienie | Odpowiedź w tej symulacji | Trop |
 |---|---|---|
@@ -55,25 +55,29 @@ Trzy poziomy podpowiedzi na każdym etapie: **trop → narzędzie → dokładna 
 Po błędnych próbach pojawiają się podpowiedzi. Animacja trwa kilka sekund, ale nie jest prawdziwym crackingiem. Odzyskane hasło jest flagą labu 2 — drużyna wpisuje je sama w terminalu.
 AES-GCM w kodzie nie ukrywa odpowiedzi skutecznie, bo materiał klucza pochodzi z publicznych opcji. To świadomy prosty tryb gry, a nie zabezpieczenie przed kopiowaniem flag.
 
-**Obrona:** imiona i daty padają pierwsze; długa losowa fraza i menedżer haseł; po stronie serwisu Argon2id lub odpowiednio skonfigurowany bcrypt, nie zwykły MD5. Czasy na ekranie są ilustracją zależną od sprzętu i parametrów, nie gwarancją.
+**Po otwarciu skarbca (bez punktów, ok. 4 min):**
+- **Sól:** dwa elfy z tym samym hasłem. Bez soli hashe są identyczne, z solą różne. Sól jest jawna, zmusza do łamania każdego konta osobno, ale nie ratuje słabego hasła.
+- **Zaprojektujcie zabezpieczenie skarbca:** samo hasło, hasło + SMS, hasło + aplikacja uwierzytelniająca albo passkey. Symulator sprawdza pięć ataków: zgadywanie, hasło z cudzego wycieku, phishing, SIM swap i wyciek bazy. Wynik: 0/5, 3/5, 4/5, 5/5. Puenta: każdy drugi składnik pomaga, ale tylko passkey nie da się wpisać na fałszywej stronie.
+
+**Obrona:** imiona i daty padają pierwsze; długa losowa fraza i menedżer haseł; po stronie serwisu wolna funkcja z solą. Zalecany jest **Argon2id** (pamięciożerny, memory-hard). **bcrypt** to starsza alternatywa: też wolny i z solą, ale używa stałych ok. 4 KB pamięci, więc nie jest funkcją pamięciożerną tego rodzaju co Argon2id. Przy odpowiednim koszcie nadal akceptowalny. Nigdy zwykły MD5. Czasy na ekranie są ilustracją zależną od sprzętu i parametrów, nie gwarancją.
 **Reset:** „Nowa drużyna (reset)” zeruje opcje i próby. **Plan B:** wybór opcji na kartce, zatwierdzenie przez prowadzącego.
 
 ## 3 · Fałszywy Mikołaj — wspólny SOC
 
-**Sprzęt:** telefony uczniów (najlepiej trzy na drużynę), telefon/laptop prowadzącego z panelem, opcjonalny rzutnik.
-**Przygotowanie:** drużyna wchodzi w lab 3 → **Otwórz śledztwo** → **Rozpocznij śledztwo**. Uruchamia je samodzielnie w czasie gry głównej; panel prowadzącego nie jest wymagany.
+**Sprzęt:** telefony uczniów (najlepiej trzy na drużynę), **komputer stacji z otwartym `/#siem`** (najlepiej z dużym ekranem lub rzutnikiem, mysz i klawiatura), telefon/laptop prowadzącego z panelem.
+**Przygotowanie:** prowadzący otwiera na komputerze stacji `https://operacja-biegun.web.app/#siem` (działa bez logowania i bez sieci po wczytaniu) i przed każdą drużyną klika **Nowa drużyna (reset)**. Drużyna wchodzi w lab 3 → **Otwórz śledztwo** → **Rozpocznij śledztwo**. Uruchamia je samodzielnie w czasie gry głównej; panel prowadzącego nie jest wymagany.
 
 0–3: „Księgowa zatwierdziła przelew 48 000 zł. Chwilę potem ktoś eksportował listę prezentów. Zbierzcie dowody i opanujcie incydent”.
-3–16: każdy telefon bierze inne z trzech pierwszych zadań. Następnie drużyna przechodzi do czwartego — konsoli SOC. Postęp zapisuje się na serwerze pod drużyną; drugi telefon zobaczy zabezpieczony dowód w hubie. Nie ma importu starego `ob_s3` z telefonu.
+3–14: każdy telefon bierze inne z trzech pierwszych zadań. Następnie drużyna przechodzi do czwartego — North Pole SIEM na komputerze stacji. Postęp zapisuje się na serwerze pod drużyną; drugi telefon zobaczy zabezpieczony dowód w hubie. Nie ma importu starego `ob_s3` z telefonu.
 
 | Zadanie | Co uczniowie robią | Odpowiedź dydaktyczna |
 |---|---|---|
 | Mail | Wskazują pięć czerwonych flag | Reply-To, presja w temacie, prośba o przelew i tajemnicę, obca domena, `.pdf.exe` |
 | Portal (IDOR) | Zmieniają numer w atrapie adresu | Lista 1043 daje trop do konta 1337; portal nie sprawdza właściciela |
 | Logi | Wskazują pierwsze skuteczne wejście po zgadywaniu | 03:12:03, zewnętrzny adres, admin LOGIN OK po setkach FAIL |
-| 4 · Konsola SOC | Łączą alerty i wybierają priorytet | Logowanie admina 03:12:03 i eksport 03:12:41 z tej samej sesji; wysoki priorytet. Zwykła pomyłka elfa i zatwierdzona kopia nie należą do włamania |
+| 4 · North Pole SIEM (komputer stacji) | Przeszukują zdarzenia, oddzielają szum od ataku i zgłaszają incydent; PIN z ekranu wpisują w telefonie | Alerty 03:10, 03:12 i 03:14; adres 185.220.101.7; konto admin; wejście 03:12:03; sesja S-7731; priorytet wysoki. Skan kont test/root, zaplanowana kopia, pomyłka Ani i VPN z MFA to szum. PIN: **481927** |
 
-**16–19: konsola SOC (zadanie 4).** Porównajcie konto, czas, sesję i kontekst. Udane logowanie po setkach prób oraz późniejszy eksport należą do tego samego incydentu. Ustalcie wysoki priorytet. To analiza alertów, **nie zastępuje reakcji**.
+**14–19: North Pole SIEM (zadanie 4).** Jeden lub dwóch uczniów przy komputerze, reszta podpowiada. Pierwsze zapytania: `result:FAIL`, `user:admin -result:FAIL`. Kliknięcie wartości w tabeli zawęża wyniki, a kliknięcie słupka histogramu zawęża czas. Przy alertach: „Zdarzenia” pokazuje dowody, „Do incydentu” dołącza alert. Po dwóch błędnych zgłoszeniach SIEM podpowiada pierwszy błędny element. To analiza alertów, **nie zastępuje reakcji**. Puenta: pojedyncze alerty to szum, dopiero korelacja (konto + adres + sesja + czas) pokazuje incydent.
 
 **19–22: osobny etap 5 — reakcja.** Dopiero po **czterech potwierdzonych zadaniach** odblokowuje się istniejąca układanka kolejności (przeciąganie albo strzałki/przyciski klawiaturą):
 
@@ -86,7 +90,7 @@ To kolejność **konkretnego uproszczonego scenariusza**, nie uniwersalna proced
 Przed reakcją nie pojawia się flaga. Po potwierdzeniu czterech zadań i reakcji przez serwer hub pokaże **flagę labu 3**. Drużyna wraca do formularza labu i wpisuje ją bez prowadzącego. Jak inne flagi, pozostaje ona publicznym rekwizytem ćwiczenia.
 
 22–25: wnioski: potwierdzaj przelewy innym kanałem; serwer sprawdza własność danych; logi są dowodami, nie śmieciami do skasowania. Opcjonalne „Fałszywe strony” mierzy czas tylko dla zabawy i nie blokuje misji.
-**Plan B offline:** wcześniej wczytane treści lub wydruki. Zaliczenie flagą dopiero online; po upływie terminu prowadzący może użyć uzasadnionego trybu awaryjnego.
+**Plan B:** komputer stacji nie działa → prowadzący otwiera `/#siem` na swoim laptopie lub telefonie i prowadzi drużynę przez zapytania. SIEM po wczytaniu działa bez sieci (dane są w stronie). **Offline:** wcześniej wczytane treści lub wydruki. Zaliczenie flagą dopiero online; po upływie terminu prowadzący może użyć uzasadnionego trybu awaryjnego.
 **Reset:** postęp pozostaje przy drużynie. Opuść ją przed udostępnieniem telefonu kolejnej grupie; nowa drużyna nie dziedziczy SOC. Wyczyszczenie danych przeglądarki zmienia anonimowe konto — unikaj tego na telefonie ucznia.
 
 ## 4 · Biuro Grincha — karta UID i fizyczny dostęp
@@ -129,7 +133,7 @@ Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych 
 |---|---|
 | 1 | 3–4 laptopy z przeglądarką, opcjonalny rzutnik |
 | 2 | 3–4 laptopy/tablety, kalendarz, zdjęcie, wydruk hasha, wskazówki |
-| 3 | Telefony, opcjonalny rzutnik, wydruki awaryjne |
+| 3 | Telefony, komputer stacji z `/#siem` (duży ekran lub rzutnik, mysz), wydruki awaryjne |
 | 4 | Flipper, własny NTAG215 NDEF, etui/smycz, czapka elfa, Android NFC + ładowarka, laptop Windows, bezpieczny skrypt BadUSB, rekwizyty biurka |
 | Wspólne | 8 prowadzących + koordynator, przedłużacze, dostęp do internetu, plakaty, plan sal i rotacji, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
 

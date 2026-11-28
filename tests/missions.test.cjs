@@ -54,18 +54,34 @@ test('agent: wykrycie, minimalne uprawnienia, blokada i człowiek wymagane łąc
 });
 test('SOC: hub ukrywa kod do ukończenia reakcji i blokuje pominięcie dowodów',()=>{
   const h=harness();h.run('S.code="ABCD";S.team={soc:{open:true}};S3={open:true,mail:true,idor:true,logs:true};renderS3Hub()');
-  const flag=h.run('STATION_FLAGS.s3');assert.ok(!h.app.textContent.includes(flag));assert.ok(!h.app.textContent.includes('5. Reakcja'));assert.ok(h.app.textContent.includes('4. Konsola SOC'));
+  const flag=h.run('STATION_FLAGS.s3');assert.ok(!h.app.textContent.includes(flag));assert.ok(!h.app.textContent.includes('5. Reakcja'));assert.ok(h.app.textContent.includes('4. North Pole SIEM'));
   h.run('S3.triage=true;renderS3Hub()');assert.ok(h.app.textContent.includes('5. Reakcja'));
   h.run('S3.resp=true;renderS3Hub()');assert.ok(h.app.textContent.includes(flag));assert.ok(h.app.textContent.includes('Wpisz flagę w labie 3'));
   h.run('S3={open:true,mail:true};renderS3Resp()');assert.ok(!h.app.textContent.includes('Sprawdź kolejność'));
 });
-test('czwarta konsola SOC: korelacja i priorytet, reakcja pozostaje osobno',async()=>{
-  const h=harness();h.run('S3={open:true};renderS3Soc()');h.clean();
-  await h.click('Zatwierdź analizę');assert.equal(h.context.saved.length,0);
-  await h.click('03:12:03');await h.click('03:12:41');
-  h.elements().find(e=>e.attrs?.id==='soc-priority').value='high';
-  await h.click('Zatwierdź analizę');
-  assert.deepEqual(Array.from(h.context.saved),['soc.triage']);assert.ok(h.app.textContent.includes('osobnym etapie 5'));
+const submit=async(h,text)=>{const f=h.elements().find(e=>e.tagName==='FORM'&&e.textContent.includes(text));assert.ok(f,'Formularz: '+text);await f.events.submit({preventDefault(){}});};
+test('SIEM: zapytania pole:wartość, wykluczenia i błędne pole',()=>{
+  const h=harness();
+  assert.equal(h.run('siemSearch("user:admin result:FAIL").length'),418);
+  assert.equal(h.run('siemSearch("result:FAIL -ip:185.*").length'),4);
+  assert.equal(h.run('siemSearch("user:admin result:OK action:LOGIN")[0].time'),'03:12:03');
+  assert.equal(h.run('siemSearch("session:S-7731").length'),5);
+  assert.ok(h.run('siemSearch("object:list*").some(e=>e.user==="backup_elf")'),'kopia zapasowa jest dystraktorem');
+  assert.throws(()=>h.run('siemSearch("haslo:x")'),/Nieznane pole/);
+  assert.equal(h.run('SIEM.alerts.length'),7);
+});
+test('SIEM: złe zgłoszenie bez PIN-u, poprawne daje PIN akceptowany przez telefon',async()=>{
+  const h=harness();h.run('siemReset()');h.clean();
+  assert.ok(h.app.textContent.includes('NORTH POLE SIEM'));
+  h.run('["a4","a5","a6","a2"].forEach(id=>SV.picked.add(id));Object.assign(SV.form,{ip:"185.220.101.7",user:"admin",time:"03:12:03",session:"S-7731",priority:"high"})');
+  await submit(h,'Zgłoszenie incydentu');assert.equal(h.run('SV.pin'),null);assert.ok(h.app.textContent.includes('1 z 6'));
+  h.run('SV.picked.delete("a2")');await submit(h,'Zgłoszenie incydentu');
+  const pin=h.run('SV.pin');assert.match(pin,/^\d{6}$/);assert.ok(h.app.textContent.includes(pin));h.clean();
+  h.run('S3={open:true,mail:true,idor:true,logs:true};renderS3Soc()');
+  const input=()=>h.elements().find(e=>e.attrs?.id==='siem-pin');
+  input().value='000000';await submit(h,'PIN incydentu');assert.equal(h.context.saved.length,0);
+  input().value=pin.slice(0,3)+' '+pin.slice(3);await submit(h,'PIN incydentu');
+  assert.deepEqual(Array.from(h.context.saved),['soc.triage']);assert.ok(h.app.textContent.includes('etapie 5'));
   assert.ok(!h.app.textContent.includes(h.run('STATION_FLAGS.s3')));h.clean();
 });
 test('odpowiedź skarbca jest spójnym publicznym rekwizytem, nie sekretem',async()=>{
@@ -106,4 +122,18 @@ test('interfejs dołączania: jeden krótki kod, brak zaproszenia i ekranu akcep
   assert.ok(h.app.textContent.includes('Kod drużyny (6 znaków)'));assert.ok(h.app.textContent.includes('od razu dołączasz'));
   assert.ok(!h.app.textContent.includes('Oczekiwanie na prowadzącego'));assert.ok(!h.app.textContent.includes('Sekretne zaproszenie'));
   assert.equal(h.elements().find(e=>e.attrs?.id==='j-code').attrs.maxlength,'12');
+});
+test('skarbiec: sól różnicuje hashe tego samego hasła, bcrypt opisany jako starsza alternatywa',async()=>{
+  const h=harness();const card=h.run('vaultSaltCard()');await new Promise(r=>setTimeout(r,50));
+  const cells=[];const walk=e=>{if(e.tagName==='TD')cells.push(e.textContent);(e.children||[]).forEach(walk);};walk(card);
+  assert.equal(cells[1],cells[5],'bez soli identyczne');assert.notEqual(cells[3],cells[7],'z solą różne');
+  const html=require('node:fs').readFileSync('public/index.html','utf8');
+  assert.ok(html.includes('nie jest funkcją pamięciożerną tego rodzaju co Argon2id'));assert.ok(!html.includes('„pamięciożerną”: bcrypt'));
+});
+test('skarbiec: projekt zabezpieczeń — tylko passkey wytrzymuje wszystkie ataki',async()=>{
+  const h=harness();const card=h.run('globalThis.c=vaultDesignCard();app.replaceChildren(c);c');
+  const scores={};
+  for(const name of ['Samo hasło','Hasło + kod SMS','Hasło + aplikacja','Passkey']){await h.click(name);scores[name]=h.app.textContent.match(/wytrzymane ataki: (\d)\/5/)[1];}
+  assert.deepEqual(scores,{'Samo hasło':'0','Hasło + kod SMS':'3','Hasło + aplikacja':'4','Passkey':'5'});
+  await h.click('Porównaj wszystkie');assert.ok(h.app.textContent.includes('SIM swap'));h.clean();
 });

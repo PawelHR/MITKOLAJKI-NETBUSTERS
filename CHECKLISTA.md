@@ -31,7 +31,8 @@
 - [ ] Błędna flaga, flaga innej stacji i zapis po deadline są odrzucane; dwa telefony nie dodają podwójnych punktów.
 - [ ] Skarbiec: poprawny wydruk nowego demonstracyjnego hasha, podpowiedzi, reset rundy.
 - [ ] SOC: drużyna sama rozpoczyna śledztwo; trzy telefony równolegle zbierają dowody, hub synchronizuje stan.
-- [ ] Konsola SOC jest osobnym zadaniem 4; wybór dwóch skorelowanych alertów i wysokiego priorytetu zapisuje wspólny postęp.
+- [ ] Komputer stacji 3 z `/#siem`: zapytania, histogram i reset działają; poprawne zgłoszenie pokazuje PIN, telefon przyjmuje go jako zadanie 4 i zapisuje wspólny postęp.
+- [ ] Skarbiec po otwarciu: pokaz soli i projekt zabezpieczeń (passkey 5/5) działają na laptopach stacji 2.
 - [ ] Reakcja pozostaje osobnym etapem 5 po czterech zadaniach; flaga dopiero po reakcji; działają strzałki bez przeciągania.
 - [ ] Opuszczenie drużyny i dołączenie do drugiej nie przenosi SOC ani starego postępu `ob_s3`.
 - [ ] NFC: fizyczna próba oryginału i emulacji Flippera na docelowym Androidzie; plan B sprawdzony.

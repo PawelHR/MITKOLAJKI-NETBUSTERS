@@ -1,36 +1,56 @@
 # 🎅 Operacja Biegun
 
-Polska gra terenowa koła cyberbezpieczeństwa dla uczniów trzech szkół średnich.
-Noc polarna, cztery laboratoria i wspólna misja: odzyskać system rozdzielania prezentów przejęty przez Grincha.
+Mikołajkowa gra terenowa koła cyberbezpieczeństwa dla uczniów trzech szkół średnich.
+Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami rozwiązują zadania poboczne. Telefon służy im za **terminal misji**: prowadzi fabułę, przyjmuje flagi zdobyte na stacjach i pokazuje **ranking szkół**.
 
-**Bez frameworka i płatnego backendu:** HTML/CSS/JS, Firebase Hosting, Auth i Firestore na Spark.
-Gra: https://operacja-biegun.web.app (zmiany w repozytorium nie oznaczają wdrożenia).
+**Gra:** https://operacja-biegun.web.app (zmiany w repozytorium nie oznaczają wdrożenia).
+**Bez frameworka i płatnego backendu:** HTML/CSS/JS, Firebase Hosting, Auth i Firestore na darmowym planie Spark.
 
-## Wydarzenie
+> **ALARM 03:12 · nieautoryzowany dostęp do Centrum Logistyki Mikołaja · podpis: GR1NCH**
+> W nocy Grinch przejął system, który rozdziela prezenty. Każda drużyna to zespół reagowania na incydenty.
+> Przejdźcie cztery laboratoria, odzyskajcie cztery fragmenty klucza głównego i przywróćcie system, zanim prezenty trafią pod złe adresy.
 
-Drużyny po 3–4 osoby. Cztery rotacje po 25 min + 5 min przejścia.
+---
+
+## Spis treści
+- [Jak wygląda wydarzenie](#jak-wygląda-wydarzenie)
+- [Stacje](#stacje)
+- [Widoki aplikacji](#widoki-aplikacji)
+- [Bezpieczeństwo i dane](#bezpieczeństwo-i-dane)
+- [Uruchomienie i testy](#uruchomienie-i-testy)
+- [Bezpieczne wdrożenie](#bezpieczne-wdrożenie)
+
+---
+
+## Jak wygląda wydarzenie
+
+Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Cztery rotacje po 25 min + 5 min przejścia.
 **8 prowadzących (po 2 na stację) oraz koordynator wydarzenia.** Na stacji 4 pomocnik jest jednocześnie elfem z kartą i operatorem Flippera.
 
-| Czas | Etap |
-|---|---|
-| 09:00–09:25 | Rejestracja, wprowadzenie w auli |
-| 09:25–11:25 | Gra główna: 4 rotacje |
-| 11:25–12:00 | Przerwa, stoisko koła |
-| 12:00–12:40 | Finał fabularny i opcjonalny teleturniej |
-| 12:40–13:00 | Zakończenie, podium |
+| Godzina | Miejsce | Co się dzieje |
+|---|---|---|
+| 09:00–09:25 | Aula | Wprowadzenie fabularne. Drużyny skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. |
+| 09:25–11:25 | 4 sale + korytarze | Gra główna: rotacja po 4 stacjach. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne i ukryty sygnał 06. |
+| 11:25–12:00 | Hol | Przerwa i stoisko koła ze sprzętem. Ranking szkół na dużym ekranie (`#ekran`). |
+| 12:00–12:40 | Aula | Finał fabularny w `#final`: alarm, odliczanie i przywracanie czterech systemów. Opcjonalny teleturniej (Kahoot) daje 0–100 pkt. |
+| 12:40–13:00 | Aula | Podium szkół i drużyn, nagrody, eksport wyników do CSV. |
+
+Stacje są **dla zabawy, bez oceniania**: pomoc i podpowiedzi nie odbierają punktów, a flaga to rekwizyt ćwiczenia, nie egzamin.
 
 Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła tylko zmienione pola, więc kilku organizatorów nie nadpisuje sobie ustawień. **Etap wydarzenia zmienia się w osobnej karcie, z potwierdzeniem.** Deadline zapisów ma **datę i godzinę**, nie sam zegar — to jedyny termin, liczy też odliczanie na `#ekran`. Ograniczenie sprawdza Firestore przez `request.time`, nawet jeśli organizator zapomni zmienić etap.
 
-## Cztery stacje
+## Stacje
 
-| # | Laboratorium | Zadanie | Zaliczenie |
+| # | Laboratorium | Co robią uczniowie | Skąd flaga |
 |---|---|---|---|
-| 1 | Zhakuj grę | Skok Mikołaja: siła skoku, klucze, rola | Flaga na mecie trzeciego poziomu |
-| 2 | Złam skarbiec | Dobór hasha, słownika i maski w symulatorze | Odzyskane hasło jest flagą |
-| 3 | Fałszywy Mikołaj | Mail → portal → logi → konsola SOC (4) → osobno reakcja (5) | Flaga w hubie po reakcji |
-| 4 | Biuro Grincha | Audyt biurka, własna karta demonstracyjna UID, pokaz BadUSB | Flaga po poprawnym odczycie karty |
+| 1 | Zhakuj grę | Grają w Skok Mikołaja w izolowanej piaskownicy `#gra`. Przepaść jest za szeroka, kluczy za mało, a meta jest tylko dla admina. W DevTools (F12 → Console, ramka `about:srcdoc`) zmieniają siłę skoku, liczbę kluczy i rolę w atrapie localStorage. Uczą się, że przeglądarce nie wolno ufać: wynik i uprawnienia musi sprawdzać serwer. | Na mecie trzeciego poziomu |
+| 2 | Złam skarbiec | W symulatorze `#skarbiec` dobierają typ hasha (32 znaki hex), słownik (imiona reniferów) i maskę (słowo + dzień). Wskazówek szukają w sali: kalendarz, zdjęcie, karteczka. Po otwarciu skarbca porównują MD5, bcrypt i Argon2id i widzą, jak sól różnicuje hashe tego samego hasła. Na koniec projektują logowanie do nowego skarbca: samo hasło, SMS, aplikacja albo passkey, sprawdzone na pięciu typach ataków. | Odzyskane hasło jest flagą |
+| 3 | Fałszywy Mikołaj | Śledztwo SOC całej drużyny, ze wspólnym postępem na serwerze. Na telefonach: czerwone flagi w mailu „Mikołaja”, podgląd cudzych list przez zmianę numeru w adresie (IDOR) i moment włamania w logach. Na komputerze stacji: **North Pole SIEM** (`#siem`), czyli uproszczony prawdziwy SIEM. Przeszukują w nim ok. 480 zdarzeń zapytaniami `pole:wartość`, czytają histogram i alerty reguł korelacyjnych i oddzielają szum od ataku. Zgłoszenie incydentu (alerty, adres, konto, moment wejścia, sesja, priorytet) daje PIN, który wpisują w telefonie. Na koniec osobno układają reakcję na incydent. | W hubie śledztwa po reakcji |
+| 4 | Biuro Grincha | Audytują biurko elfa: hasło na karteczce, odblokowany laptop, grafik dyżurów, znaleziony pendrive. Z grafiku ustalają, czyja karta otwiera warsztat. Pod nadzorem kopiują demonstracyjną kartę koła Flipperem i otwierają kopią czytnik UID `#drzwi`. Na koniec prowadzący podłącza do własnego laptopa „podrzucony pendrive” (BadUSB), który sam pisze ostrzeżenie w Notatniku. | Czytnik po zgodnym UID |
 
-Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Drużyna sama wpisuje flagę ze strony stacji w odpowiednim labie, bez akceptacji prowadzącego.** To inny kod niż 6-znakowy kod dołączenia do drużyny. Szczegóły, sprzęt i plan B: [STACJE.md](STACJE.md).
+**Drużyna sama wpisuje flagę ze strony stacji w odpowiednim labie, bez akceptacji prowadzącego.** To inny kod niż 6-znakowy kod dołączenia do drużyny. Prowadzący zachowuje tryb awaryjny z uzasadnieniem. Scenariusze minuta po minucie, sprzęt i plan B: **[STACJE.md](STACJE.md)**.
+
+**Zasada bezpieczeństwa stacji:** wszystko dzieje się na sprzęcie, kontach i fikcyjnych danych koła. Nie używamy prywatnych kart, kont ani urządzeń uczniów, a demonstracje niczego naprawdę nie atakują.
 
 ## Widoki aplikacji
 
@@ -41,7 +61,8 @@ Nie oceniamy uczniów. Pomoc i podpowiedzi nie odbierają punktów. **Drużyna s
 | `/#ekran` | Publiczny ranking na żywo; logowanie nie jest potrzebne |
 | `/#final` | Centrum dowodzenia: odliczanie, cztery systemy, gotowe drużyny, podium |
 | `/#gra` | Izolowana piaskownica Skoku Mikołaja |
-| `/#skarbiec` | Symulator haseł; odpowiedź to jawny rekwizyt |
+| `/#skarbiec` | Laptopy stacji 2: symulator haseł, sól, projekt zabezpieczeń logowania; odpowiedź to jawny rekwizyt |
+| `/#siem` | Komputer stacji 3: North Pole SIEM — zapytania, histogram, alerty, zgłoszenie incydentu i PIN zadania 4 |
 | `/#drzwi` | Demonstracyjny czytnik NFC i pełny ekran; konfiguracja tylko po logowaniu |
 | `/#pulapka` | Edukacyjny plakat o quishingu |
 
@@ -86,7 +107,7 @@ Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywr
 
 Zaliczenie flagą zapisuje członek drużyny atomowo ze statusem `true`, publiczną projekcją i niezmienialnym prywatnym audytem. Flaga nie trafia do rankingu. Powtórka, także z drugiego telefonu, nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
 
-**Kompromis flag:** strona pokazuje je po ćwiczeniu, ale ich publiczny moduł `station-flags.js` można podejrzeć, a flagę przekazać innej drużynie. Serwer sprawdza wartość, członkostwo, etap, termin i jednokrotność — nie udowadnia samodzielnego wykonania zadania. AES-GCM w skarbcu jest dekoracją dydaktyczną, nie tajnością. Nie ma Functions, zewnętrznych usług AI ani płatnego serwera.
+**Kompromis flag:** strona pokazuje je po ćwiczeniu, ale ich publiczny moduł `station-flags.js` można podejrzeć, a flagę przekazać innej drużynie. Serwer sprawdza wartość, członkostwo, etap, termin i jednokrotność — nie udowadnia samodzielnego wykonania zadania. AES-GCM w skarbcu i w SIEM jest dekoracją dydaktyczną, nie tajnością: PIN SIEM, jak flagi, jest jawnym rekwizytem, który poprawne zgłoszenie incydentu odszyfrowuje, a telefon porównuje z hashem. Nie ma Functions, zewnętrznych usług AI ani płatnego serwera.
 
 Piaskownica gry ma `sandbox="allow-scripts"` **bez** `allow-same-origin`, blokadę sieci CSP, atrapę localStorage i brak mostu do rankingu. Pozostałe demonstracje też niczego naprawdę nie atakują. Używamy tylko sprzętu i kart koła, nigdy prywatnych kart, kont i danych uczniów.
 
@@ -114,7 +135,7 @@ $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'
 node tests/seed.cjs
 ```
 
-Konto testowe jest wyłącznie w `tests/seed.cjs`; nigdy nie używaj go na produkcji. Testy reguł obejmują izolację, zaproszenia, członkostwo, punkty, duplikaty, współbieżność SOC, etapy, czas serwera i organizatorów. `npm test` sprawdza punktację, remisy, CSV, składnię i osłony piaskownicy.
+Konto testowe jest wyłącznie w `tests/seed.cjs`; nigdy nie używaj go na produkcji. Testy reguł obejmują izolację, zaproszenia, członkostwo, punkty, duplikaty, współbieżność SOC, etapy, czas serwera i organizatorów. `npm test` sprawdza punktację, remisy, CSV, składnię, osłony piaskownicy, zapytania i zgłoszenie incydentu w SIEM, sól i projekt zabezpieczeń skarbca.
 
 ## Bezpieczne wdrożenie
 
