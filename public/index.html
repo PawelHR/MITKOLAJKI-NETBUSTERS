@@ -613,7 +613,6 @@ function renderHome(){
     h('section',{class:'card'},h('div',{class:'spread'},h('h2',null,'Postęp misji'),h('span',{class:'pill gold'},got+'/4 · '+(PHASES[S.config.phase]||'Oczekiwanie'))),
       h('progress',{max:4,value:got,'aria-label':'Postęp głównej misji',style:'width:100%'}),
       h('p',{class:'small'},S.config.central||'Centrala: odzyskajcie cztery fragmenty. Współpraca ma znaczenie.'),
-      h('p',{class:'muted small'},'Rotacja: '+(S.config.rotation||'Harmonogram poda prowadzący.')),
       h('p',{class:'muted small'},STATIONS.map(s=>s.nr+': '+(S.config.rooms?.[s.nr-1]||'sala do ustalenia')).join(' · ')),
       h('button',{class:'back',onclick:()=>{S.viceFound=true;view={type:'side',id:'p8'};render();},'aria-label':'Zbadaj ukryty sygnał 06'},'… sygnał 06 z miasta palm')),
     S.notice ? h("div",{class:"msg good"},S.notice) : null,
@@ -667,7 +666,7 @@ function renderStation(s){
   const nodes = [backBtn(), h("div",{class:"stack",style:"gap:4px"}, h("span",{class:"eyebrow"},"Laboratorium " + s.nr + " · " + s.topic), h("h1",null,s.name))];
   if (!done){
     nodes.push(h("p",null,s.intro));
-    nodes.push(h('p',{class:'muted small'},'Sala: '+(S.config.rooms?.[s.nr-1]||'zapytaj prowadzącego')+' · '+(S.config.rotation||'Rotacja według harmonogramu.')));
+    nodes.push(h('p',{class:'muted small'},'Sala: '+(S.config.rooms?.[s.nr-1]||'zapytaj prowadzącego')));
     if (s.hasTask) nodes.push(h("button",{class:"btn",onclick:()=>{view={type:"s3hub"};render();}},"🔎 Otwórz śledztwo"));
     // Strony stacji (#gra, #skarbiec, #siem, #drzwi) są tylko na sprzęcie w sali, nie w telefonie uczestnika.
     if(!s.hasTask)nodes.push(h('p',{class:'msg'},'Zadanie wykonujecie na sprzęcie w sali stacji. Flagę zobaczycie na jego ekranie.'));
@@ -1464,14 +1463,12 @@ function renderAdmin(){
   // Brak terminu = puste pole do uzupełnienia, nigdy domyślne „teraz” (to od razu zamknęłoby grę).
   const deadline=h('input',{type:'datetime-local',required:true,value:S.config.mainEndsAt ? localDate(S.config.mainEndsAt.toDate()) : ''});
   const rooms=h('input',{maxlength:160,value:(S.config.rooms||['Sala 1','Sala 2','Sala 3','Sala 4']).join(' | ')});
-  const rotation=h('input',{maxlength:250,value:S.config.rotation||'09:25 → 09:55 → 10:25 → 10:55 · 25 min + 5 min przejścia'});
   const central=h('input',{maxlength:240,value:S.config.central||'Centrala: odzyskajcie cztery fragmenty. Liczy się współpraca.'});
   // Zapisujemy tylko pola zmienione w tym formularzu, żeby nie nadpisać zmian innego organizatora.
   const fields={
     schools:{read:()=>inputs.map(x=>x.value).join('\n'),value:()=>inputs.map((x,i)=>x.value.trim()||DEFAULT_SCHOOLS[i])},
     mainEndsAt:{read:()=>deadline.value,value:()=>Timestamp.fromDate(new Date(deadline.value))},
     rooms:{read:()=>rooms.value,value:()=>rooms.value.split('|').map(x=>x.trim()).slice(0,4)},
-    rotation:{read:()=>rotation.value,value:()=>rotation.value},
     central:{read:()=>central.value,value:()=>central.value}
   };
   const initial=Object.fromEntries(Object.entries(fields).map(([k,f])=>[k,f.read()]));
@@ -1483,7 +1480,7 @@ function renderAdmin(){
       catch(ex){ flash("Nie udało się zapisać ustawień.","err"); } }},
     h("h2",null,"Ustawienia"), inputs.map((inp,i)=>h("label",{for:"set-s"+i},"Szkoła " + (i+1), inp)),
     h('label',null,'Koniec gry głównej: termin serwera dla zapisów i odliczanie na #ekran (data i czas lokalny)',deadline),
-    h('label',null,'Sale stacji 1–4 (oddziel znakiem |)',rooms),h('label',null,'Harmonogram rotacji',rotation),h('label',null,'Wiadomość centrali',central),
+    h('label',null,'Sale stacji 1–4 (oddziel znakiem |)',rooms),h('label',null,'Wiadomość centrali',central),
     h("button",{class:"btn",type:"submit"},"Zapisz zmienione pola"),
     h('p',{class:'muted small'},'Etap wydarzenia zmieniasz w osobnej karcie powyżej. Zapis wysyła tylko pola, które zmieniłeś.'));
   const { teams } = ranking();

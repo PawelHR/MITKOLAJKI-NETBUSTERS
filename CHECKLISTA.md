@@ -10,7 +10,7 @@
 - [ ] Zwykłe konto e-mail nie dostaje praw organizatora. Rejestracja anonimowa działa.
 
 ## Drużyny i etapy
-- [ ] Nazwy szkół, sale, harmonogram i wiadomość centrali ustawione w panelu.
+- [ ] Nazwy szkół, sale i wiadomość centrali ustawione w panelu; bez harmonogramu zmian sal.
 - [ ] Etap zmieniany tylko kartą „Etap wydarzenia” z potwierdzeniem; przy Grze głównej brak ostrzeżenia o minionym terminie.
 - [ ] Właściwa **data**, strefa i deadline `mainEndsAt`; sam zegar nie wystarczy.
 - [ ] Gracz sam tworzy drużynę, drugi telefon wpisuje 6-znakowy kod i od razu dołącza, bez akceptacji prowadzącego.

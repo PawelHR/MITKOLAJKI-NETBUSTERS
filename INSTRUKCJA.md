@@ -80,7 +80,7 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 
 ## 5. Obsługa wydarzenia
 
-- `#admin`: nazwy szkół, sale 1–4 (oddzielone `|`), rotacje, wiadomość centrali, etap i **pełny deadline**. Etapy: Gra główna → Przerwa → Finał → Wydarzenie zakończone (bez osobnej rejestracji).
+- `#admin`: nazwy szkół, sale 1–4 (oddzielone `|`), wiadomość centrali, etap i **pełny deadline**. Etapy: Gra główna → Przerwa → Finał → Wydarzenie zakończone (bez osobnej rejestracji). Nie ustawiamy tur ani godzin zmiany sal.
 - Gracz wybiera **Zakładam drużynę**, wpisuje nazwę/szkołę/pseudonim i sam tworzy drużynę. Na jej ekranie widzi **6-znakowy kod do dołączenia**.
 - Koledzy wybierają **Mam kod drużyny**, wpisują kod i pseudonim, klikają **Dołącz** i od razu są członkami. Nie ma długiego zaproszenia ani zatwierdzania przez prowadzącego. Wielkość liter i spacje nie mają znaczenia. Kod jest widoczny członkom po ponownym otwarciu aplikacji.
 - Zakładanie drużyn i dołączanie działa w każdym etapie oprócz „Wydarzenie zakończone”, przy otwartej i niepełnej drużynie. Publiczny ID dla prowadzącego nie jest kodem. Twórca może zamknąć dołączanie lub zmienić kod; organizator ma te same możliwości w **Prowadź**. Stary kod po zmianie nie działa, ale obecni członkowie pozostają.

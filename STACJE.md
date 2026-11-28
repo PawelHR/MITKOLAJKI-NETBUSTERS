@@ -1,6 +1,6 @@
 # Scenariusze czterech stacji — dla prowadzących
 
-**25 minut zadania + 5 minut przejścia. 2 prowadzących na stację, razem 8 i koordynator.**
+**Orientacyjnie 25 minut na zadanie, bez ustalonych tur zmiany sal. 2 prowadzących na stację, razem 8 i koordynator.**
 Grupa to kilka drużyn 3–4-osobowych, zwykle 10–16 osób. Zabawa bez oceniania: pomagamy dojść do końca.
 Drużyna dostaje flagę na stronie stacji i sama wpisuje ją w odpowiednim labie. Nie czeka na akceptację prowadzącego. `#admin → Prowadź` pozostaje opcją pomocy i awaryjnego zaliczenia.
 Każda stacja daje **100 punktów oficjalnych**, maks. 400 + opcjonalny finał 0–100. Zadania poboczne to oddzielne punkty edukacyjne.
@@ -135,6 +135,6 @@ Po czterech stacjach drużyna jest gotowa do finału niezależnie od pobocznych 
 | 2 | 3–4 laptopy/tablety, kalendarz, zdjęcie, wydruk hasha, wskazówki |
 | 3 | Telefony, komputer stacji z `/#siem` (duży ekran lub rzutnik, mysz), wydruki awaryjne |
 | 4 | Flipper, własny NTAG215 NDEF, etui/smycz, czapka elfa, Android NFC + ładowarka, laptop Windows, bezpieczny skrypt BadUSB, rekwizyty biurka |
-| Wspólne | 8 prowadzących + koordynator, przedłużacze, dostęp do internetu, plakaty, plan sal i rotacji, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
+| Wspólne | 8 prowadzących + koordynator, przedłużacze, dostęp do internetu, plakaty, plan sal, zegar; konta organizatorów tylko na nadzorowanych urządzeniach |
 
 Przed wydarzeniem wykonaj [CHECKLISTA.md](CHECKLISTA.md). Konfiguracja i migracja: [INSTRUKCJA.md](INSTRUKCJA.md).

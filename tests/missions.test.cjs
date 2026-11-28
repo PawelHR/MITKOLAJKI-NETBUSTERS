@@ -91,9 +91,10 @@ test('odpowiedź skarbca jest spójnym publicznym rekwizytem, nie sekretem',asyn
   assert.ok(h.run('V.dicts.find(x=>x.id==="reindeer").words.includes("RENIFER")'));
 });
 test('lab ma formularz flagi bez obowiązkowej akceptacji prowadzącego',()=>{
-  const h=harness();h.run('S.team={unlocked:{}};S.code="ABCD";S.config={phase:"main",mainEndsAt:{toMillis:()=>Date.now()+60000}};renderStation(STATIONS[0])');
+  const h=harness();h.run('S.team={unlocked:{}};S.code="ABCD";S.config={phase:"main",mainEndsAt:{toMillis:()=>Date.now()+60000},rooms:["Sala testowa"],rotation:"STARY_HARMONOGRAM"};renderStation(STATIONS[0])');
   assert.ok(h.app.textContent.includes('Zalicz lab flagą'));assert.ok(h.app.textContent.includes('Nie trzeba czekać na prowadzącego'));
   assert.ok(h.elements().some(e=>e.attrs?.id==='station-flag'));assert.ok(!h.app.textContent.includes(h.run('STATION_FLAGS.s1')));
+  assert.ok(h.app.textContent.includes('Sala testowa'));assert.ok(!h.app.textContent.includes('STARY_HARMONOGRAM'));
 });
 test('wyścig flag: odmowa nie jest sukcesem bez potwierdzenia z serwera',async()=>{
   const h=harness();Object.assign(h.context,{doc:()=>({}),runTransaction:async()=>{throw {code:'permission-denied'};}});

@@ -38,6 +38,7 @@ test('limit drużyny spójny w aplikacji i regułach; etap zmieniany osobno',()=
   assert.ok(fs.readFileSync('firestore.rules','utf8').includes('d.memberCount <= 4'));
   assert.ok(js.includes('memberCount:increment(1)')&&js.includes('memberCount:increment(-1)'));
   assert.ok(!js.includes('endTime'));
+  assert.ok(!/rotation|rotacj/i.test(js),'bez wyświetlania i konfiguracji rotacji');
   const settings=js.slice(js.indexOf('const fields={'),js.indexOf('const settings ='));
   assert.ok(!settings.includes('phase'));
   assert.ok(js.includes("'Tak, zmień etap'"));

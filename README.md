@@ -24,13 +24,13 @@ Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami
 
 ## Jak wygląda wydarzenie
 
-Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Cztery rotacje po 25 min + 5 min przejścia. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać także w trakcie gry, w przerwie i w finale. Blokuje to dopiero etap „Wydarzenie zakończone”.
+Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Odwiedzają cztery stacje bez wyznaczonych tur zmian sal. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać także w trakcie gry, w przerwie i w finale. Blokuje to dopiero etap „Wydarzenie zakończone”.
 **8 prowadzących (po 2 na stację) oraz koordynator wydarzenia.** Na stacji 4 pomocnik jest jednocześnie elfem z kartą i operatorem Flippera.
 
 | Godzina | Miejsce | Co się dzieje |
 |---|---|---|
 | 09:00–09:25 | Aula | Wprowadzenie fabularne. Drużyny skanują QR z plakatu, jedna osoba zakłada drużynę, reszta dołącza 6-znakowym kodem. |
-| 09:25–11:25 | 4 sale + korytarze | Gra główna: rotacja po 4 stacjach. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne i ukryty sygnał 06. |
+| 09:25–11:25 | 4 sale + korytarze | Gra główna: cztery stacje bez ustalonych godzin zmiany sal. Po każdym zadaniu drużyna sama wpisuje flagę w terminalu. Między salami zadania poboczne i ukryty sygnał 06. |
 | 11:25–12:00 | Hol | Przerwa i stoisko koła ze sprzętem. Ranking szkół na dużym ekranie (`#ekran`). |
 | 12:00–12:40 | Aula | Finał fabularny w `#final`: alarm, odliczanie i przywracanie czterech systemów. Opcjonalny teleturniej (Kahoot) daje 0–100 pkt. |
 | 12:40–13:00 | Aula | Podium szkół i drużyn, nagrody, eksport wyników do CSV. |
@@ -56,7 +56,7 @@ Godziny, sale i komunikat centrali ustaw organizacyjnie w panelu; zapis wysyła 
 
 | Adres | Zastosowanie |
 |---|---|
-| `/` | Drużyna, misja, sale/rotacje, zadania, ranking |
+| `/` | Drużyna, misja, sale, zadania, ranking |
 | `/#admin` | Logowanie organizatora, etapy, członkostwo, stacje, finał, CSV |
 | `/#ekran` | Publiczny ranking na żywo; logowanie nie jest potrzebne |
 | `/#final` | Centrum dowodzenia: odliczanie, cztery systemy, gotowe drużyny, podium |
