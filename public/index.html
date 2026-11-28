@@ -777,9 +777,11 @@ function renderS3Soc(){
   put(...head,
     h('p',null,'Podejdźcie do komputera stacji z otwartym North Pole SIEM. To uproszczona wersja narzędzia, w którym analitycy SOC przeszukują zdarzenia z całej firmy.'),
     h('ol',{class:'tips'},
-      h('li',null,'Przeszukajcie zdarzenia zapytaniami, np. result:FAIL albo user:admin. Kliknięcie wartości w tabeli zawęża wyniki.'),
-      h('li',null,'Oddzielcie szum od ataku: nie każdy alert to incydent.'),
-      h('li',null,'Wypełnijcie zgłoszenie incydentu. SIEM pokaże PIN — przepiszcie go tutaj.')),
+      h('li',null,'Podejdźcie do komputera stacji z ekranem „NORTH POLE SIEM”. Na górze strony jest instrukcja krok po kroku.'),
+      h('li',null,'Znajdźcie atak: przyciski „Nieudane logowania” i „Konto admin” pokażą, skąd i na jakie konto zgadywano hasło, a potem kiedy i w jakiej sesji atakujący wszedł.'),
+      h('li',null,'Przy alertach kliknijcie „Do incydentu” tylko dla tych, które dotyczą tego samego ataku. Reszta to szum.'),
+      h('li',null,'Wypełnijcie „Zgłoszenie incydentu” i kliknijcie „Zgłoś incydent”. Jeśli coś się nie zgadza, SIEM powie, co poprawić.'),
+      h('li',null,'Po przyjęciu zgłoszenia na komputerze pojawi się 6-cyfrowy PIN w żółtej ramce. Wpiszcie go poniżej.')),
     form,feedback,result,
     h('p',{class:'muted small'},'Deterministyczna symulacja na fikcyjnych danych. Nie łączymy się z żadnym z adresów.'));
 }
@@ -1798,9 +1800,9 @@ const SIEM = (()=>{
     {id:'a1',t:'02:58',sev:'low',title:'Nieudane logowania na konta test, root, guest',rule:'3 błędne hasła z jednego adresu w minutę',q:'ip:203.0.113.50'},
     {id:'a2',t:'03:00',sev:'info',title:'Kopia list prezentów przez konto techniczne',rule:'Operacja na danych wrażliwych',q:'user:backup_elf'},
     {id:'a3',t:'03:02',sev:'low',title:'Nieudane logowanie pracownika',rule:'Błędne hasło',q:'user:elf_ania action:LOGIN'},
-    {id:'a4',t:'03:10',sev:'med',title:'Wiele nieudanych logowań',rule:'Ponad 100 błędnych haseł na jedno konto w 5 min',q:'result:FAIL'},
-    {id:'a5',t:'03:12',sev:'crit',title:'Podejrzane logowanie administratora',rule:'Udane logowanie konta uprzywilejowanego po serii błędów',q:'user:admin action:LOGIN'},
-    {id:'a6',t:'03:14',sev:'high',title:'Nietypowy dostęp do list prezentów',rule:'Eksport lub odczyt danych wrażliwych',q:'object:list*'},
+    {id:'a4',attack:true,t:'03:10',sev:'med',title:'Wiele nieudanych logowań',rule:'Ponad 100 błędnych haseł na jedno konto w 5 min',q:'result:FAIL'},
+    {id:'a5',attack:true,t:'03:12',sev:'crit',title:'Podejrzane logowanie administratora',rule:'Udane logowanie konta uprzywilejowanego po serii błędów',q:'user:admin action:LOGIN'},
+    {id:'a6',attack:true,t:'03:14',sev:'high',title:'Nietypowy dostęp do list prezentów',rule:'Eksport lub odczyt danych wrażliwych',q:'object:list*'},
     {id:'a7',t:'03:20',sev:'info',title:'Logowanie VPN spoza sieci firmowej',rule:'Nowy adres zewnętrzny',q:'user:elf_bartek'}];
   return { events:ev, alerts, from:T(2,45,0), to:T(3,25,0),
     seal:'9wpH005WIp1vY0djcUKNlAR9zLNxfmorAaIGAepd45sC1A==',
@@ -1896,7 +1898,15 @@ function renderSiem(){
             time:'Kiedy atakujący wszedł? Szukajcie pierwszego LOGIN z wynikiem OK po serii FAIL (format GG:MM:SS).',
             session:'Kliknijcie adres atakującego w tabeli — eksport i odczyty mają tę samą sesję co udane logowanie.',
             priority:'Przejęte konto administratora i wyprowadzone dane to nie jest zwykła obserwacja.' };
-          return fb.replaceChildren(h('div',{class:'msg err'},'Kierownik SOC odrzucił zgłoszenie: ' + wrong.length + ' z 6 elementów wymaga poprawy. ' + (SV.fails>=2 ? tips[wrong[0]] : 'Sprawdźcie zdarzenia jeszcze raz.')));
+          const labels = { alerts:'alerty', ip:'adres', user:'konto', time:'moment włamania', session:'sesja', priority:'priorytet' };
+          const many = n => n===1 ? 'alert' : n<5 ? 'alerty' : 'alertów';
+          const missing = SIEM.alerts.filter(a=>a.attack && !SV.picked.has(a.id)), extra = SIEM.alerts.filter(a=>!a.attack && SV.picked.has(a.id));
+          if (wrong.includes('alerts')) tips.alerts = [
+            missing.length ? 'Brakuje jeszcze ' + missing.length + ' ' + many(missing.length) + ' tego samego ataku. Szukajcie alertów o tym samym koncie i adresie: co działo się przed włamaniem i po nim?' : '',
+            extra.length ? 'Zaznaczone ' + extra.map(a=>a.t).join(', ') + ' to szum, nie atak. Kliknijcie „✓ w incydencie”, żeby je usunąć.' : ''].filter(Boolean).join(' ');
+          return fb.replaceChildren(h('div',{class:'msg err'},
+            h('b',null,'Kierownik SOC odrzucił zgłoszenie. Do poprawy: ' + wrong.map(k=>labels[k]).join(', ') + ' (' + wrong.length + ' z 6).'),
+            h('ul',{class:'tips',style:'margin:6px 0 0'}, wrong.map(k=>h('li',null,tips[k])))));
         }
         SV.pin = await openSeal('siem|' + Object.values(answer).join('|'), SIEM.seal);
         drawForm(); formBox.scrollIntoView({behavior:'smooth',block:'start'});
@@ -1913,6 +1923,13 @@ function renderSiem(){
   siemRoot = h('div',{class:'siem'},
     h('div',{class:'siem-head'}, h('div',{class:'siem-logo'}, h('i',{'aria-hidden':'true'},'!'), 'NORTH POLE SIEM'), h('span',{class:'siem-live'},'LIVE')),
     h('p',{class:'muted small'},'Laboratorium 3 · noc włamania, 02:45–03:25 · symulowane dane, nic nie łączy się z siecią'),
+    h('details',{class:'card',open:true}, h('summary',null,h('b',null,'Instrukcja dla drużyny — krok po kroku')),
+      h('ol',{class:'tips'},
+        h('li',null,'Kliknijcie „Nieudane logowania”. W tabeli widać setki błędnych haseł: z jakiego adresu i na jakie konto?'),
+        h('li',null,'Kliknijcie ten adres w tabeli albo „Konto admin” i „Bez nieudanych”. Pierwsze LOGIN z wynikiem OK to moment włamania; zapiszcie czas i sesję.'),
+        h('li',null,'Przy każdym alercie po prawej kliknijcie „Zdarzenia”, żeby zobaczyć dowody. „Do incydentu” dodajcie tylko alerty tego jednego ataku (to samo konto, adres, sesja). Reszta to szum. Ponowne kliknięcie „✓ w incydencie” usuwa alert.'),
+        h('li',null,'Wypełnijcie „Zgłoszenie incydentu”: adres, konto, moment włamania (GG:MM:SS), sesja i priorytet. Kliknijcie „Zgłoś incydent”.'),
+        h('li',null,'Gdy kierownik SOC przyjmie zgłoszenie, pojawi się 6-cyfrowy PIN w żółtej ramce. Wpiszcie go w telefonie: Laboratorium 3 → Otwórz śledztwo → 4. North Pole SIEM.'))),
     stats,
     h('section',{class:'card'}, h('div',{class:'spread'}, h('h3',null,'Aktywność w czasie'), h('span',{class:'muted small'},'czerwone: ponad 30 zdarzeń na minutę · kliknij słupek, żeby zawęzić')),
       chart, h('div',{class:'siem-axis'}, h('span',null,'02:45'), h('span',null,'03:05'), h('span',null,'03:25'))),
