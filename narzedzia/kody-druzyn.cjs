@@ -26,7 +26,7 @@ async function main(){
   if(!writes.length||writes.length>450)throw new Error('NO_CHANGES_OR_TOO_MANY_WRITES');
   const record=path.join(dir,'join-codes-migration.json');if(fs.existsSync(record))throw new Error('MIGRATION_ALREADY_RECORDED');
   const api=await client();
-  const config=await api('firestore',`v1/${encodeName(base+'/config/main')}`);if(config.fields.phase?.stringValue!=='registration')throw new Error('REGISTRATION_REQUIRED');
+  const config=await api('firestore',`v1/${encodeName(base+'/config/main')}`);if(config.fields.phase?.stringValue==='ended')throw new Error('EVENT_ENDED');
   const current=await api('firestore',`v1/${encodeName(base+'/teams')}?pageSize=300`);
   if((current.documents||[]).some(d=>!teams.some(t=>t.name===d.name)&&!d.fields?.joinCode?.stringValue))throw new Error('NEW_TEAM_REQUIRES_FRESH_BACKUP');
   const result=await api('firestore',`v1/projects/${PROJECT}/databases/(default)/documents:commit`,'POST',{writes});

@@ -14,7 +14,7 @@ const {doc,setDoc,Timestamp}=require('firebase/firestore');
   await env.withSecurityRulesDisabled(async c=>{
     const db=c.firestore();await setDoc(doc(db,'admins',user.localId),{role:'organizer'});
     for(const [id,value] of Object.entries(STATION_FLAGS))await setDoc(doc(db,'stationFlags',id),{value,active:true});
-    await setDoc(doc(db,'config/main'),{schools:['Szkoła polarna','Szkoła zorzy','Szkoła reniferów'],phase:'registration',mainEndsAt:Timestamp.fromMillis(Date.now()+3600000),rooms:['Lab 1','Lab 2','Lab 3','Lab 4'],rotation:'25 min zadania + 5 min przejścia'});
+    await setDoc(doc(db,'config/main'),{schools:['Szkoła polarna','Szkoła zorzy','Szkoła reniferów'],phase:'main',mainEndsAt:Timestamp.fromMillis(Date.now()+3600000),rooms:['Lab 1','Lab 2','Lab 3','Lab 4'],rotation:'25 min zadania + 5 min przejścia'});
   });
   await env.cleanup();console.log('Utworzono wyłącznie lokalną konfigurację i konto testowe. Dane logowania są w tests/seed.cjs.');
 })().catch(()=>{console.error('Nie udało się przygotować emulatora. Sprawdź lokalne porty i konfigurację.');process.exitCode=1;});

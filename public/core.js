@@ -1,5 +1,5 @@
 // Punktacja współdzielona przez terminal, ekran i eksport (bez Firebase).
-export const PHASES = { registration:'Rejestracja', main:'Gra główna', break:'Przerwa', final:'Finał', ended:'Wydarzenie zakończone' };
+export const PHASES = { main:'Gra główna', break:'Przerwa', final:'Finał', ended:'Wydarzenie zakończone' };
 export const STATION_IDS = ['s1','s2','s3','s4'];
 export function stationCount(t) { return STATION_IDS.filter(id => t.unlocked?.[id] === true).length; }
 export function officialPoints(t) { return stationCount(t)*100 + (Number(t.bonus)||0); }

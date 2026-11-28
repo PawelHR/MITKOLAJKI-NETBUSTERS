@@ -9,7 +9,7 @@
 - [ ] Konta 8 prowadzących i koordynatora; UID w `admins`, oddzielne profile/urządzenia, brak kont demonstracyjnych w produkcji.
 - [ ] Zwykłe konto e-mail nie dostaje praw organizatora. Rejestracja anonimowa działa.
 
-## Rejestracja i etapy
+## Drużyny i etapy
 - [ ] Nazwy szkół, sale, harmonogram i wiadomość centrali ustawione w panelu.
 - [ ] Etap zmieniany tylko kartą „Etap wydarzenia” z potwierdzeniem; przy Grze głównej brak ostrzeżenia o minionym terminie.
 - [ ] Właściwa **data**, strefa i deadline `mainEndsAt`; sam zegar nie wystarczy.
@@ -17,9 +17,9 @@
 - [ ] Limit 4 osób: piąty telefon dostaje odmowę, odejście zwalnia miejsce. Istniejące drużyny mają ustawiony licznik (`#admin → Prowadź → Ustaw licznik`, jeśli panel go pokazuje).
 - [ ] Sam publiczny ID nie pozwala dołączyć; kod nie jest w rankingu, na rzutniku ani w URL.
 - [ ] Kod jest widoczny członkom po odświeżeniu; po zmianie stary kod przestaje działać.
-- [ ] Zamknięta drużyna i zamknięta Rejestracja blokują samodzielne dołączanie, także przy zapamiętanym kodzie.
+- [ ] Zakładanie drużyn i dołączanie działa w Grze głównej, Przerwie i Finale; zamknięta drużyna i etap „Wydarzenie zakończone” blokują je, także przy zapamiętanym kodzie.
 - [ ] Cofnięty członek nie wraca automatycznie ani samym poprawnym kodem; blokada UID działa.
-- [ ] Każdy etap przetestowany; Przerwa, Finał, Zakończenie i przekroczony deadline blokują zapisy uczestników.
+- [ ] Każdy etap przetestowany; Przerwa, Finał, Zakończenie i przekroczony deadline blokują zapisy flag i zadań (dołączanie do drużyn nadal działa do zakończenia).
 - [ ] Tryb awaryjny wymaga organizatora i przyczyny, zwykłe zaliczenie poza grą jest odrzucane.
 
 ## Cztery stacje i reset

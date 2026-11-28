@@ -24,7 +24,7 @@ Drużyny po 3–4 osoby przechodzą 4 laboratoria ze sprzętem, a między salami
 
 ## Jak wygląda wydarzenie
 
-Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Cztery rotacje po 25 min + 5 min przejścia.
+Drużyny po 3–4 osoby (limit 4 pilnuje serwer). Cztery rotacje po 25 min + 5 min przejścia. **Nie ma osobnego etapu rejestracji:** drużyny można zakładać, a osoby dołączać także w trakcie gry, w przerwie i w finale. Blokuje to dopiero etap „Wydarzenie zakończone”.
 **8 prowadzących (po 2 na stację) oraz koordynator wydarzenia.** Na stacji 4 pomocnik jest jednocześnie elfem z kartą i operatorem Flippera.
 
 | Godzina | Miejsce | Co się dzieje |
@@ -101,9 +101,9 @@ admins/{uid}                        lista organizatorów, dodawana w konsoli
 
 Publiczny czteroznakowy ID służy prowadzącemu i rankingowi, **nie pozwala dołączyć**. Kod do dołączania jest osobny i nie trafia do rankingu ani URL. Nie można pobrać listy kodów; reguły sprawdzają podany kod, etap i stan drużyny przed dodaniem konkretnego UID. Twórca lub organizator może zmienić kod; stary przestaje działać bez wyrzucania obecnych członków.
 
-Rejestrację zamyka etap lub flaga drużyny. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga jej świadomego usunięcia przez organizatora, a następnie ponownego wpisania aktualnego kodu.
+Dołączanie do konkretnej drużyny zamyka jej założyciel lub organizator („Zamknij dołączanie”), limit 4 osób albo zakończenie wydarzenia. Usuniętego użytkownika nie przywracamy automatycznie. Cofnięcie członkostwa zapisuje blokadę UID; powrót wymaga jej świadomego usunięcia przez organizatora, a następnie ponownego wpisania aktualnego kodu.
 
-**Kompromis prostoty:** kto pozna kod, może dołączyć do otwartej drużyny w czasie rejestracji. Kod nie jest silnym hasłem (ok. 30 bitów losowości) i nie ma serwerowego limitera zgadywania na Spark. Udostępniajcie go tylko kolegom; w razie wycieku zmieńcie kod lub zamknijcie dołączanie. Członkostwo nie daje praw administratora; do zaliczenia labu potrzebna jest flaga stacji.
+**Kompromis prostoty:** kto pozna kod, może dołączyć do otwartej, niepełnej drużyny aż do zakończenia wydarzenia. Kod nie jest silnym hasłem (ok. 30 bitów losowości) i nie ma serwerowego limitera zgadywania na Spark. Udostępniajcie go tylko kolegom; w razie wycieku zmieńcie kod lub zamknijcie dołączanie. Członkostwo nie daje praw administratora; do zaliczenia labu potrzebna jest flaga stacji.
 
 Zaliczenie flagą zapisuje członek drużyny atomowo ze statusem `true`, publiczną projekcją i niezmienialnym prywatnym audytem. Flaga nie trafia do rankingu. Powtórka, także z drugiego telefonu, nie dodaje punktów. Zwykłe zaliczenia wymagają gry głównej i terminu serwera; **tryb awaryjny jest jawnym wyjątkiem wyłącznie organizatora z uzasadnieniem**, także po zamknięciu gry.
 

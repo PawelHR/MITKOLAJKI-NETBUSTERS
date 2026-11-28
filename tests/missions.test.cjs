@@ -118,7 +118,7 @@ test('czytnik pokazuje flagę labu 4 tylko po zgodnym UID (atrapa Web NFC)',asyn
   assert.equal(h.context.saved.length,0);h.clean();
 });
 test('interfejs dołączania: jeden krótki kod, brak zaproszenia i ekranu akceptacji',()=>{
-  const h=harness();h.run('S.config={phase:"registration"};renderJoin()');
+  const h=harness();h.run('S.config={phase:"main"};renderJoin()');
   assert.ok(h.app.textContent.includes('Kod drużyny (6 znaków)'));assert.ok(h.app.textContent.includes('od razu dołączasz'));
   assert.ok(!h.app.textContent.includes('Oczekiwanie na prowadzącego'));assert.ok(!h.app.textContent.includes('Sekretne zaproszenie'));
   assert.equal(h.elements().find(e=>e.attrs?.id==='j-code').attrs.maxlength,'12');
@@ -136,4 +136,10 @@ test('skarbiec: projekt zabezpieczeń — tylko passkey wytrzymuje wszystkie ata
   for(const name of ['Samo hasło','Hasło + kod SMS','Hasło + aplikacja','Passkey']){await h.click(name);scores[name]=h.app.textContent.match(/wytrzymane ataki: (\d)\/5/)[1];}
   assert.deepEqual(scores,{'Samo hasło':'0','Hasło + kod SMS':'3','Hasło + aplikacja':'4','Passkey':'5'});
   await h.click('Porównaj wszystkie');assert.ok(h.app.textContent.includes('SIM swap'));h.clean();
+});
+test('etap rejestracji usunięty: zakładanie drużyny aktywne w grze, zablokowane po zakończeniu',()=>{
+  const h=harness();h.run('S.config={phase:"main"};joinMode="create";renderJoin()');
+  const btn=()=>h.elements().find(e=>e.tagName==='BUTTON'&&e.textContent==='Załóż drużynę');
+  assert.equal(btn().disabled,false);
+  h.run('S.config={phase:"ended"};renderJoin()');assert.equal(btn().disabled,true);
 });

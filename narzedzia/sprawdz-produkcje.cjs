@@ -1,7 +1,7 @@
-// Smoke test tylko odczytowy; opcjonalne otwarcie etapu wymaga jawnego projektu.
-// node narzedzia/sprawdz-produkcje.cjs [--open-registration operacja-biegun]
+// Smoke test wyłącznie odczytowy (bez zapisów). Etap rejestracji nie istnieje.
+// node narzedzia/sprawdz-produkcje.cjs
 const fs=require('node:fs'),crypto=require('node:crypto');
-const {PROJECT,client,encodeName}=require('./firebase-admin-api.cjs');
+const {PROJECT}=require('./firebase-admin-api.cjs');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 async function main(){
   const origin=`https://${PROJECT}.web.app`;
@@ -24,16 +24,7 @@ async function main(){
     if((await get(resource)).status!==403)throw new Error('PRIVATE_ACCESS_NOT_DENIED');
   }
   const configResponse=await get(base+'/config/main');if(configResponse.status!==200)throw new Error('PUBLIC_CONFIG_UNAVAILABLE');
-  const config=await configResponse.json();let phase=config.fields.phase.stringValue;
-  if(process.argv[2]==='--open-registration'&&process.argv[3]===PROJECT){
-    if(phase!=='break')throw new Error('EVENT_PHASE_CHANGED');
-    const api=await client();
-    await api('firestore',`v1/projects/${PROJECT}/databases/(default)/documents:commit`,'POST',{writes:[{
-      update:{name:base+'/config/main',fields:{phase:{stringValue:'registration'}}},updateMask:{fieldPaths:['phase']},currentDocument:{updateTime:config.updateTime}
-    }]});
-    const response=await get(encodeName(base+'/config/main'));const result=await response.json();phase=result.fields?.phase?.stringValue;
-    if(phase!=='registration')throw new Error('REGISTRATION_NOT_CONFIRMED');
-  }
+  const config=await configResponse.json(),phase=config.fields.phase.stringValue;
   console.log(JSON.stringify({project:PROJECT,url:origin,hostingMatchesLocal:true,publicRankingDocuments:documents.length,privateAccessDenied:true,phase},null,2));
 }
 main().catch(error=>{console.error('Weryfikacja produkcji: '+(/^[A-Z_0-9]+$/.test(error.message)?error.message:'REQUEST_FAILED'));process.exitCode=1;});

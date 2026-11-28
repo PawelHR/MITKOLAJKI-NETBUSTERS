@@ -45,7 +45,7 @@ Nowe reguły **nie są zgodne ze starym schematem**. Nie ma samoczynnego usuwani
 6. W konsoli utwórz dla historycznych zaliczeń `teams/{ID}/awards/{s1…s4}` z `by`, `at`, `emergency:true`, `reason: Migracja zatwierdzona przez organizatora`. Sam `unlocked` nie może już zawierać sekretu.
 7. Dla każdej drużyny utwórz `leaderboard/{ID}` **wyłącznie** z `name`, `school`, `unlocked` (booleany), `bonus`, `updatedAt` Timestamp. Nie kopiuj całego prywatnego dokumentu. Sprawdź spójność z prywatnym stanem.
 8. Przejrzyj członkostwa — dotychczas mogły powstawać bez autoryzacji. Cofnij nieuprawnione urządzenia i dodaj ich UID do `revoked`. Dawnego ID nie traktuj jako kodu dołączania. Nowy 6-znakowy kod tworzy założyciel lub organizator w panelu.
-9. Wdróż Hosting i wykonaj próbę dwóch telefonów. Dopiero potem ustaw `registration`, właściwy deadline i otwórz wybrane drużyny do rejestracji. Wersja kodu i reguł musi być zgodna.
+9. Wdróż Hosting i wykonaj próbę dwóch telefonów. Dopiero potem ustaw etap Gra główna, właściwy deadline i otwórz dołączanie wybranych drużyn (etapu rejestracji już nie ma). Wersja kodu i reguł musi być zgodna.
 
 Konto organizatora jest zaufane; konsola IAM/Admin SDK zawsze omija reguły. Dostępu do nich nie przekazujemy uczniom. `firestore.local.rules` jest identycznym zestawem bez PIN-ów, ale wdrażany jest `firestore.rules`.
 
@@ -59,7 +59,7 @@ Korzystają wyłącznie z istniejącej sesji Firebase CLI. Token jest w pamięci
 4. Po testach i wdrożeniu restrykcyjnych reguł: `node narzedzia/migracja-firebase.cjs KATALOG_PRYWATNY --apply operacja-biegun`. Jeden atomowy commit, kontrola `updateTime` chroni zmiany od wykonania kopii. Zachowuje zaliczenia, szkoły, twórców i dokładnie istniejące członkostwa; nie dopisuje usuniętych członków. Zamyka dołączanie i ustawia przerwę.
 5. `node narzedzia/migracja-firebase.cjs KATALOG_PRYWATNY --verify` — ponownie sprawdza prywatne/publiczne stany i zachowanie członkostw, bez modyfikacji.
 6. Po wdrożeniu Hostingu: `node narzedzia/sprawdz-produkcje.cjs` — porównuje pliki z lokalną wersją i sprawdza odmowy publicznego odczytu danych prywatnych.
-7. Tylko po świadomej decyzji: `node narzedzia/sprawdz-produkcje.cjs --open-registration operacja-biegun`. Zmienia wyłącznie etap z Przerwy na Rejestrację. Nie otwiera starych drużyn ani gry głównej. Przed grą ustaw w panelu właściwą datę, deadline i sale.
+7. `node narzedzia/sprawdz-produkcje.cjs` — wyłącznie odczyt: zgodność plików Hostingu, publiczny ranking i odmowy dostępu do danych prywatnych. Etap ustawia organizator w panelu (etapu rejestracji już nie ma).
 8. Uzupełnienie krótkich kodów starszych drużyn: `node narzedzia/kody-druzyn.cjs NOWA_KOPIA` pokazuje plan. Zapis wymaga `--apply operacja-biegun`; dodatkowe `--open-existing` świadomie otwiera dołączanie do uzupełnianych drużyn. Operacja jest atomowa, kontroluje `updateTime`, nie zmienia wyników ani członkostw i nie wypisuje kodów w logach. Przed nią wykonaj nową kopię; nie używaj starej kopii sprzed zmian stanu gry.
 9. Flagi labów: po prywatnej kopii `node narzedzia/flagi-stacji.cjs NOWA_KOPIA` pokazuje plan czterech dokumentów `stationFlags/{s1…s4}`. Po wdrożeniu reguł użyj `--apply operacja-biegun`, potem `--verify`, następnie wdróż Hosting. Zapisuje tylko konfigurację flag zgodną z publicznym `station-flags.js`; nie zmienia drużyn, członkostw, wyników ani etapu. Przy nowej instalacji innego projektu operator ustawia w konsoli cztery dokumenty z `value` zgodnym z modułem i `active: true`. Publiczny moduł jest rekwizytem, nie sekretem.
 
@@ -80,10 +80,10 @@ Nie uruchamiaj ogólnego deploy w ciemno. Nie wdrażaj starych reguł przy rollb
 
 ## 5. Obsługa wydarzenia
 
-- `#admin`: nazwy szkół, sale 1–4 (oddzielone `|`), rotacje, wiadomość centrali, etap i **pełny deadline**. Etapy: Rejestracja → Gra główna → Przerwa → Finał → Wydarzenie zakończone.
+- `#admin`: nazwy szkół, sale 1–4 (oddzielone `|`), rotacje, wiadomość centrali, etap i **pełny deadline**. Etapy: Gra główna → Przerwa → Finał → Wydarzenie zakończone (bez osobnej rejestracji).
 - Gracz wybiera **Zakładam drużynę**, wpisuje nazwę/szkołę/pseudonim i sam tworzy drużynę. Na jej ekranie widzi **6-znakowy kod do dołączenia**.
 - Koledzy wybierają **Mam kod drużyny**, wpisują kod i pseudonim, klikają **Dołącz** i od razu są członkami. Nie ma długiego zaproszenia ani zatwierdzania przez prowadzącego. Wielkość liter i spacje nie mają znaczenia. Kod jest widoczny członkom po ponownym otwarciu aplikacji.
-- Dołączanie działa w etapie Rejestracja i przy otwartej drużynie. Publiczny ID dla prowadzącego nie jest kodem. Twórca może zamknąć dołączanie lub zmienić kod; organizator ma te same możliwości w **Prowadź**. Stary kod po zmianie nie działa, ale obecni członkowie pozostają.
+- Zakładanie drużyn i dołączanie działa w każdym etapie oprócz „Wydarzenie zakończone”, przy otwartej i niepełnej drużynie. Publiczny ID dla prowadzącego nie jest kodem. Twórca może zamknąć dołączanie lub zmienić kod; organizator ma te same możliwości w **Prowadź**. Stary kod po zmianie nie działa, ale obecni członkowie pozostają.
 - Cofnięcie członkostwa blokuje UID; nawet poprawny kod nie przywraca usuniętego telefonu. Organizator może świadomie usunąć blokadę. Starsze prośby pozostają dostępne w panelu dla zgodności, ale nowi gracze ich nie tworzą.
 - Kto zna krótki kod, może dołączyć. Nie pokazuj kodu w publicznym rankingu ani na rzutniku. Na Spark nie ma pełnego serwerowego limitowania prób — przy wycieku zmień kod lub zamknij drużynę.
 - Stacja: drużyna otwiera stronę ćwiczenia, kończy zadanie i wpisuje pokazaną flagę w **Laboratoria → właściwy lab → Zalicz lab**. Nie czeka na prowadzącego. SOC rozpoczyna sama; flaga pojawia się po czterech zadaniach (konsola SOC = 4) i osobnej reakcji (5). Serwer porównuje flagę, sprawdza członkostwo, etap i deadline; zapisuje audyt, status i ranking atomowo, bez powtórnych punktów.
